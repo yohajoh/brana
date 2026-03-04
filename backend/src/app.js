@@ -3,7 +3,6 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import morgan from "morgan";
 import helmet from "helmet";
-import "express-async-errors";
 import passport from "passport";
 import "./config/passport.js";
 

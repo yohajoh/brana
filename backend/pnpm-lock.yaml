@@ -29,9 +29,6 @@ importers:
       express:
         specifier: ^5.2.1
         version: 5.2.1
-      express-async-errors:
-        specifier: ^3.1.1
-        version: 3.1.1(express@5.2.1)
       express-rate-limit:
         specifier: ^8.2.1
         version: 8.2.1(express@5.2.1)
@@ -557,11 +554,6 @@ packages:
   etag@1.8.1:
     resolution: {integrity: sha512-aIL5Fx7mawVa300al2BnEE4iNvo1qETxLrPI/o05L7z6go7fCw1J6EQmbK4FmJ2AS7kgVF/KEZWufBfdClMcPg==}
     engines: {node: '>= 0.6'}
-
-  express-async-errors@3.1.1:
-    resolution: {integrity: sha512-h6aK1da4tpqWSbyCa3FxB/V6Ehd4EEB15zyQq9qe75OZBp0krinNKuH4rAY+S/U/2I36vdLAUFSjQJ+TFmODng==}
-    peerDependencies:
-      express: ^4.16.2
 
   express-rate-limit@8.2.1:
     resolution: {integrity: sha512-PCZEIEIxqwhzw4KF0n7QF4QqruVTcF73O5kFKUnGOyjbCCgizBBiFaYpd/fnBLUMPw/BWw9OsiN7GgrNYr7j6g==}
@@ -1832,10 +1824,6 @@ snapshots:
   esutils@2.0.3: {}
 
   etag@1.8.1: {}
-
-  express-async-errors@3.1.1(express@5.2.1):
-    dependencies:
-      express: 5.2.1
 
   express-rate-limit@8.2.1(express@5.2.1):
     dependencies:
