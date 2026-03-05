@@ -6,9 +6,22 @@ import helmet from "helmet";
 import passport from "passport";
 import "./config/passport.js";
 
+// ─── Route Imports ────────────────────────────────────────────────────────────
 import authRoutes from "./routes/auth.routes.js";
 import bookRoutes from "./routes/book.routes.js";
-import { globalErrorHandler } from "./middlewares/error.middleware.js";
+import digitalBookRoutes from "./routes/digitalBook.routes.js";
+import authorRoutes from "./routes/author.routes.js";
+import categoryRoutes from "./routes/category.routes.js";
+import bookImageRoutes from "./routes/bookImage.routes.js";
+import reviewRoutes from "./routes/review.routes.js";
+import wishlistRoutes from "./routes/wishlist.routes.js";
+import rentalRoutes from "./routes/rental.routes.js";
+import paymentRoutes from "./routes/payment.routes.js";
+import notificationRoutes from "./routes/notification.routes.js";
+import systemConfigRoutes from "./routes/systemConfig.routes.js";
+import statsRoutes from "./routes/stats.routes.js";
+
+import { globalErrorHandler, AppError } from "./middlewares/error.middleware.js";
 
 const app = express();
 
@@ -31,14 +44,35 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
 
-// Routes
+// ─── API Routes ───────────────────────────────────────────────────────────────
 app.use("/api/auth", authRoutes);
 app.use("/api/books", bookRoutes);
+app.use("/api/digital-books", digitalBookRoutes);
+app.use("/api/authors", authorRoutes);
+app.use("/api/categories", categoryRoutes);
+app.use("/api/book-images", bookImageRoutes);
+app.use("/api/reviews", reviewRoutes);
+app.use("/api/wishlists", wishlistRoutes);
+app.use("/api/rentals", rentalRoutes);
+app.use("/api/payments", paymentRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/system-config", systemConfigRoutes);
+app.use("/api/stats", statsRoutes);
 
-// Error handling
+// ─── Health Check ─────────────────────────────────────────────────────────────
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
+// ─── 404 Handler ─────────────────────────────────────────────────────────────
+app.all("/{*splat}", (req, res, next) => {
+  next(new AppError(`Cannot find ${req.method} ${req.originalUrl} on this server`, 404));
+});
+
+// ─── Global Error Handler ─────────────────────────────────────────────────────
 app.use(globalErrorHandler);
 
 export default app;

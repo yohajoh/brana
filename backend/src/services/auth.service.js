@@ -25,7 +25,7 @@ export const signup = async (userData) => {
   });
 
   // Send confirmation email
-  const confirmUrl = `${process.env.FRONTEND_URL}/confirm-email/${confirmationToken}`;
+  const confirmUrl = `${process.env.FRONTEND_URL}/auth/confirm-email/${confirmationToken}`;
   const message = `Please confirm your email by clicking: ${confirmUrl}`;
 
   await sendEmail({
@@ -96,7 +96,7 @@ export const forgotPassword = async (email) => {
     },
   });
 
-  const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+  const resetUrl = `${process.env.FRONTEND_URL}/auth/reset-password/${resetToken}`;
   const message = `Forgot your password? Reset it here: ${resetUrl}. Link expires in 10 minutes.`;
 
   await sendEmail({

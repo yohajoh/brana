@@ -1,6 +1,35 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { fetchApi } from "@/lib/api";
+
 export default function Home() {
+  const [user, setUser] = useState<any>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const data = await fetchApi("/auth/me");
+        setUser(data.data.user);
+      } catch (err) {
+        setUser(null);
+      }
+    };
+    checkAuth();
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await fetchApi("/auth/logout");
+      setUser(null);
+      router.push("/auth/login");
+    } catch (err) {
+      console.error("Logout failed", err);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#FFF2D9] text-[#2B1A10] flex flex-col">
       {/* Top bar */}
@@ -29,9 +58,28 @@ export default function Home() {
               </button>
             </nav>
 
-            <button className="ml-4 rounded-full bg-[#3B2718] px-4 py-1.5 text-xs font-medium text-[#FFF7EA] shadow-sm hover:bg-[#4A2B0B] transition-colors">
-              Log in
-            </button>
+            <div className="flex items-center gap-4">
+              {user ? (
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-medium text-[#5F422A]">
+                    {user.name}
+                  </span>
+                  <button
+                    onClick={handleLogout}
+                    className="rounded-full border border-[#3B2718] px-4 py-1.5 text-xs font-medium text-[#3B2718] hover:bg-[#3B2718] hover:text-[#FFF7EA] transition-colors"
+                  >
+                    Log out
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => router.push("/auth/login")}
+                  className="rounded-full bg-[#3B2718] px-4 py-1.5 text-xs font-medium text-[#FFF7EA] shadow-sm hover:bg-[#4A2B0B] transition-colors"
+                >
+                  Log in
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -142,12 +190,23 @@ export default function Home() {
             <h2 className="text-sm font-semibold text-[#2B1A10]">My Basket</h2>
           </div>
           <div className="rounded-2xl border border-[#E1D2BD] bg-[#FFF7EA] p-4 text-xs text-[#5F422A]">
-            <p className="font-medium text-[#2B1A10]">
-              To add items to your cart, sign in below
-            </p>
-            <button className="mt-3 inline-flex w-full items-center justify-center rounded-full border border-[#4A2B0B] px-4 py-2 text-xs font-medium text-[#4A2B0B] hover:bg-[#4A2B0B] hover:text-[#FFF2D9] transition-colors">
-              Log in
-            </button>
+            {user ? (
+               <p className="font-medium text-[#2B1A10]">
+               Welcome back, {user.name}! Your basket is empty.
+             </p>
+            ) : (
+              <>
+                <p className="font-medium text-[#2B1A10]">
+                  To add items to your cart, sign in below
+                </p>
+                <button
+                  onClick={() => router.push("/auth/login")}
+                  className="mt-3 inline-flex w-full items-center justify-center rounded-full border border-[#4A2B0B] px-4 py-2 text-xs font-medium text-[#4A2B0B] hover:bg-[#4A2B0B] hover:text-[#FFF2D9] transition-colors"
+                >
+                  Log in
+                </button>
+              </>
+            )}
           </div>
         </aside>
       </main>

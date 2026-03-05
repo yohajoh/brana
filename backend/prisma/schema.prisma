@@ -155,6 +155,7 @@ model Book {
   cover_image_url   String
   copies            Int
   available         Int
+  pages             Int
   deleted_at        DateTime?   // For soft delete as mentioned in the diagram
 
   author            Author      @relation(fields: [author_id], references: [id])
@@ -175,6 +176,7 @@ model DigitalBook {
   pdf_file          Bytes       // Stores binary data as BYTEA
   pdf_name          String
   pdf_access        PDFAccess
+  pages             Int
   deleted_at        DateTime?
 
   author            Author      @relation(fields: [author_id], references: [id])

@@ -2,7 +2,7 @@ import express from "express";
 import * as authController from "../controllers/auth.controller.js";
 import { body } from "express-validator";
 import passport from "passport";
-import { sendTokenCookie } from "../utils/token.utils.js";
+import { sendTokenCookie, generateToken } from "../utils/token.utils.js";
 import { protect, restrictTo } from "../middlewares/auth.middleware.js";
 import rateLimit from "express-rate-limit";
 
@@ -41,9 +41,34 @@ router.get(
   "/google/callback",
   passport.authenticate("google", { session: false, failureRedirect: "/login" }),
   (req, res) => {
-    // Successful authentication, send JWT
-    sendTokenCookie(req.user, 200, res);
+    // Successful authentication, set cookie and redirect to frontend
+    console.log(`Google Auth successful for user: ${req.user.email}`);
+    // @ts-ignore
+    const token = generateToken(req.user.id);
+    const cookieOptions = {
+      expires: new Date(
+        Date.now() + Number(process.env.JWT_COOKIE_EXPIRE || 30) * 24 * 60 * 60 * 1000
+      ),
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax", // Better for cross-site redirects
+    };
+    res.cookie("token", token, cookieOptions);
+    res.redirect(process.env.FRONTEND_URL || "http://localhost:3000");
   }
+);
+
+// Public password reset routes
+router.post(
+  "/forgot-password",
+  [body("email").isEmail().withMessage("Valid email is required")],
+  authController.forgotPassword
+);
+
+router.post(
+  "/reset-password/:token",
+  [body("password").isLength({ min: 6 }).withMessage("Password must be at least 6 characters long")],
+  authController.resetPassword
 );
 
 // Protected routes
@@ -57,17 +82,5 @@ router.patch("/update-password", authController.updatePassword);
 router.get("/users", restrictTo("ADMIN"), authController.getAllUsers);
 router.patch("/users/:id/block", restrictTo("ADMIN"), authController.blockUser);
 router.patch("/users/:id/unblock", restrictTo("ADMIN"), authController.unblockUser);
-
-router.post(
-  "/forgot-password",
-  [body("email").isEmail().withMessage("Valid email is required")],
-  authController.forgotPassword
-);
-
-router.post(
-  "/reset-password/:token",
-  [body("password").isLength({ min: 6 }).withMessage("Password must be at least 6 characters long")],
-  authController.resetPassword
-);
 
 export default router;
