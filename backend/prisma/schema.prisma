@@ -56,6 +56,15 @@ enum PaymentStatus {
   FAILED
 }
 
+model PendingSignup {
+  id                   String   @id @default(uuid()) @db.Uuid
+  name                 String
+  email                String
+  password_hash        String
+  confirmation_token   String   @unique
+  created_at           DateTime @default(now())
+}
+
 model User {
   id                   String        @id @default(uuid()) @db.Uuid
   student_id           String?       @unique // Unique optional field as per ASTU/123/12 example
@@ -155,6 +164,7 @@ model Book {
   cover_image_url   String
   copies            Int
   available         Int
+  pages             Int
   deleted_at        DateTime?   // For soft delete as mentioned in the diagram
 
   author            Author      @relation(fields: [author_id], references: [id])
@@ -175,6 +185,7 @@ model DigitalBook {
   pdf_file          Bytes       // Stores binary data as BYTEA
   pdf_name          String
   pdf_access        PDFAccess
+  pages             Int
   deleted_at        DateTime?
 
   author            Author      @relation(fields: [author_id], references: [id])

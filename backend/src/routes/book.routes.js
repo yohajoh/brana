@@ -1,28 +1,27 @@
-import express from "express";
-import { protect, restrictTo } from "../middlewares/auth.middleware.js";
+/**
+ * Physical Book Routes
+ * BASE: /api/books
+ */
 
-const router = express.Router();
+import { Router } from 'express';
+import * as bookController from '../controllers/book.controller.js';
+import { protect, restrictTo } from '../middlewares/auth.middleware.js';
 
-// Public route: Everyone can see books
-router.get("/", (req, res) => {
-  res.json({ status: "success", message: "Publicly accessible books" });
-});
+const router = Router();
 
-// Protected route: Only logged in users can see book details
-router.get("/:id", protect, (/** @type {any} */ req, res) => {
-  res.json({
-    status: "success",
-    message: `Details for book ${req.params.id}`,
-    user: req.user.name,
-  });
-});
+// ─── Public ───────────────────────────────────────────────────────────────────
+router.get('/', bookController.getBooks);
+router.get('/:id/availability', bookController.getBookAvailability);
 
-// Admin-only route: Only admins can add books
-router.post("/", protect, restrictTo("ADMIN"), (req, res) => {
-  res.status(201).json({
-    status: "success",
-    message: "Book added by admin",
-  });
-});
+// ─── Public but enriched with user context when logged in ─────────────────────
+router.get('/:id', protect, bookController.getBook);
+
+// ─── Admin ────────────────────────────────────────────────────────────────────
+router.use(protect, restrictTo('ADMIN'));
+
+router.get('/admin/list', bookController.getAdminBooks);
+router.post('/', bookController.createBook);
+router.patch('/:id', bookController.updateBook);
+router.delete('/:id', bookController.deleteBook);
 
 export default router;
