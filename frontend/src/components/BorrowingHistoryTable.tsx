@@ -65,10 +65,7 @@ export const BorrowingHistoryTable = () => {
           </thead>
           <tbody className="text-sm divide-y divide-border/20">
             {historyData.map((row) => (
-              <tr
-                key={row.id}
-                className="hover:bg-primary/[0.02] transition-colors"
-              >
+              <tr key={row.id} className="hover:bg-primary/2 transition-colors">
                 <td className="px-6 py-5 font-bold text-primary">
                   {row.title}
                 </td>

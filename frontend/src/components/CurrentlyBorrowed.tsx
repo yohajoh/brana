@@ -34,7 +34,7 @@ export const CurrentlyBorrowed = () => {
                 <p className="text-sm text-secondary font-medium">
                   ዲያቆን ሄኖክ ኃይሌ
                 </p>
-                <div className="h-4 w-[1px] bg-border" />
+                <div className="h-4 w-px bg-border" />
                 <div className="flex items-center gap-1 text-primary">
                   <Star size={14} fill="currentColor" />
                   <span className="text-xs font-bold">4.5</span>
