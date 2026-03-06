@@ -14,11 +14,15 @@ import {
 } from "lucide-react";
 
 const NAV_ITEMS = [
-  { name: "Dashboard", href: "/admin/dashboard", icon: LayoutGrid },
-  { name: "Users", href: "/admin/users", icon: Users },
-  { name: "Books", href: "/admin/books", icon: BookOpen },
-  { name: "Authors", href: "/admin/authors", icon: PenTool },
-  { name: "Borrowings", href: "/admin/borrowings", icon: ArrowLeftRight },
+  { name: "Dashboard", href: "/dashboard/admin/dashboard", icon: LayoutGrid },
+  { name: "Users", href: "/dashboard/admin/users", icon: Users },
+  { name: "Books", href: "/dashboard/admin/books", icon: BookOpen },
+  { name: "Authors", href: "/dashboard/admin/authors", icon: PenTool },
+  {
+    name: "Borrowings",
+    href: "/dashboard/admin/borrowings",
+    icon: ArrowLeftRight,
+  },
 ];
 
 export default function Sidebar() {

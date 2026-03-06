@@ -11,7 +11,7 @@ export default function DashboardPage() {
     async function checkUserAndRedirect() {
       try {
         const user = await fetchCurrentUser();
-        
+
         if (!user) {
           router.push("/auth/login");
           return;
@@ -19,7 +19,7 @@ export default function DashboardPage() {
 
         // Redirect based on role
         if (user.role === "ADMIN") {
-          router.push("/dashboard/admin");
+          router.push("/dashboard/admin/dashboard");
         } else {
           router.push("/dashboard/student");
         }
