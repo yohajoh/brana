@@ -3,18 +3,21 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard,
+  LayoutGrid,
   Users,
   BookOpen,
+  PenTool,
   ArrowLeftRight,
   LogOut,
   ChevronRight,
+  Book,
 } from "lucide-react";
 
 const NAV_ITEMS = [
-  { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
+  { name: "Dashboard", href: "/admin/dashboard", icon: LayoutGrid },
   { name: "Users", href: "/admin/users", icon: Users },
   { name: "Books", href: "/admin/books", icon: BookOpen },
+  { name: "Authors", href: "/admin/authors", icon: PenTool },
   { name: "Borrowings", href: "/admin/borrowings", icon: ArrowLeftRight },
 ];
 
@@ -22,67 +25,67 @@ export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-64 h-screen bg-[#FDFCF8] border-r border-[#E8E2D4] flex flex-col pt-8 pb-6 px-4 fixed left-0 top-0">
+    <aside className="w-full lg:w-72 h-screen bg-[#FDF8F0] border-r border-[#E1D2BD]/50 flex flex-col px-6 py-10 fixed left-0 top-0 z-50">
       {/* Brand */}
-      <div className="flex items-center gap-2 px-4 mb-10">
-        <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-          <span className="text-white font-serif text-xl">B</span>
-        </div>
-        <span className="text-xl font-serif font-bold text-primary">
+      <div className="flex items-center gap-2.5 mb-10">
+        <Book size={24} className="text-[#3B2718]" strokeWidth={1.5} />
+        <span className="text-xl font-serif font-black text-[#3B2718] tracking-tight">
           Birana
         </span>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1">
+      <nav className="grow space-y-2 overflow-y-auto">
         {NAV_ITEMS.map((item) => {
           const isActive = pathname === item.href;
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center justify-between px-4 py-3 rounded-xl transition-all group ${
+              className={`flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all group ${
                 isActive
-                  ? "bg-[#D4C8B8] text-primary"
-                  : "text-primary/60 hover:bg-[#F3EFE6] hover:text-primary"
+                  ? "bg-[#C2B199] text-[#2B1A10] font-bold shadow-sm"
+                  : "text-[#2B1A10]/60 hover:bg-[#F3EFE6] hover:text-[#2B1A10]"
               }`}
             >
-              <div className="flex items-center gap-3">
-                <item.icon
-                  size={20}
-                  className={
-                    isActive
-                      ? "text-primary"
-                      : "text-primary/60 group-hover:text-primary"
-                  }
-                />
-                <span className="font-medium">{item.name}</span>
-              </div>
-              {isActive && <ChevronRight size={16} />}
+              <item.icon
+                size={20}
+                strokeWidth={1.5}
+                className={
+                  isActive
+                    ? "text-[#2B1A10]"
+                    : "text-[#2B1A10]/50 group-hover:text-[#2B1A10]"
+                }
+              />
+              <span className="text-sm font-medium">{item.name}</span>
             </Link>
           );
         })}
       </nav>
 
       {/* Footer / User */}
-      <div className="mt-auto space-y-4">
-        <div className="px-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-[#E8E2D4] flex items-center justify-center text-primary font-bold">
+      <div className="mt-auto pt-8 border-t border-[#E1D2BD]/50 space-y-6">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-[#E1D2BD] flex items-center justify-center text-[#3B2718] font-bold text-sm">
             AU
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-primary truncate">
+          <div className="space-y-0.5 min-w-0">
+            <p className="text-sm font-bold text-[#3B2718] truncate">
               Anonymous User
             </p>
-            <p className="text-xs text-primary/50 truncate">
-              anonymous@gmail.com
+            <p className="text-[11px] text-[#AE9E85] truncate">
+              anonymous@gamil.com
             </p>
           </div>
         </div>
 
-        <button className="w-full flex items-center gap-3 px-4 py-3 text-primary/60 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all">
-          <LogOut size={20} />
-          <span className="font-medium">Logout</span>
+        <button className="flex items-center gap-4 w-full px-4 py-3 rounded-xl text-[#2B1A10]/60 hover:text-red-500 hover:bg-red-50 transition-all group">
+          <LogOut
+            size={20}
+            strokeWidth={1.5}
+            className="group-hover:text-red-500"
+          />
+          <span className="text-sm font-medium">Logout</span>
         </button>
       </div>
     </aside>
