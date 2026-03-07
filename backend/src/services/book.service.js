@@ -75,6 +75,11 @@ const BOOK_DETAIL_INCLUDE = {
 
 const DEFAULT_COVER_IMAGE = 'https://placehold.co/400x600?text=Brana+Book';
 
+const buildCopyCode = (bookId, sequence) => {
+  const seq = String(sequence).padStart(4, '0');
+  return `BC-${bookId.slice(0, 8).toUpperCase()}-${seq}`;
+};
+
 const resolveAuthorId = async (data) => {
   if (data.author_id) {
     const author = await prisma.author.findUnique({ where: { id: data.author_id } });
@@ -310,6 +315,15 @@ export const createBook = async (data, imageFile = null, galleryFiles = []) => {
     include: BOOK_DETAIL_INCLUDE,
   });
 
+  await prisma.bookCopy.createMany({
+    data: Array.from({ length: copiesInt }).map((_, idx) => ({
+      book_id: created.id,
+      copy_code: buildCopyCode(created.id, idx + 1),
+      is_available: true,
+      condition: 'GOOD',
+    })),
+  });
+
   if (coverFromUpload) {
     await prisma.bookImage.create({
       data: {
@@ -399,6 +413,47 @@ export const updateBook = async (id, data, imageFile = null, galleryFiles = []) 
     include: BOOK_DETAIL_INCLUDE,
   });
 
+  if (copyInput !== undefined) {
+    const targetCopies = parseInt(copyInput, 10);
+    const activeCopiesCount = await prisma.bookCopy.count({
+      where: { book_id: id, deleted_at: null },
+    });
+
+    if (targetCopies > activeCopiesCount) {
+      const toCreate = targetCopies - activeCopiesCount;
+      const allCopiesCount = await prisma.bookCopy.count({
+        where: { book_id: id },
+      });
+      await prisma.bookCopy.createMany({
+        data: Array.from({ length: toCreate }).map((_, idx) => ({
+          book_id: id,
+          copy_code: buildCopyCode(id, allCopiesCount + idx + 1),
+          is_available: true,
+          condition: 'GOOD',
+        })),
+      });
+    } else if (targetCopies < activeCopiesCount) {
+      const toArchive = activeCopiesCount - targetCopies;
+      const removable = await prisma.bookCopy.findMany({
+        where: {
+          book_id: id,
+          deleted_at: null,
+          is_available: true,
+        },
+        orderBy: { acquired_at: 'desc' },
+        take: toArchive,
+        select: { id: true },
+      });
+      if (removable.length < toArchive) {
+        throw new AppError('Cannot reduce copies below currently borrowed copy count', 400);
+      }
+      await prisma.bookCopy.updateMany({
+        where: { id: { in: removable.map((copy) => copy.id) } },
+        data: { deleted_at: new Date() },
+      });
+    }
+  }
+
   if (uploadedCover) {
     const lastImage = await prisma.bookImage.findFirst({
       where: { physical_book_id: id, book_type: 'PHYSICAL' },
@@ -472,6 +527,10 @@ export const deleteBook = async (id) => {
   const result = await prisma.book.update({
     where: { id },
     data: { deleted_at: new Date() },
+  });
+  await prisma.bookCopy.updateMany({
+    where: { book_id: id, deleted_at: null },
+    data: { deleted_at: new Date(), is_available: false },
   });
   await syncLowStockAlertForBook(id);
   return result;

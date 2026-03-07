@@ -20,6 +20,8 @@ router.post(
   [
     body("name").notEmpty().withMessage("Name is required"),
     body("email").isEmail().withMessage("Valid email is required"),
+    body("student_id").notEmpty().withMessage("Student ID is required"),
+    body("year").notEmpty().withMessage("Year is required"),
     body("password").isLength({ min: 6 }).withMessage("Password must be at least 6 characters long"),
   ],
   authController.signup
@@ -73,7 +75,15 @@ router.get("/google/callback", (req, res, next) => {
       sameSite: "lax",
     };
     res.cookie("token", token, cookieOptions);
-    res.redirect(FRONTEND_URL);
+    const needsProfileCompletion =
+      user.role !== "ADMIN" &&
+      (!user.student_id || !user.phone || !user.year || !user.department);
+    const redirectPath = needsProfileCompletion
+      ? "/auth/complete-profile"
+      : user.role === "ADMIN"
+        ? "/dashboard/admin"
+        : "/dashboard/student";
+    res.redirect(`${FRONTEND_URL}${redirectPath}`);
   })(req, res, next);
 });
 

@@ -67,11 +67,55 @@ const RENTAL_INCLUDE = {
   physical_book: {
     select: { id: true, title: true, cover_image_url: true, pages: true },
   },
+  copy: {
+    select: { id: true, copy_code: true, condition: true, is_available: true },
+  },
   payment: {
     select: {
       id: true, tx_ref: true, amount: true, method: true, status: true, paid_at: true,
     },
   },
+};
+
+const buildCopyCode = (bookId, sequence) => {
+  const seq = String(sequence).padStart(4, '0');
+  return `BC-${bookId.slice(0, 8).toUpperCase()}-${seq}`;
+};
+
+const ensureAvailableCopy = async (bookId, copies, available) => {
+  let copy = await prisma.bookCopy.findFirst({
+    where: { book_id: bookId, deleted_at: null, is_available: true },
+    orderBy: [{ acquired_at: 'asc' }, { copy_code: 'asc' }],
+    select: { id: true },
+  });
+  if (copy) return copy;
+
+  // Backward compatibility for older data where BookCopy rows were never created.
+  const existingCount = await prisma.bookCopy.count({
+    where: { book_id: bookId, deleted_at: null },
+  });
+  if (existingCount === 0 && copies > 0) {
+    const allCopiesCount = await prisma.bookCopy.count({
+      where: { book_id: bookId },
+    });
+    const unavailableCount = Math.max(0, copies - available);
+    await prisma.bookCopy.createMany({
+      data: Array.from({ length: copies }).map((_, idx) => ({
+        book_id: bookId,
+        copy_code: buildCopyCode(bookId, allCopiesCount + idx + 1),
+        condition: 'GOOD',
+        is_available: idx >= unavailableCount,
+      })),
+    });
+
+    copy = await prisma.bookCopy.findFirst({
+      where: { book_id: bookId, deleted_at: null, is_available: true },
+      orderBy: [{ acquired_at: 'asc' }, { copy_code: 'asc' }],
+      select: { id: true },
+    });
+  }
+
+  return copy;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -316,16 +360,26 @@ export const borrowBook = async (userId, { book_id, loan_days }, io) => {
   const dueDate = new Date();
   dueDate.setDate(dueDate.getDate() + loanDays);
 
-  // Atomic transaction: create rental + decrement available
+  const copy = await ensureAvailableCopy(book.id, book.copies, book.available);
+  if (!copy) {
+    throw new AppError(`No available copy record found for "${book.title}". Please contact admin.`, 409);
+  }
+
+  // Atomic transaction: create rental + mark copy unavailable + decrement book.available
   const [rental] = await prisma.$transaction([
     prisma.rental.create({
       data: {
         user_id: userId,
         book_id,
+        copy_id: copy.id,
         due_date: dueDate,
         status: 'BORROWED',
       },
       include: RENTAL_INCLUDE,
+    }),
+    prisma.bookCopy.update({
+      where: { id: copy.id },
+      data: { is_available: false },
     }),
     prisma.book.update({
       where: { id: book_id },
@@ -395,7 +449,7 @@ export const returnBook = async (rentalId, io) => {
   const newStatus = fine > 0 ? 'PENDING' : 'RETURNED';
 
   // Atomic: update rental + restore available
-  const [updated] = await prisma.$transaction([
+  const txOps = [
     prisma.rental.update({
       where: { id: rentalId },
       data: {
@@ -409,7 +463,16 @@ export const returnBook = async (rentalId, io) => {
       where: { id: rental.book_id },
       data: { available: { increment: 1 } },
     }),
-  ]);
+  ];
+  if (rental.copy_id) {
+    txOps.push(
+      prisma.bookCopy.update({
+        where: { id: rental.copy_id },
+        data: { is_available: true, last_condition_update: returnDate },
+      })
+    );
+  }
+  const [updated] = await prisma.$transaction(txOps);
 
   await Promise.all([
     notifyNextInQueue(rental.book_id, io),

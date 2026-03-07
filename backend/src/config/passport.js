@@ -1,6 +1,8 @@
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { prisma } from "../prisma.js";
+import crypto from "crypto";
+import { hashPassword } from "../utils/password.utils.js";
 
 passport.use(
   new GoogleStrategy(
@@ -35,12 +37,14 @@ passport.use(
           return done(null, user);
         }
 
-        // New user: register and login
+        // New user: register and login (no email confirmation required for Google OAuth)
+        const generatedPassword = crypto.randomBytes(32).toString("hex");
+        const hashedPassword = await hashPassword(generatedPassword);
         user = await prisma.user.create({
           data: {
             name: displayName,
             email,
-            password_hash: "google-auth",
+            password_hash: hashedPassword,
             is_confirmed: true,
           },
         });

@@ -5,25 +5,46 @@ import { sendEmail } from "./mail.service.js";
 import crypto from "crypto";
 
 export const signup = async (userData) => {
-  const { name, email, password } = userData;
+  const { name, email, password, student_id, year, phone, department } = userData;
 
   const existingUser = await prisma.user.findUnique({ where: { email } });
   if (existingUser) {
     throw new AppError("User already exists with this email", 400);
   }
+  if (student_id) {
+    const existingStudentId = await prisma.user.findUnique({ where: { student_id } });
+    if (existingStudentId) {
+      throw new AppError("User already exists with this student ID", 400);
+    }
+  }
 
   const hashedPassword = await hashPassword(password);
   const confirmationToken = crypto.randomBytes(32).toString("hex");
 
-  await prisma.pendingSignup.deleteMany({ where: { email } });
-  await prisma.pendingSignup.create({
-    data: {
-      name,
-      email,
-      password_hash: hashedPassword,
-      confirmation_token: confirmationToken,
+  await prisma.pendingSignup.deleteMany({
+    where: {
+      OR: [{ email }, ...(student_id ? [{ student_id }] : [])],
     },
   });
+  try {
+    await prisma.pendingSignup.create({
+      data: {
+        name,
+        email,
+        student_id: student_id || null,
+        year: year || null,
+        phone: phone || null,
+        department: department || null,
+        password_hash: hashedPassword,
+        confirmation_token: confirmationToken,
+      },
+    });
+  } catch (error) {
+    if (error?.code === "P2002") {
+      throw new AppError("A pending account already exists with this student ID", 409);
+    }
+    throw error;
+  }
 
   // Send confirmation email (with timeout to avoid hanging)
   const confirmUrl = `${process.env.FRONTEND_URL}/auth/confirm-email/${confirmationToken}`;
@@ -56,6 +77,10 @@ export const confirmEmail = async (token) => {
       data: {
         name: pending.name,
         email: pending.email,
+        student_id: pending.student_id,
+        year: pending.year,
+        phone: pending.phone,
+        department: pending.department,
         password_hash: pending.password_hash,
         is_confirmed: true,
         confirmation_token: null,
@@ -186,6 +211,14 @@ export const getMe = async (userId) => {
 };
 
 export const updateMe = async (userId, updateData) => {
+  const existingUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, student_id: true },
+  });
+  if (!existingUser) {
+    throw new AppError("User not found", 404);
+  }
+
   // Filter out fields that shouldn't be updated via this method
   const filteredData = {};
   const allowedFields = ["name", "phone", "year", "department"];
@@ -195,22 +228,41 @@ export const updateMe = async (userId, updateData) => {
     }
   });
 
-  const updatedUser = await prisma.user.update({
-    where: { id: userId },
-    data: filteredData,
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      phone: true,
-      year: true,
-      department: true,
-      role: true,
-      student_id: true,
-    },
-  });
+  // Allow setting student_id only once (for onboarding / Google profile completion).
+  if (updateData.student_id !== undefined) {
+    const studentId = String(updateData.student_id || "").trim();
+    if (!studentId) {
+      throw new AppError("student_id cannot be empty", 400);
+    }
+    if (existingUser.student_id) {
+      throw new AppError("student_id is already set and cannot be changed", 400);
+    }
+    filteredData.student_id = studentId;
+  }
 
-  return updatedUser;
+  try {
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: filteredData,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        year: true,
+        department: true,
+        role: true,
+        student_id: true,
+      },
+    });
+
+    return updatedUser;
+  } catch (error) {
+    if (error?.code === "P2002") {
+      throw new AppError("This student ID is already in use", 409);
+    }
+    throw error;
+  }
 };
 
 export const blockUser = async (userId) => {

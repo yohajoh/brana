@@ -29,6 +29,10 @@ export default function CreateAccountPage() {
 
     const formData = new FormData(event.currentTarget);
     const name = formData.get("fullName") as string;
+    const year = formData.get("year") as string;
+    const studentId = formData.get("studentId") as string;
+    const phone = formData.get("phone") as string;
+    const department = formData.get("department") as string;
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
     const confirmPassword = formData.get("confirmPassword") as string;
@@ -42,11 +46,19 @@ export default function CreateAccountPage() {
     try {
       await fetchApi("/auth/signup", {
         method: "POST",
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+          year,
+          student_id: studentId,
+          phone,
+          department,
+        }),
       });
       setShowModal(true);
-    } catch (err: any) {
-      setError(err.message || "Failed to create account");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to create account");
     } finally {
       setIsLoading(false);
     }
@@ -101,6 +113,20 @@ export default function CreateAccountPage() {
           </div>
 
           <div className="space-y-1.5">
+            <label htmlFor="department" className="text-xs font-medium text-[#3B2718]">
+              Department
+            </label>
+            <input
+              id="department"
+              name="department"
+              type="text"
+              required
+              className="w-full rounded-xl border border-[#D2BFA3] bg-white px-3 py-2.5 text-sm text-[#3B2718] placeholder:text-[#B09776] outline-none focus:border-[#7A4A1D] focus:ring-2 focus:ring-[#E1C6A1] transition"
+              placeholder="e.g. Computer Science"
+            />
+          </div>
+
+          <div className="space-y-1.5">
             <label
               htmlFor="studentId"
               className="text-xs font-medium text-[#3B2718]"
@@ -114,6 +140,20 @@ export default function CreateAccountPage() {
               required
               className="w-full rounded-xl border border-[#D2BFA3] bg-white px-3 py-2.5 text-sm text-[#3B2718] placeholder:text-[#B09776] outline-none focus:border-[#7A4A1D] focus:ring-2 focus:ring-[#E1C6A1] transition"
               placeholder="Enter your ID"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label htmlFor="phone" className="text-xs font-medium text-[#3B2718]">
+              Phone Number
+            </label>
+            <input
+              id="phone"
+              name="phone"
+              type="tel"
+              required
+              className="w-full rounded-xl border border-[#D2BFA3] bg-white px-3 py-2.5 text-sm text-[#3B2718] placeholder:text-[#B09776] outline-none focus:border-[#7A4A1D] focus:ring-2 focus:ring-[#E1C6A1] transition"
+              placeholder="+2519XXXXXXXX"
             />
           </div>
 
