@@ -30,7 +30,12 @@ interface Book {
 interface Category {
   id: string;
   name: string;
-  _count?: { books: number };
+  _count?: { books: number; digital_books?: number };
+}
+
+interface Author {
+  id: string;
+  name: string;
 }
 
 const ITEMS_PER_PAGE = 8;
@@ -40,27 +45,35 @@ export default function AdminBooksPage() {
   const [physicalBooks, setPhysicalBooks] = useState<Book[]>([]);
   const [digitalBooks, setDigitalBooks] = useState<Book[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [authors, setAuthors] = useState<Author[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deletingCategoryId, setDeletingCategoryId] = useState<string | null>(null);
 
   // Modal state
   const [showModal, setShowModal] = useState(false);
   const [modalTab, setModalTab] = useState<"physical" | "digital">("physical");
   const [form, setForm] = useState({
     title: "",
-    author: "",
-    category: "",
+    author_id: "",
+    category_id: "",
     copies: "",
     description: "",
     pdf_access: "RESTRICTED" as "FREE" | "PAID" | "RESTRICTED",
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [categoryName, setCategoryName] = useState("");
+  const [categorySubmitting, setCategorySubmitting] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -69,10 +82,11 @@ export default function AdminBooksPage() {
       fetchApi("/books?limit=200").catch(() => null),
       fetchApi("/digital-books?limit=200").catch(() => null),
       fetchApi("/categories").catch(() => null),
-    ]).then(([booksData, digitalData, catData]) => {
+      fetchApi("/authors?limit=200").catch(() => null),
+    ]).then(([booksData, digitalData, catData, authorData]) => {
       if (booksData?.data?.books)
         setPhysicalBooks(
-          booksData.data.books.map((b: any) => ({
+          booksData.data.books.map((b: Book & { copies?: number; total?: number }) => ({
             ...b,
             total: b.copies ?? b.total,
             type: "physical",
@@ -80,12 +94,12 @@ export default function AdminBooksPage() {
         );
       else if (booksData?.books)
         setPhysicalBooks(
-          booksData.books.map((b: any) => ({ ...b, type: "physical" })),
+          booksData.books.map((b: Book) => ({ ...b, type: "physical" })),
         );
 
       if (digitalData?.data?.books)
         setDigitalBooks(
-          digitalData.data.books.map((b: any) => ({
+          digitalData.data.books.map((b: Book) => ({
             ...b,
             total: 0,
             type: "digital",
@@ -93,12 +107,15 @@ export default function AdminBooksPage() {
         );
       else if (digitalData?.books)
         setDigitalBooks(
-          digitalData.books.map((b: any) => ({ ...b, type: "digital" })),
+          digitalData.books.map((b: Book) => ({ ...b, type: "digital" })),
         );
 
       if (catData?.data?.categories) setCategories(catData.data.categories);
       else if (catData?.categories) setCategories(catData.categories);
       else if (Array.isArray(catData)) setCategories(catData);
+
+      if (authorData?.authors) setAuthors(authorData.authors);
+      else if (authorData?.data?.authors) setAuthors(authorData.data.authors);
 
       setLoading(false);
     });
@@ -182,24 +199,41 @@ export default function AdminBooksPage() {
   const openModal = () => {
     setForm({
       title: "",
-      author: "",
-      category: "",
+      author_id: "",
+      category_id: "",
       copies: "",
       description: "",
       pdf_access: "RESTRICTED",
     });
     setImageFile(null);
     setImagePreview(null);
+    setGalleryFiles([]);
     setPdfFile(null);
     setModalTab("physical");
     setShowModal(true);
   };
 
+  const openCategoryModal = (category?: Category) => {
+    if (category) {
+      setEditingCategoryId(category.id);
+      setCategoryName(category.name);
+    } else {
+      setEditingCategoryId(null);
+      setCategoryName("");
+    }
+    setShowCategoryModal(true);
+  };
+
   const handleFileChange = (
     e: React.ChangeEvent<HTMLInputElement>,
-    type: "image" | "pdf",
+    type: "image" | "pdf" | "gallery",
   ) => {
     const file = e.target.files?.[0];
+    if (type === "gallery") {
+      const files = Array.from(e.target.files || []).slice(0, 10);
+      setGalleryFiles(files);
+      return;
+    }
     if (file) {
       if (type === "image") {
         setImageFile(file);
@@ -212,16 +246,21 @@ export default function AdminBooksPage() {
 
   const handleAddBook = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.author_id || !form.category_id) {
+      alert("Please select both author and category.");
+      return;
+    }
     setSubmitting(true);
     try {
       const fd = new FormData();
       fd.append("title", form.title);
-      fd.append("author_name", form.author);
-      fd.append("category_name", form.category);
+      fd.append("author_id", form.author_id);
+      fd.append("category_id", form.category_id);
       fd.append("description", form.description);
       if (modalTab === "physical") {
         fd.append("total", form.copies);
         if (imageFile) fd.append("image", imageFile);
+        galleryFiles.forEach((file) => fd.append("images", file));
         const res = await fetch("http://localhost:5000/api/books", {
           method: "POST",
           body: fd,
@@ -236,6 +275,7 @@ export default function AdminBooksPage() {
       } else {
         if (imageFile) fd.append("image", imageFile);
         if (pdfFile) fd.append("pdf", pdfFile);
+        galleryFiles.forEach((file) => fd.append("images", file));
         fd.append("pdf_access", form.pdf_access);
         const res = await fetch("http://localhost:5000/api/digital-books", {
           method: "POST",
@@ -254,6 +294,67 @@ export default function AdminBooksPage() {
       console.error("Add book failed:", err);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleSaveCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!categoryName.trim()) return;
+    setCategorySubmitting(true);
+    try {
+      const payload = { name: categoryName.trim() };
+      if (editingCategoryId) {
+        const res = await fetch(`http://localhost:5000/api/categories/${editingCategoryId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || "Failed to update category");
+        const updated = data?.data?.category;
+        if (updated) {
+          setCategories((prev) => prev.map((c) => (c.id === updated.id ? { ...c, ...updated } : c)));
+        }
+      } else {
+        const res = await fetch("http://localhost:5000/api/categories", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || "Failed to create category");
+        const created = data?.data?.category;
+        if (created) {
+          setCategories((prev) => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)));
+        }
+      }
+      setShowCategoryModal(false);
+      setEditingCategoryId(null);
+      setCategoryName("");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Category action failed");
+    } finally {
+      setCategorySubmitting(false);
+    }
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    if (!confirm("Delete this category? It can only be deleted when no books are assigned.")) return;
+    setDeletingCategoryId(id);
+    try {
+      const res = await fetch(`http://localhost:5000/api/categories/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || "Delete failed");
+      setCategories((prev) => prev.filter((c) => c.id !== id));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Delete failed");
+    } finally {
+      setDeletingCategoryId(null);
     }
   };
 
@@ -291,11 +392,11 @@ export default function AdminBooksPage() {
             </div>
             {/* Add button */}
             <button
-              onClick={openModal}
+              onClick={() => (activeTab === "categories" ? openCategoryModal() : openModal())}
               className="flex items-center gap-2 px-4 py-2.5 bg-[#2B1A10] text-white text-sm font-bold rounded-xl hover:bg-[#3d2413] transition-all whitespace-nowrap"
             >
               <Plus size={16} />
-              Add new book
+              {activeTab === "categories" ? "Add new category" : "Add new book"}
             </button>
           </div>
         </div>
@@ -349,13 +450,20 @@ export default function AdminBooksPage() {
                       {cat.name}
                     </span>
                     <span className="text-sm text-[#2B1A10]/70">
-                      {cat._count?.books ?? "—"}
+                      {(cat._count?.books || 0) + (cat._count?.digital_books || 0)}
                     </span>
                     <div className="flex items-center gap-2">
-                      <button className="w-8 h-8 flex items-center justify-center rounded-lg text-[#AE9E85] hover:text-[#2B1A10] hover:bg-[#F3EFE6] transition-all">
+                      <button
+                        onClick={() => openCategoryModal(cat)}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg text-[#AE9E85] hover:text-[#2B1A10] hover:bg-[#F3EFE6] transition-all"
+                      >
                         <Pencil size={15} strokeWidth={1.5} />
                       </button>
-                      <button className="w-8 h-8 flex items-center justify-center rounded-lg text-[#AE9E85] hover:text-red-500 hover:bg-red-50 transition-all">
+                      <button
+                        onClick={() => handleDeleteCategory(cat.id)}
+                        disabled={deletingCategoryId === cat.id}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg text-[#AE9E85] hover:text-red-500 hover:bg-red-50 transition-all disabled:opacity-40"
+                      >
                         <Trash2 size={15} strokeWidth={1.5} />
                       </button>
                     </div>
@@ -545,73 +653,66 @@ export default function AdminBooksPage() {
                 />
               </div>
 
-              {/* Author + Category (Split for Digital) */}
-              <div
-                className={`grid ${modalTab === "digital" ? "grid-cols-2 gap-3" : "grid-cols-1 space-y-4"}`}
-              >
+              {/* Author + Category */}
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">
                     Author
                   </label>
-                  <input
-                    type="text"
-                    value={form.author}
+                  <select
+                    value={form.author_id}
                     onChange={(e) =>
-                      setForm((f) => ({ ...f, author: e.target.value }))
+                      setForm((f) => ({ ...f, author_id: e.target.value }))
+                    }
+                    required
+                    className="w-full px-3 py-2.5 text-sm border border-[#E1D2BD] rounded-xl text-[#2B1A10] focus:outline-none focus:ring-2 focus:ring-[#8B6B4A]/30 focus:border-[#8B6B4A] transition-all"
+                  >
+                    <option value="">Select author</option>
+                    {authors.map((author) => (
+                      <option key={author.id} value={author.id}>
+                        {author.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">
+                    Category
+                  </label>
+                  <select
+                    value={form.category_id}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, category_id: e.target.value }))
+                    }
+                    required
+                    className="w-full px-3 py-2.5 text-sm border border-[#E1D2BD] rounded-xl text-[#2B1A10] focus:outline-none focus:ring-2 focus:ring-[#8B6B4A]/30 focus:border-[#8B6B4A] transition-all"
+                  >
+                    <option value="">Select category</option>
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Copies (Physical only) */}
+              {modalTab === "physical" && (
+                <div>
+                  <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">
+                    No of copies
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={form.copies}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, copies: e.target.value }))
                     }
                     required
                     className="w-full px-3 py-2.5 text-sm border border-[#E1D2BD] rounded-xl text-[#2B1A10] focus:outline-none focus:ring-2 focus:ring-[#8B6B4A]/30 focus:border-[#8B6B4A] transition-all"
                   />
-                </div>
-
-                {modalTab === "digital" && (
-                  <div>
-                    <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">
-                      Category
-                    </label>
-                    <input
-                      type="text"
-                      value={form.category}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, category: e.target.value }))
-                      }
-                      className="w-full px-3 py-2.5 text-sm border border-[#E1D2BD] rounded-xl text-[#2B1A10] focus:outline-none focus:ring-2 focus:ring-[#8B6B4A]/30 focus:border-[#8B6B4A] transition-all"
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* Category + No of copies (Split for Physical) */}
-              {modalTab === "physical" && (
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">
-                      Category
-                    </label>
-                    <input
-                      type="text"
-                      value={form.category}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, category: e.target.value }))
-                      }
-                      className="w-full px-3 py-2.5 text-sm border border-[#E1D2BD] rounded-xl text-[#2B1A10] focus:outline-none focus:ring-2 focus:ring-[#8B6B4A]/30 focus:border-[#8B6B4A] transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">
-                      No of copies
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={form.copies}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, copies: e.target.value }))
-                      }
-                      required
-                      className="w-full px-3 py-2.5 text-sm border border-[#E1D2BD] rounded-xl text-[#2B1A10] focus:outline-none focus:ring-2 focus:ring-[#8B6B4A]/30 focus:border-[#8B6B4A] transition-all"
-                    />
-                  </div>
                 </div>
               )}
 
@@ -654,7 +755,7 @@ export default function AdminBooksPage() {
               {/* Image Upload */}
               <div>
                 <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">
-                  Image
+                  Cover Image
                 </label>
                 <div
                   onClick={() => imageInputRef.current?.click()}
@@ -687,7 +788,30 @@ export default function AdminBooksPage() {
                 />
               </div>
 
-              {/* PDF Upload (Only for Digital) */}
+              <div>
+                <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">
+                  Gallery Images (up to 10)
+                </label>
+                <div
+                  onClick={() => galleryInputRef.current?.click()}
+                  className="w-full h-20 border-2 border-dashed border-[#E1D2BD] rounded-2xl flex items-center justify-center cursor-pointer hover:border-[#8B6B4A] hover:bg-[#FDFAF5] transition-all"
+                >
+                  <p className="text-xs text-[#AE9E85]">
+                    {galleryFiles.length > 0
+                      ? `${galleryFiles.length} image(s) selected`
+                      : "Click to select multiple images"}
+                  </p>
+                </div>
+                <input
+                  ref={galleryInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => handleFileChange(e, "gallery")}
+                  className="hidden"
+                />
+              </div>
+
               {modalTab === "digital" && (
                 <div>
                   <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">
@@ -722,6 +846,49 @@ export default function AdminBooksPage() {
                 className="w-full py-3 bg-[#2B1A10] text-white text-sm font-bold rounded-xl hover:bg-[#3d2413] transition-all disabled:opacity-50 mt-2"
               >
                 {submitting ? "Adding..." : "Add book to collection"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showCategoryModal && (
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowCategoryModal(false);
+          }}
+        >
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="flex items-center justify-between px-8 pt-7 pb-4 border-b border-[#E1D2BD]/50">
+              <h3 className="text-xl font-serif font-extrabold text-[#2B1A10]">
+                {editingCategoryId ? "Edit Category" : "Add Category"}
+              </h3>
+              <button
+                onClick={() => setShowCategoryModal(false)}
+                className="w-8 h-8 flex items-center justify-center text-[#AE9E85] hover:text-[#2B1A10] rounded-lg hover:bg-[#F3EFE6] transition-all"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <form onSubmit={handleSaveCategory} className="px-8 py-6 space-y-4">
+              <div>
+                <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">Category Name</label>
+                <input
+                  type="text"
+                  required
+                  value={categoryName}
+                  onChange={(e) => setCategoryName(e.target.value)}
+                  className="w-full px-3 py-2.5 text-sm border border-[#E1D2BD] rounded-xl text-[#2B1A10] focus:outline-none focus:ring-2 focus:ring-[#8B6B4A]/30 focus:border-[#8B6B4A] transition-all"
+                  placeholder="Enter category name"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={categorySubmitting}
+                className="w-full py-3 bg-[#2B1A10] text-white text-sm font-bold rounded-xl hover:bg-[#3d2413] transition-all disabled:opacity-50"
+              >
+                {categorySubmitting ? "Saving..." : editingCategoryId ? "Update Category" : "Create Category"}
               </button>
             </form>
           </div>

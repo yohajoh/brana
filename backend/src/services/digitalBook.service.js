@@ -310,7 +310,7 @@ export const getPdfBytes = async (id, user) => {
  * Create a digital book with PDF file.
  * Accepts uploaded PDF via multer (buffer stored as BYTEA).
  */
-export const createDigitalBook = async (data, pdfFile = null, imageFile = null) => {
+export const createDigitalBook = async (data, pdfFile = null, imageFile = null, galleryFiles = []) => {
   const title = data.title?.trim();
   if (!title) throw new AppError('title is required', 400);
 
@@ -357,6 +357,26 @@ export const createDigitalBook = async (data, pdfFile = null, imageFile = null) 
     });
   }
 
+  if (galleryFiles.length > 0) {
+    const galleryUrls = await Promise.all(
+      galleryFiles.map((file) =>
+        uploadImageToCloudinary(file, {
+          folder: 'brana/digital-books/gallery',
+        }),
+      ),
+    );
+
+    await prisma.bookImage.createMany({
+      data: galleryUrls.map((url, idx) => ({
+        book_id: created.id,
+        book_type: 'DIGITAL',
+        image_url: url,
+        sort_order: (coverFromUpload ? 2 : 1) + idx,
+        digital_book_id: created.id,
+      })),
+    });
+  }
+
   return created;
 };
 
@@ -364,7 +384,7 @@ export const createDigitalBook = async (data, pdfFile = null, imageFile = null) 
 // UPDATE
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const updateDigitalBook = async (id, data, pdfFile = null, imageFile = null) => {
+export const updateDigitalBook = async (id, data, pdfFile = null, imageFile = null, galleryFiles = []) => {
   const book = await prisma.digitalBook.findFirst({ where: { id, deleted_at: null } });
   if (!book) throw new AppError('Digital book not found', 404);
 
@@ -422,6 +442,32 @@ export const updateDigitalBook = async (id, data, pdfFile = null, imageFile = nu
         sort_order: (lastImage?.sort_order ?? 0) + 1,
         digital_book_id: id,
       },
+    });
+  }
+
+  if (galleryFiles.length > 0) {
+    const galleryUrls = await Promise.all(
+      galleryFiles.map((file) =>
+        uploadImageToCloudinary(file, {
+          folder: 'brana/digital-books/gallery',
+        }),
+      ),
+    );
+
+    const lastImage = await prisma.bookImage.findFirst({
+      where: { digital_book_id: id, book_type: 'DIGITAL' },
+      orderBy: { sort_order: 'desc' },
+      select: { sort_order: true },
+    });
+
+    await prisma.bookImage.createMany({
+      data: galleryUrls.map((url, idx) => ({
+        book_id: id,
+        book_type: 'DIGITAL',
+        image_url: url,
+        sort_order: (lastImage?.sort_order ?? 0) + idx + 1,
+        digital_book_id: id,
+      })),
     });
   }
 

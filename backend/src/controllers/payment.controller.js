@@ -16,6 +16,15 @@ export const initiatePayment = async (req, res) => {
   res.status(201).json({ status: 'success', data: result });
 };
 
+export const verifyPayment = async (req, res) => {
+  const result = await paymentService.verifyPaymentByTxRef(
+    req.params.txRef,
+    req.user,
+    getIo(req)
+  );
+  res.json({ status: 'success', data: result });
+};
+
 export const handleWebhook = async (req, res) => {
   const signature = req.headers['chapa-signature'] || req.headers['x-chapa-signature'] || '';
   const rawPayload = req.rawBody || JSON.stringify(req.body); // needs rawBody middleware

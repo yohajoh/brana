@@ -21,8 +21,22 @@ router.get('/:id', protect, bookController.getBook);
 router.use(protect, restrictTo('ADMIN'));
 
 router.get('/admin/list', bookController.getAdminBooks);
-router.post('/', uploadImage.single('image'), bookController.createBook);
-router.patch('/:id', uploadImage.single('image'), bookController.updateBook);
+router.post(
+  '/',
+  uploadImage.fields([
+    { name: 'image', maxCount: 1 },
+    { name: 'images', maxCount: 10 },
+  ]),
+  bookController.createBook,
+);
+router.patch(
+  '/:id',
+  uploadImage.fields([
+    { name: 'image', maxCount: 1 },
+    { name: 'images', maxCount: 10 },
+  ]),
+  bookController.updateBook,
+);
 router.delete('/:id', bookController.deleteBook);
 
 export default router;

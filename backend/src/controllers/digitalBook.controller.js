@@ -43,7 +43,8 @@ export const createDigitalBook = async (req, res) => {
   const files = /** @type {any} */ (req.files || {});
   const pdfFile = files.pdf?.[0] || null;
   const imageFile = files.image?.[0] || null;
-  const book = await digitalBookService.createDigitalBook(req.body, pdfFile, imageFile);
+  const galleryFiles = files.images || [];
+  const book = await digitalBookService.createDigitalBook(req.body, pdfFile, imageFile, galleryFiles);
   await broadcastNotification({
     message: `New digital book added: "${book.title}" is now available in the digital library.`,
     type: 'NEW_BOOK',
@@ -65,7 +66,8 @@ export const updateDigitalBook = async (req, res) => {
   const files = /** @type {any} */ (req.files || {});
   const pdfFile = files.pdf?.[0] || null;
   const imageFile = files.image?.[0] || null;
-  const book = await digitalBookService.updateDigitalBook(req.params.id, req.body, pdfFile, imageFile);
+  const galleryFiles = files.images || [];
+  const book = await digitalBookService.updateDigitalBook(req.params.id, req.body, pdfFile, imageFile, galleryFiles);
   await logAdminActivity({
     adminUserId: req.user.id,
     action: 'UPDATE',

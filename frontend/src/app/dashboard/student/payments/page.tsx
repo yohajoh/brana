@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { fetchApi } from "@/lib/api";
 
 type Payment = {
@@ -23,9 +24,13 @@ type RentalFine = {
 };
 
 export default function StudentPaymentsPage() {
+  const searchParams = useSearchParams();
+  const txRefFromQuery = searchParams.get("tx_ref");
   const [payments, setPayments] = useState<Payment[]>([]);
   const [pendingFines, setPendingFines] = useState<RentalFine[]>([]);
   const [loading, setLoading] = useState(true);
+  const [verifyingTx, setVerifyingTx] = useState<string | null>(null);
+  const [verifyMessage, setVerifyMessage] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -45,6 +50,36 @@ export default function StudentPaymentsPage() {
     load();
   }, []);
 
+  useEffect(() => {
+    const txRef = txRefFromQuery;
+    if (!txRef) return;
+
+    const run = async () => {
+      try {
+        setVerifyingTx(txRef);
+        setVerifyMessage(null);
+        const verifyRes = await fetchApi(`/payments/verify/${encodeURIComponent(txRef)}`);
+        const paymentStatus = verifyRes?.data?.payment?.status;
+        await load();
+        if (paymentStatus === "SUCCESS") {
+          setVerifyMessage("Payment verified successfully.");
+        } else if (paymentStatus === "PENDING") {
+          setVerifyMessage("Payment is still pending confirmation.");
+        } else if (paymentStatus === "FAILED") {
+          setVerifyMessage("Payment failed. Please try again.");
+        } else {
+          setVerifyMessage("Payment status updated.");
+        }
+      } catch (err) {
+        setVerifyMessage(err instanceof Error ? err.message : "Payment verification failed.");
+      } finally {
+        setVerifyingTx(null);
+      }
+    };
+
+    run();
+  }, [txRefFromQuery]);
+
   const payFine = async (rentalId: string) => {
     const result = await fetchApi(`/payments/rental/${rentalId}/initiate`, {
       method: "POST",
@@ -52,7 +87,7 @@ export default function StudentPaymentsPage() {
     });
 
     const url = result?.data?.chapaUrl || result?.chapaUrl;
-    if (url) window.open(url, "_blank", "noopener,noreferrer");
+    if (url) window.location.href = url;
   };
 
   return (
@@ -60,6 +95,12 @@ export default function StudentPaymentsPage() {
       <div className="space-y-2">
         <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-primary">Fine Payments</h1>
         <p className="text-secondary font-medium">Review pending fines and payment history.</p>
+        {verifyingTx && (
+          <p className="text-sm text-secondary">Verifying payment {verifyingTx}...</p>
+        )}
+        {verifyMessage && (
+          <p className="text-sm text-primary">{verifyMessage}</p>
+        )}
       </div>
 
       <section className="space-y-4">

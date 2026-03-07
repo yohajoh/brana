@@ -279,7 +279,7 @@ export const getBookById = async (id, userId = null) => {
  * Create a new physical book.
  * All copies start as available.
  */
-export const createBook = async (data, imageFile = null) => {
+export const createBook = async (data, imageFile = null, galleryFiles = []) => {
   const title = data.title?.trim();
   if (!title) throw new AppError('title is required', 400);
 
@@ -322,6 +322,26 @@ export const createBook = async (data, imageFile = null) => {
     });
   }
 
+  if (galleryFiles.length > 0) {
+    const galleryUrls = await Promise.all(
+      galleryFiles.map((file) =>
+        uploadImageToCloudinary(file, {
+          folder: 'brana/physical-books/gallery',
+        }),
+      ),
+    );
+
+    await prisma.bookImage.createMany({
+      data: galleryUrls.map((url, idx) => ({
+        book_id: created.id,
+        book_type: 'PHYSICAL',
+        image_url: url,
+        sort_order: (coverFromUpload ? 2 : 1) + idx,
+        physical_book_id: created.id,
+      })),
+    });
+  }
+
   await syncLowStockAlertForBook(created.id);
   return created;
 };
@@ -334,7 +354,7 @@ export const createBook = async (data, imageFile = null) => {
  * Update book metadata.
  * If copies changes, recalculates available proportionally.
  */
-export const updateBook = async (id, data, imageFile = null) => {
+export const updateBook = async (id, data, imageFile = null, galleryFiles = []) => {
   const book = await prisma.book.findFirst({ where: { id, deleted_at: null } });
   if (!book) throw new AppError('Book not found', 404);
 
@@ -394,6 +414,32 @@ export const updateBook = async (id, data, imageFile = null) => {
         sort_order: (lastImage?.sort_order ?? 0) + 1,
         physical_book_id: id,
       },
+    });
+  }
+
+  if (galleryFiles.length > 0) {
+    const galleryUrls = await Promise.all(
+      galleryFiles.map((file) =>
+        uploadImageToCloudinary(file, {
+          folder: 'brana/physical-books/gallery',
+        }),
+      ),
+    );
+
+    const lastImage = await prisma.bookImage.findFirst({
+      where: { physical_book_id: id, book_type: 'PHYSICAL' },
+      orderBy: { sort_order: 'desc' },
+      select: { sort_order: true },
+    });
+
+    await prisma.bookImage.createMany({
+      data: galleryUrls.map((url, idx) => ({
+        book_id: id,
+        book_type: 'PHYSICAL',
+        image_url: url,
+        sort_order: (lastImage?.sort_order ?? 0) + idx + 1,
+        physical_book_id: id,
+      })),
     });
   }
 

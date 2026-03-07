@@ -18,6 +18,7 @@ router.use(protect);
 // ─── Student routes ───────────────────────────────────────────────────────────
 router.get('/mine', paymentController.getMyPayments);                            // Payment history
 router.post('/rental/:rentalId/initiate', paymentController.initiatePayment);    // Start payment
+router.get('/verify/:txRef', paymentController.verifyPayment);                    // Verify against Chapa
 
 // ─── Admin routes ─────────────────────────────────────────────────────────────
 router.use(restrictTo('ADMIN'));

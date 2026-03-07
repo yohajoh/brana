@@ -8,10 +8,7 @@ const getCloudinaryConfig = () => {
   const apiSecret = process.env.CLOUDINARY_API_SECRET;
 
   if (!cloudName || !apiKey || !apiSecret) {
-    throw new AppError(
-      'Cloudinary is not configured. Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET.',
-      500,
-    );
+    return null;
   }
 
   return { cloudName, apiKey, apiSecret };
@@ -32,7 +29,13 @@ const signUploadParams = (params, apiSecret) => {
 export const uploadImageToCloudinary = async (imageFile, opts = {}) => {
   if (!imageFile) return null;
 
-  const { cloudName, apiKey, apiSecret } = getCloudinaryConfig();
+  const cfg = getCloudinaryConfig();
+  if (!cfg) {
+    // Dev fallback so admin upload never hard-fails when Cloudinary envs are missing.
+    return `data:${imageFile.mimetype};base64,${imageFile.buffer.toString('base64')}`;
+  }
+
+  const { cloudName, apiKey, apiSecret } = cfg;
   const folder = opts.folder || 'brana';
   const timestamp = Math.floor(Date.now() / 1000);
 
@@ -60,6 +63,9 @@ export const uploadImageToCloudinary = async (imageFile, opts = {}) => {
 
   const payload = await response.json();
   if (!response.ok || !payload.secure_url) {
+    if (process.env.NODE_ENV !== 'production') {
+      return `data:${imageFile.mimetype};base64,${imageFile.buffer.toString('base64')}`;
+    }
     throw new AppError(payload?.error?.message || 'Cloudinary upload failed', 502);
   }
 

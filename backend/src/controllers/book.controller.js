@@ -28,7 +28,10 @@ export const getBookAvailability = async (req, res) => {
 };
 
 export const createBook = async (req, res) => {
-  const book = await bookService.createBook(req.body, req.file || null);
+  const files = /** @type {any} */ (req.files || {});
+  const coverFile = files.image?.[0] || null;
+  const galleryFiles = files.images || [];
+  const book = await bookService.createBook(req.body, coverFile, galleryFiles);
   await broadcastNotification({
     message: `New book added: "${book.title}" is now available in the library catalog.`,
     type: 'NEW_BOOK',
@@ -47,7 +50,10 @@ export const createBook = async (req, res) => {
 };
 
 export const updateBook = async (req, res) => {
-  const book = await bookService.updateBook(req.params.id, req.body, req.file || null);
+  const files = /** @type {any} */ (req.files || {});
+  const coverFile = files.image?.[0] || null;
+  const galleryFiles = files.images || [];
+  const book = await bookService.updateBook(req.params.id, req.body, coverFile, galleryFiles);
   await logAdminActivity({
     adminUserId: req.user.id,
     action: 'UPDATE',

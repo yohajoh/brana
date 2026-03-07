@@ -16,6 +16,7 @@ import {
   ClipboardList,
   FileSpreadsheet,
   Settings,
+  Layers,
 } from "lucide-react";
 import { fetchApi, fetchCurrentUser } from "@/lib/api";
 
@@ -23,6 +24,7 @@ const NAV_ITEMS = [
   { name: "Dashboard", href: "/dashboard/admin", icon: LayoutGrid },
   { name: "Users", href: "/dashboard/admin/users", icon: Users },
   { name: "Books", href: "/dashboard/admin/books", icon: BookOpen },
+  { name: "Categories", href: "/dashboard/admin/categories", icon: Layers },
   { name: "Authors", href: "/dashboard/admin/authors", icon: PenTool },
   {
     name: "Borrowings",

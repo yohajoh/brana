@@ -9,6 +9,11 @@ import { verifyToken } from "./utils/token.utils.js";
  */
 
 const PORT = process.env.PORT || 5000;
+const envOrigins = (process.env.FRONTEND_URL || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+const allowedOrigins = Array.from(new Set(["http://localhost:3000", "http://localhost:3001", ...envOrigins]));
 
 // ─── Create HTTP server ───────────────────────────────────────────────────────
 const httpServer = createServer(app);
@@ -16,7 +21,7 @@ const httpServer = createServer(app);
 // ─── Socket.io Setup ──────────────────────────────────────────────────────────
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    origin: allowedOrigins,
     credentials: true,
     methods: ["GET", "POST"],
   },

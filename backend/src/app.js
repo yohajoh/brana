@@ -38,8 +38,20 @@ if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
 }
 
+const envOrigins = (process.env.FRONTEND_URL || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+const allowedOrigins = Array.from(new Set(["http://localhost:3000", "http://localhost:3001", ...envOrigins]));
+
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || "http://localhost:3000",
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+    callback(new AppError(`Origin not allowed by CORS: ${origin}`, 403));
+  },
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
   credentials: true,

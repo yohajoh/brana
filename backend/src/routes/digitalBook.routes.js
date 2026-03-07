@@ -26,6 +26,7 @@ router.post(
   uploadBookFiles.fields([
     { name: 'pdf', maxCount: 1 },
     { name: 'image', maxCount: 1 },
+    { name: 'images', maxCount: 10 },
   ]),
   digitalBookController.createDigitalBook,
 );
@@ -34,6 +35,7 @@ router.patch(
   uploadBookFiles.fields([
     { name: 'pdf', maxCount: 1 },
     { name: 'image', maxCount: 1 },
+    { name: 'images', maxCount: 10 },
   ]),
   digitalBookController.updateDigitalBook,
 );

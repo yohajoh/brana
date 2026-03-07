@@ -14,12 +14,19 @@ export async function fetchCurrentUser(): Promise<{ id: string; name: string; em
 
 export async function fetchApi(endpoint: string, options: RequestInit = {}) {
   const url = `${API_BASE_URL}${endpoint}`;
+  // Build headers conditionally to avoid unnecessary preflight requests
+  const headers: Record<string, string> = {
+    ...options.headers,
+  };
+  // Only set JSON content-type when sending a body or on non-GET methods
+  const method = (options.method || "GET").toUpperCase();
+  if (method !== "GET" || options.body) {
+    headers["Content-Type"] = "application/json";
+  }
+
   const response = await fetch(url, {
     ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
+    headers,
     credentials: "include", // Required for cookies (JWT)
   });
 

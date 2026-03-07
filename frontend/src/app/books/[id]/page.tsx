@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -38,6 +38,7 @@ type PhysicalBook = {
   category: { id: string; name: string; slug: string };
   rating: RatingSummary;
   reviews: ReviewItem[];
+  images?: Array<{ id: string; image_url: string; sort_order: number }>;
   userContext: {
     hasActiveRental: boolean;
     activeRental: unknown;
@@ -60,6 +61,7 @@ type DigitalBook = {
   category: { id: string; name: string; slug: string };
   rating: RatingSummary;
   reviews: ReviewItem[];
+  images?: Array<{ id: string; image_url: string; sort_order: number }>;
   userContext: {
     isInWishlist: boolean;
     wishlistId: string | null;
@@ -71,6 +73,7 @@ type RelatedBook = {
   id: string;
   title: string;
   cover_image_url: string;
+  type: "physical" | "digital";
 };
 
 export default function BookDetailPage() {
@@ -84,6 +87,7 @@ export default function BookDetailPage() {
   const [physicalBook, setPhysicalBook] = useState<PhysicalBook | null>(null);
   const [digitalBook, setDigitalBook] = useState<DigitalBook | null>(null);
   const [related, setRelated] = useState<RelatedBook[]>([]);
+  const [relatedSource, setRelatedSource] = useState<"author" | "category">("author");
   const [user, setUser] = useState<User>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -92,8 +96,14 @@ export default function BookDetailPage() {
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState("");
   const [reviewBusy, setReviewBusy] = useState(false);
+  const [activeImage, setActiveImage] = useState<string>("");
 
   const book = bookType === "physical" ? physicalBook : digitalBook;
+  const galleryImages = useMemo(() => {
+    if (!book) return [];
+    const extra = (book.images || []).map((img) => img.image_url);
+    return Array.from(new Set([book.cover_image_url, ...extra].filter(Boolean)));
+  }, [book]);
 
   const loadData = async () => {
     try {
@@ -134,11 +144,19 @@ export default function BookDetailPage() {
         setDigitalBook(detail as DigitalBook);
         setPhysicalBook(null);
       }
+      const detailImages = ("images" in detail && Array.isArray(detail.images) ? detail.images : []) as Array<{
+        image_url: string;
+      }>;
+      const firstImage = detailImages[0]?.image_url || detail.cover_image_url;
+      setActiveImage(firstImage);
 
-      const [reviewsRes, myReviewRes, relatedRes] = await Promise.all([
+      const [reviewsRes, myReviewRes, relatedPhysicalRes, relatedDigitalRes, sameCategoryPhysicalRes, sameCategoryDigitalRes] = await Promise.all([
         fetchApi(`/reviews/${foundType}/${params.id}?limit=6`),
         currentUser ? fetchApi(`/reviews/${foundType}/${params.id}/mine`).catch(() => null) : Promise.resolve(null),
-        fetchApi(`/${foundType === "physical" ? "books" : "digital-books"}?author_id=${detail.author.id}&limit=6`).catch(() => null),
+        fetchApi(`/books?author_id=${detail.author.id}&limit=12`).catch(() => null),
+        fetchApi(`/digital-books?author_id=${detail.author.id}&limit=12`).catch(() => null),
+        fetchApi(`/books?category_id=${detail.category.id}&limit=12`).catch(() => null),
+        fetchApi(`/digital-books?category_id=${detail.category.id}&limit=12`).catch(() => null),
       ]);
 
       const reviews = (reviewsRes?.reviews || []) as ReviewItem[];
@@ -155,10 +173,44 @@ export default function BookDetailPage() {
       setReviewRating(mine?.rating || 0);
       setReviewComment(mine?.comment || "");
 
-      const relatedBooks = (relatedRes?.books || [])
-        .filter((b: RelatedBook) => b.id !== params.id)
-        .slice(0, 4);
-      setRelated(relatedBooks);
+      const physicalByAuthor = ((relatedPhysicalRes?.books || relatedPhysicalRes?.data?.books || []) as Array<{
+        id: string;
+        title: string;
+        cover_image_url: string;
+      }>).map((b) => ({ ...b, type: "physical" as const }));
+
+      const digitalByAuthor = ((relatedDigitalRes?.books || relatedDigitalRes?.data?.books || []) as Array<{
+        id: string;
+        title: string;
+        cover_image_url: string;
+      }>).map((b) => ({ ...b, type: "digital" as const }));
+
+      const relatedBooks = [...physicalByAuthor, ...digitalByAuthor]
+        .filter((b) => !(b.id === params.id && b.type === foundType))
+        .slice(0, 8);
+      if (relatedBooks.length > 0) {
+        setRelatedSource("author");
+        setRelated(relatedBooks);
+      } else {
+        const physicalByCategory = ((sameCategoryPhysicalRes?.books || sameCategoryPhysicalRes?.data?.books || []) as Array<{
+          id: string;
+          title: string;
+          cover_image_url: string;
+        }>).map((b) => ({ ...b, type: "physical" as const }));
+
+        const digitalByCategory = ((sameCategoryDigitalRes?.books || sameCategoryDigitalRes?.data?.books || []) as Array<{
+          id: string;
+          title: string;
+          cover_image_url: string;
+        }>).map((b) => ({ ...b, type: "digital" as const }));
+
+        const categoryRelated = [...physicalByCategory, ...digitalByCategory]
+          .filter((b) => !(b.id === params.id && b.type === foundType))
+          .slice(0, 8);
+
+        setRelatedSource("category");
+        setRelated(categoryRelated);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load book");
     } finally {
@@ -177,11 +229,31 @@ export default function BookDetailPage() {
 
     try {
       setActionLoading(true);
-      await fetchApi("/rentals/borrow", {
+      const borrowRes = await fetchApi("/rentals/borrow", {
         method: "POST",
         body: JSON.stringify({ book_id: physicalBook.id }),
       });
+
+      const rental = borrowRes?.data?.rental;
+      const rentalId = rental?.id;
+      const fine = Number(rental?.fine || 0);
+      if (rentalId && rental?.status === "PENDING" && fine > 0) {
+        const payRes = await fetchApi(`/payments/rental/${rentalId}/initiate`, {
+          method: "POST",
+          body: JSON.stringify({ method: "CHAPA" }),
+        });
+        const chapaUrl = payRes?.data?.chapaUrl || payRes?.chapaUrl;
+        if (chapaUrl) {
+          window.location.href = chapaUrl;
+          return;
+        }
+      }
+
       await loadData();
+      alert("Book borrowed successfully.");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Borrow checkout failed";
+      alert(message);
     } finally {
       setActionLoading(false);
     }
@@ -277,28 +349,7 @@ export default function BookDetailPage() {
 
   const breadcrumbType = bookType === "digital" ? "Digital" : "Physical";
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background text-foreground flex flex-col selection:bg-primary/10">
-        <Navbar />
-        <main className="grow mx-auto max-w-7xl w-full px-6 py-8 lg:py-12">
-          <div className="animate-pulse space-y-8">
-            <div className="h-8 bg-muted/50 rounded w-1/3" />
-            <div className="flex flex-col lg:flex-row gap-12">
-              <div className="lg:w-1/3 aspect-[3/4] bg-muted/50 rounded-2xl" />
-              <div className="flex-1 space-y-6">
-                <div className="h-12 bg-muted/50 rounded" />
-                <div className="h-6 bg-muted/50 rounded w-2/3" />
-              </div>
-            </div>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
-  if (error || !book) {
+  if (!loading && (error || !book)) {
     return (
       <div className="min-h-screen bg-background text-foreground flex flex-col selection:bg-primary/10">
         <Navbar />
@@ -327,18 +378,55 @@ export default function BookDetailPage() {
           <ChevronRight size={14} />
           <span className="text-secondary">{breadcrumbType}</span>
           <ChevronRight size={14} />
-          <span className="text-secondary">{book.title}</span>
+          <span className="text-secondary">{book?.title || "Book Details"}</span>
         </nav>
 
+        {loading || !book ? (
+          <div className="space-y-10">
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr] gap-12">
+              <div className="aspect-[3/4] rounded-2xl bg-muted/40 border border-border/50" />
+              <div className="space-y-4">
+                <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-primary">Book Details</h1>
+                <p className="text-secondary">Loading book information...</p>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="h-24 rounded-2xl bg-muted/40 border border-border/50" />
+                  <div className="h-24 rounded-2xl bg-muted/40 border border-border/50" />
+                  <div className="h-24 rounded-2xl bg-muted/40 border border-border/50" />
+                </div>
+              </div>
+            </div>
+            <section className="space-y-3">
+              <h2 className="text-2xl font-serif font-bold text-primary">About This Book</h2>
+              <div className="h-24 rounded-2xl bg-muted/40 border border-border/50" />
+            </section>
+            <section className="space-y-3">
+              <h2 className="text-2xl font-serif font-bold text-primary">About the Author</h2>
+              <div className="h-24 rounded-2xl bg-muted/40 border border-border/50" />
+            </section>
+          </div>
+        ) : (
         <div className="flex flex-col lg:flex-row gap-12 lg:gap-20">
           <div className="lg:w-1/3 xl:w-1/4">
             <div className="relative aspect-[3/4] w-full rounded-2xl overflow-hidden shadow-2xl border-4 border-white transform -rotate-1 hover:rotate-0 transition-transform duration-500">
-              <Image src={book.cover_image_url || "/auth/image.png"} alt={book.title} fill priority className="object-cover" />
+              <Image src={activeImage || book.cover_image_url || "/auth/image.png"} alt={book.title} fill priority className="object-cover" />
               <div className={`absolute top-4 right-4 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 backdrop-blur-md shadow-lg ${bookType === "digital" ? "bg-[#8B6B4A]/90 text-white" : bookType === "physical" && (book as PhysicalBook).available > 0 ? "bg-green-500/90 text-white" : "bg-red-500/90 text-white"}`}>
                 <BookIcon size={14} />
                 {bookType === "digital" ? ((book as DigitalBook).pdf_access === "RESTRICTED" ? "Read Only" : "Download") : (book as PhysicalBook).available > 0 ? `${(book as PhysicalBook).available} Available` : "Unavailable"}
               </div>
             </div>
+            {galleryImages.length > 1 && (
+              <div className="grid grid-cols-5 gap-2 mt-3">
+                {galleryImages.slice(0, 10).map((img, idx) => (
+                  <button
+                    key={`${img}-${idx}`}
+                    onClick={() => setActiveImage(img)}
+                    className={`relative aspect-square rounded-lg overflow-hidden border-2 ${activeImage === img ? "border-primary" : "border-border/50"}`}
+                  >
+                    <Image src={img} alt={`${book.title} ${idx + 1}`} fill className="object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="flex-1 space-y-10">
@@ -413,11 +501,26 @@ export default function BookDetailPage() {
                 </div>
               </section>
 
-              {book.author.bio && (
+              {(book.author.bio || book.author.image) && (
                 <section className="space-y-4">
                   <h2 className="text-2xl font-serif font-bold text-primary">About the Author</h2>
-                  <div className="prose prose-stone max-w-none text-secondary leading-relaxed font-medium">
-                    <p>{book.author.bio}</p>
+                  <div className="bg-card rounded-2xl p-5 border border-border/50">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="space-y-1">
+                        <p className="text-primary font-bold text-lg">{book.author.name}</p>
+                        <p className="text-secondary leading-relaxed font-medium">
+                          {book.author.bio || "No biography has been added for this author yet."}
+                        </p>
+                      </div>
+                      <div className="relative h-20 w-20 rounded-full overflow-hidden border border-border/60 bg-muted/50 shrink-0">
+                        <Image
+                          src={book.author.image || "/auth/image.png"}
+                          alt={book.author.name}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </section>
               )}
@@ -473,15 +576,25 @@ export default function BookDetailPage() {
                 </section>
               )}
 
-              {related.length > 0 && (
-                <section className="space-y-4">
-                  <h2 className="text-2xl font-serif font-bold text-primary flex items-center gap-2">
-                    <FileText size={22} className="text-secondary" />
-                    More by {book.author.name}
-                  </h2>
+              <section className="space-y-4">
+                <h2 className="text-2xl font-serif font-bold text-primary flex items-center gap-2">
+                  <FileText size={22} className="text-secondary" />
+                  {relatedSource === "author"
+                    ? `More by ${book.author.name}`
+                    : `Related in ${book.category.name}`}
+                </h2>
+                {related.length === 0 ? (
+                  <div className="bg-card rounded-xl border border-border/50 p-6 text-secondary text-sm">
+                    No related books found for this author or category yet.
+                  </div>
+                ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     {related.map((item) => (
-                      <Link key={item.id} href={bookType === "digital" ? `/books/${item.id}?type=digital` : `/books/${item.id}`} className="bg-card rounded-xl border border-border/50 p-3 hover:shadow-md transition-all">
+                      <Link
+                        key={`${item.type}-${item.id}`}
+                        href={item.type === "digital" ? `/books/${item.id}?type=digital` : `/books/${item.id}`}
+                        className="bg-card rounded-xl border border-border/50 p-3 hover:shadow-md transition-all"
+                      >
                         <div className="relative aspect-[3/4] rounded-lg overflow-hidden mb-3">
                           <Image src={item.cover_image_url || "/auth/image.png"} alt={item.title} fill className="object-cover" />
                         </div>
@@ -489,11 +602,12 @@ export default function BookDetailPage() {
                       </Link>
                     ))}
                   </div>
-                </section>
-              )}
+                )}
+              </section>
             </div>
           </div>
         </div>
+        )}
       </main>
 
       <Footer />
