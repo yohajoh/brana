@@ -234,23 +234,21 @@ export default function BookDetailPage() {
         body: JSON.stringify({ book_id: physicalBook.id }),
       });
 
-      const rental = borrowRes?.data?.rental;
-      const rentalId = rental?.id;
-      const fine = Number(rental?.fine || 0);
-      if (rentalId && rental?.status === "PENDING" && fine > 0) {
-        const payRes = await fetchApi(`/payments/rental/${rentalId}/initiate`, {
-          method: "POST",
-          body: JSON.stringify({ method: "CHAPA" }),
-        });
-        const chapaUrl = payRes?.data?.chapaUrl || payRes?.chapaUrl;
-        if (chapaUrl) {
-          window.location.href = chapaUrl;
-          return;
-        }
+      const rentalId = borrowRes?.data?.rental?.id;
+      if (!rentalId) {
+        throw new Error("Borrowed rental was not created");
       }
 
-      await loadData();
-      alert("Book borrowed successfully.");
+      const payRes = await fetchApi(`/payments/rental/${rentalId}/initiate`, {
+        method: "POST",
+        body: JSON.stringify({ method: "CHAPA", context: "BORROW" }),
+      });
+      const chapaUrl = payRes?.data?.chapaUrl || payRes?.chapaUrl;
+      if (!chapaUrl) {
+        throw new Error("Payment checkout URL was not returned");
+      }
+      window.location.href = chapaUrl;
+      return;
     } catch (err) {
       const message = err instanceof Error ? err.message : "Borrow checkout failed";
       alert(message);
