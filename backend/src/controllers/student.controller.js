@@ -10,3 +10,9 @@ export const getRecommendations = async (req, res) => {
   const data = await studentService.getStudentRecommendations(req.user.id, limit);
   res.json({ status: 'success', data });
 };
+
+export const getPopularity = async (req, res) => {
+  const limit = Math.max(1, Math.min(20, parseInt(req.query.limit, 10) || 8));
+  const data = await studentService.getStudentPopularity(limit);
+  res.json({ status: 'success', data });
+};

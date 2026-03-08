@@ -3,6 +3,7 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import app from "./app.js";
 import { verifyToken } from "./utils/token.utils.js";
+import { scanExtendedOverdueAlerts, scanNeverReturnedAlerts } from "./services/inventoryAlert.service.js";
 
 /**
  * @typedef {import("socket.io").Socket & { userId: string }} AuthenticatedSocket
@@ -67,3 +68,19 @@ httpServer.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`📡 Socket.io ready`);
 });
+
+const AUTO_ALERT_SCAN_MS = Number(process.env.AUTO_ALERT_SCAN_MS || 6 * 60 * 60 * 1000);
+setInterval(async () => {
+  try {
+    const [extended, neverReturned] = await Promise.all([
+      scanExtendedOverdueAlerts(),
+      scanNeverReturnedAlerts(),
+    ]);
+    const created = (extended?.created || 0) + (neverReturned?.created || 0);
+    if (created > 0) {
+      console.log(`🔔 Auto alert scan created ${created} alert(s)`);
+    }
+  } catch (error) {
+    console.error("Auto alert scan failed:", error?.message || error);
+  }
+}, AUTO_ALERT_SCAN_MS);

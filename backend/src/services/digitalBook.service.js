@@ -53,6 +53,9 @@ const DIGITAL_LIST_SELECT = /** @type {any} */ ({
   pdf_name: true,
   pdf_access: true,
   pages: true,
+  publication_year: true,
+  tags: true,
+  topics: true,
   deleted_at: true,
   author: { select: { id: true, name: true, image: true } },
   category: { select: { id: true, name: true, slug: true } },
@@ -72,6 +75,9 @@ const DIGITAL_DETAIL_SELECT = /** @type {any} */ ({
   pdf_name: true,
   pdf_access: true,
   pages: true,
+  publication_year: true,
+  tags: true,
+  topics: true,
   deleted_at: true,
   author: { select: { id: true, name: true, bio: true, image: true } },
   category: { select: { id: true, name: true, slug: true } },
@@ -80,6 +86,15 @@ const DIGITAL_DETAIL_SELECT = /** @type {any} */ ({
 });
 
 const DEFAULT_COVER_IMAGE = 'https://placehold.co/400x600?text=Brana+Digital';
+
+const parseList = (value) => {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.map((v) => String(v).trim()).filter(Boolean);
+  return String(value)
+    .split(',')
+    .map((v) => v.trim())
+    .filter(Boolean);
+};
 
 const resolveAuthorId = async (data) => {
   if (data.author_id) {
@@ -171,6 +186,20 @@ export const getDigitalBooks = async (query, _requestUser = null) => {
 
   if (query.min_pages) where.pages = { ...where.pages, gte: parseInt(query.min_pages, 10) };
   if (query.max_pages) where.pages = { ...where.pages, lte: parseInt(query.max_pages, 10) };
+  if (query.year) {
+    const year = parseInt(query.year, 10);
+    if (!isNaN(year)) where.publication_year = year;
+  }
+  if (query.year_from || query.year_to) {
+    where.publication_year = {};
+    if (query.year_from) where.publication_year.gte = parseInt(query.year_from, 10);
+    if (query.year_to) where.publication_year.lte = parseInt(query.year_to, 10);
+  }
+
+  const tags = parseList(query.tags);
+  const topics = parseList(query.topics);
+  if (tags.length > 0) where.tags = { hasSome: tags };
+  if (topics.length > 0) where.topics = { hasSome: topics };
 
   if (query.search) {
     const q = query.search.trim();
@@ -200,6 +229,30 @@ export const getDigitalBooks = async (query, _requestUser = null) => {
     }),
     prisma.digitalBook.count({ where }),
   ]);
+
+  if (query.min_rating) {
+    const min = parseFloat(query.min_rating);
+    if (!Number.isNaN(min)) {
+      const qualified = await prisma.review.groupBy({
+        by: ['digital_book_id'],
+        where: { digital_book_id: { not: null } },
+        _avg: { rating: true },
+      });
+      const allowed = new Set(
+        qualified
+          .filter((row) => Number(row._avg.rating ?? 0) >= min)
+          .map((row) => row.digital_book_id),
+      );
+      const filtered = books.filter((b) => allowed.has(b.id));
+      const booksWithRatings = await Promise.all(
+        filtered.map(async (book) => ({
+          ...book,
+          rating: await buildRatingSummary(book.id),
+        })),
+      );
+      return { books: booksWithRatings, meta: paginationMeta(booksWithRatings.length, page, limit) };
+    }
+  }
 
   const booksWithRatings = await Promise.all(
     books.map(async (book) => ({
@@ -329,6 +382,8 @@ export const createDigitalBook = async (data, pdfFile = null, imageFile = null, 
   });
   const pagesInt = Math.max(1, parseInt(data.pages, 10) || 100);
   const description = data.description?.trim() || 'No description provided.';
+  const tags = parseList(data.tags);
+  const topics = parseList(data.topics);
 
   const created = await prisma.digitalBook.create({
     data: {
@@ -341,6 +396,9 @@ export const createDigitalBook = async (data, pdfFile = null, imageFile = null, 
       pdf_name: pdfFile.originalname,
       pdf_access: /** @type {any} */ (access),
       pages: pagesInt,
+      publication_year: data.publication_year ? parseInt(data.publication_year, 10) : null,
+      tags,
+      topics,
     },
     select: DIGITAL_DETAIL_SELECT,
   });
@@ -393,6 +451,11 @@ export const updateDigitalBook = async (id, data, pdfFile = null, imageFile = nu
   if (data.description) updateData.description = data.description.trim();
   if (data.cover_image_url) updateData.cover_image_url = data.cover_image_url;
   if (data.pages) updateData.pages = parseInt(data.pages, 10);
+  if (data.publication_year !== undefined) {
+    updateData.publication_year = data.publication_year ? parseInt(data.publication_year, 10) : null;
+  }
+  if (data.tags !== undefined) updateData.tags = parseList(data.tags);
+  if (data.topics !== undefined) updateData.topics = parseList(data.topics);
   let uploadedCover = null;
   if (imageFile) {
     uploadedCover = await uploadImageToCloudinary(imageFile, {

@@ -27,6 +27,30 @@ export const getBookAvailability = async (req, res) => {
   res.json({ status: 'success', data });
 };
 
+export const getBookCopies = async (req, res) => {
+  const copies = await bookService.getBookCopies(req.params.id);
+  res.json({ status: 'success', data: { copies } });
+};
+
+export const updateBookCopyCondition = async (req, res) => {
+  const copy = await bookService.updateBookCopyCondition(req.params.copyId, req.body, req.user.id);
+  await logAdminActivity({
+    adminUserId: req.user.id,
+    action: 'UPDATE_CONDITION',
+    entityType: 'BOOK_COPY',
+    entityId: copy.id,
+    description: `Updated condition for copy ${copy.copy_code} to ${copy.condition}`,
+    metadata: { notes: req.body?.notes ?? null },
+    req,
+  });
+  res.json({ status: 'success', data: { copy } });
+};
+
+export const getBookCopyConditionHistory = async (req, res) => {
+  const history = await bookService.getBookConditionHistory(req.params.copyId);
+  res.json({ status: 'success', data: { history } });
+};
+
 export const createBook = async (req, res) => {
   const files = /** @type {any} */ (req.files || {});
   const coverFile = files.image?.[0] || null;

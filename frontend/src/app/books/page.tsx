@@ -36,11 +36,14 @@ export type Category = {
   _count: { books: number; digital_books: number };
 };
 
+type Author = { id: string; name: string };
+
 type CatalogMode = "all" | "physical" | "digital";
 
 export default function BooksPage() {
   const [books, setBooks] = useState<CatalogBook[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [authors, setAuthors] = useState<Author[]>([]);
   const [booksLoading, setBooksLoading] = useState(true);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,6 +54,12 @@ export default function BooksPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("title");
   const [mode, setMode] = useState<CatalogMode>("all");
+  const [selectedAuthor, setSelectedAuthor] = useState<string>("");
+  const [availability, setAvailability] = useState<"" | "true" | "false">("");
+  const [minRating, setMinRating] = useState<string>("");
+  const [year, setYear] = useState<string>("");
+  const [tags, setTags] = useState<string>("");
+  const [topics, setTopics] = useState<string>("");
   const limit = 12;
 
   useEffect(() => {
@@ -69,6 +78,14 @@ export default function BooksPage() {
   }, []);
 
   useEffect(() => {
+    fetchApi("/authors?limit=200")
+      .then((response) => {
+        if (Array.isArray(response?.authors)) setAuthors(response.authors);
+      })
+      .catch(() => null);
+  }, []);
+
+  useEffect(() => {
     async function loadBooks() {
       try {
         setBooksLoading(true);
@@ -81,6 +98,12 @@ export default function BooksPage() {
         });
 
         if (selectedCategory) params.append("category_id", selectedCategory);
+        if (selectedAuthor) params.append("author_id", selectedAuthor);
+        if (availability) params.append("available", availability);
+        if (minRating) params.append("min_rating", minRating);
+        if (year) params.append("year", year);
+        if (tags.trim()) params.append("tags", tags.trim());
+        if (topics.trim()) params.append("topics", topics.trim());
         if (searchQuery.trim()) params.append("search", searchQuery.trim());
 
         if (mode === "physical") {
@@ -103,6 +126,12 @@ export default function BooksPage() {
 
         const allParams = new URLSearchParams({ limit: "100", sort: sortBy });
         if (selectedCategory) allParams.append("category_id", selectedCategory);
+        if (selectedAuthor) allParams.append("author_id", selectedAuthor);
+        if (availability) allParams.append("available", availability);
+        if (minRating) allParams.append("min_rating", minRating);
+        if (year) allParams.append("year", year);
+        if (tags.trim()) allParams.append("tags", tags.trim());
+        if (topics.trim()) allParams.append("topics", topics.trim());
         if (searchQuery.trim()) allParams.append("search", searchQuery.trim());
 
         const [physicalRes, digitalRes] = await Promise.all([
@@ -127,7 +156,7 @@ export default function BooksPage() {
       }
     }
     loadBooks();
-  }, [page, selectedCategory, searchQuery, sortBy, mode]);
+  }, [page, selectedCategory, selectedAuthor, availability, minRating, year, tags, topics, searchQuery, sortBy, mode]);
 
   const handleCategoryChange = (categoryId: string | null) => {
     setSelectedCategory(categoryId);
@@ -214,6 +243,77 @@ export default function BooksPage() {
                   ? `Showing ${startIndex}-${endIndex} of ${total} ${modeLabel.toLowerCase()} books`
                   : "No books found"}
               </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+              <select
+                value={selectedAuthor}
+                onChange={(e) => {
+                  setSelectedAuthor(e.target.value);
+                  setPage(1);
+                }}
+                className="px-3 py-2 rounded-xl border border-border bg-white text-sm"
+              >
+                <option value="">All Authors</option>
+                {authors.map((author) => (
+                  <option key={author.id} value={author.id}>{author.name}</option>
+                ))}
+              </select>
+              <select
+                value={availability}
+                onChange={(e) => {
+                  setAvailability(e.target.value as "" | "true" | "false");
+                  setPage(1);
+                }}
+                className="px-3 py-2 rounded-xl border border-border bg-white text-sm"
+              >
+                <option value="">Availability</option>
+                <option value="true">Available</option>
+                <option value="false">Unavailable</option>
+              </select>
+              <input
+                type="number"
+                min={1}
+                max={5}
+                step="0.1"
+                value={minRating}
+                onChange={(e) => {
+                  setMinRating(e.target.value);
+                  setPage(1);
+                }}
+                placeholder="Min rating (e.g. 4)"
+                className="px-3 py-2 rounded-xl border border-border bg-white text-sm"
+              />
+              <input
+                type="number"
+                value={year}
+                onChange={(e) => {
+                  setYear(e.target.value);
+                  setPage(1);
+                }}
+                placeholder="Publication year"
+                className="px-3 py-2 rounded-xl border border-border bg-white text-sm"
+              />
+              <input
+                type="text"
+                value={tags}
+                onChange={(e) => {
+                  setTags(e.target.value);
+                  setPage(1);
+                }}
+                placeholder="Tags (comma separated)"
+                className="px-3 py-2 rounded-xl border border-border bg-white text-sm"
+              />
+              <input
+                type="text"
+                value={topics}
+                onChange={(e) => {
+                  setTopics(e.target.value);
+                  setPage(1);
+                }}
+                placeholder="Topics (comma separated)"
+                className="px-3 py-2 rounded-xl border border-border bg-white text-sm"
+              />
             </div>
 
             <BookCardGrid books={books} loading={booksLoading} />

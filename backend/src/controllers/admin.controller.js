@@ -29,7 +29,15 @@ export const resolveInventoryAlert = async (req, res) => {
 };
 
 export const scanInventoryAlerts = async (req, res) => {
-  const result = await inventoryAlertService.scanExtendedOverdueAlerts();
+  const [extended, neverReturned] = await Promise.all([
+    inventoryAlertService.scanExtendedOverdueAlerts(),
+    inventoryAlertService.scanNeverReturnedAlerts(),
+  ]);
+  const result = {
+    extendedOverdue: extended,
+    neverReturned,
+    created: (extended.created || 0) + (neverReturned.created || 0),
+  };
   await adminActivityService.logAdminActivity({
     adminUserId: req.user.id,
     action: 'SCAN',
@@ -50,7 +58,7 @@ export const exportReport = async (req, res) => {
     throw new AppError('Invalid report type', 400);
   }
 
-  if (!['json', 'csv'].includes(format)) {
+  if (!['json', 'csv', 'excel', 'pdf'].includes(format)) {
     throw new AppError('Invalid report format', 400);
   }
 
@@ -65,9 +73,10 @@ export const exportReport = async (req, res) => {
     req,
   });
 
-  if (format === 'csv') {
+  if (format !== 'json') {
+    const extension = report.extension || (format === 'excel' ? 'xls' : format);
     res.setHeader('Content-Type', report.contentType);
-    res.setHeader('Content-Disposition', `attachment; filename=${type}-report.csv`);
+    res.setHeader('Content-Disposition', `attachment; filename=${type}-report.${extension}`);
     return res.status(200).send(report.body);
   }
 

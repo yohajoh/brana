@@ -25,6 +25,7 @@ export const updateConfig = async (req, res) => {
       max_books_per_user: config.max_books_per_user,
       low_stock_threshold: config.low_stock_threshold,
       reservation_window_hr: config.reservation_window_hr,
+      never_returned_days: config.never_returned_days,
     },
     req,
   });

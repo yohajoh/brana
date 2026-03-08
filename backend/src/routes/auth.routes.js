@@ -1,5 +1,6 @@
 import express from "express";
 import * as authController from "../controllers/auth.controller.js";
+import * as authService from "../services/auth.service.js";
 import { body } from "express-validator";
 import passport from "passport";
 import { generateToken } from "../utils/token.utils.js";
@@ -34,7 +35,7 @@ router.post("/login", authLimiter, authController.login);
 router.get("/logout", authController.logout);
 
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
-const GOOGLE_CALLBACK_TIMEOUT_MS = 25000;
+const GOOGLE_EXCHANGE_TIMEOUT_MS = 10000;
 
 // Google OAuth
 router.get("/google", (req, res, next) => {
@@ -42,29 +43,68 @@ router.get("/google", (req, res, next) => {
   passport.authenticate("google", { scope: ["profile", "email"] })(req, res, next);
 });
 
-router.get("/google/callback", (req, res, next) => {
-  let responded = false;
-  const timeoutId = setTimeout(() => {
-    if (responded) return;
-    responded = true;
-    console.error("Google Auth callback timed out");
-    res.redirect(`${FRONTEND_URL}/auth/login?error=auth_timeout`);
-  }, GOOGLE_CALLBACK_TIMEOUT_MS);
+router.get("/google/callback", async (req, res) => {
+  const code = String(req.query.code || "");
+  if (!code) {
+    return res.redirect(`${FRONTEND_URL}/auth/login?error=missing_google_code`);
+  }
 
-  passport.authenticate("google", { session: false }, (err, user, _info) => {
-    if (responded) return;
-    clearTimeout(timeoutId);
-    responded = true;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), GOOGLE_EXCHANGE_TIMEOUT_MS);
 
-    if (err) {
-      console.error("Google Auth error:", err.message || err);
-      return res.redirect(`${FRONTEND_URL}/auth/login?error=auth_failed`);
-    }
-    if (!user) {
-      return res.redirect(`${FRONTEND_URL}/auth/login?error=auth_failed`);
+  try {
+    const callbackUrl = process.env.CALLBACK_URL;
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    if (!callbackUrl || !clientId || !clientSecret) {
+      return res.redirect(`${FRONTEND_URL}/auth/login?error=google_config_missing`);
     }
 
-    console.log(`Google Auth successful for user: ${user.email}`);
+    const body = new URLSearchParams({
+      code,
+      client_id: clientId,
+      client_secret: clientSecret,
+      redirect_uri: callbackUrl,
+      grant_type: "authorization_code",
+    });
+
+    // eslint-disable-next-line n/no-unsupported-features/node-builtins
+    const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body,
+      signal: controller.signal,
+    });
+
+    if (!tokenRes.ok) {
+      return res.redirect(`${FRONTEND_URL}/auth/login?error=google_exchange_failed`);
+    }
+
+    const tokenJson = await tokenRes.json();
+    const idToken = tokenJson?.id_token;
+    if (!idToken) {
+      return res.redirect(`${FRONTEND_URL}/auth/login?error=google_id_token_missing`);
+    }
+
+    const [, payloadB64] = idToken.split(".");
+    if (!payloadB64) {
+      return res.redirect(`${FRONTEND_URL}/auth/login?error=google_token_invalid`);
+    }
+    const payloadJson = Buffer.from(payloadB64, "base64url").toString("utf-8");
+    const payload = JSON.parse(payloadJson);
+
+    if (payload.aud !== clientId) {
+      return res.redirect(`${FRONTEND_URL}/auth/login?error=google_token_audience`);
+    }
+
+    const email = payload.email;
+    const name = payload.name || payload.given_name || (email ? String(email).split("@")[0] : null);
+    if (!email) {
+      return res.redirect(`${FRONTEND_URL}/auth/login?error=google_email_missing`);
+    }
+
+    const user = await authService.loginOrCreateGoogleUser({ email, name });
+
     const token = generateToken(user.id);
     const cookieOptions = {
       expires: new Date(
@@ -75,6 +115,7 @@ router.get("/google/callback", (req, res, next) => {
       sameSite: "lax",
     };
     res.cookie("token", token, cookieOptions);
+
     const needsProfileCompletion =
       user.role !== "ADMIN" &&
       (!user.student_id || !user.phone || !user.year || !user.department);
@@ -83,8 +124,17 @@ router.get("/google/callback", (req, res, next) => {
       : user.role === "ADMIN"
         ? "/dashboard/admin"
         : "/dashboard/student";
-    res.redirect(`${FRONTEND_URL}${redirectPath}`);
-  })(req, res, next);
+    return res.redirect(`${FRONTEND_URL}${redirectPath}`);
+  } catch (err) {
+    if (err?.name === "AbortError") {
+      console.error("Google Auth callback timed out");
+      return res.redirect(`${FRONTEND_URL}/auth/login?error=auth_timeout`);
+    }
+    console.error("Google Auth callback error:", err?.message || err);
+    return res.redirect(`${FRONTEND_URL}/auth/login?error=auth_failed`);
+  } finally {
+    clearTimeout(timer);
+  }
 });
 
 // Public password reset routes

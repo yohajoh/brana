@@ -8,5 +8,6 @@ router.use(protect, restrictTo("STUDENT", "ADMIN"));
 
 router.get("/overview", studentController.getOverview);
 router.get("/recommendations", studentController.getRecommendations);
+router.get("/popularity", studentController.getPopularity);
 
 export default router;

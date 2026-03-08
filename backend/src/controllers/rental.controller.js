@@ -46,6 +46,11 @@ export const getOverdueRentals = async (req, res) => {
   res.json({ status: 'success', ...result });
 };
 
+export const getOverdueRanking = async (req, res) => {
+  const result = await rentalService.getOverdueRanking(req.query);
+  res.json({ status: 'success', ...result });
+};
+
 export const sendOverdueReminders = async (req, res) => {
   const result = await rentalService.sendOverdueReminders(getIo(req));
   await logAdminActivity({

@@ -41,6 +41,11 @@ export default function DashboardPage() {
   const [recommendations, setRecommendations] = useState<
     Array<{ id: string; title: string; author?: { name: string }; available: number }>
   >([]);
+  const [favoriteCategories, setFavoriteCategories] = useState<Array<{ name: string; count: number }>>([]);
+  const [popularity, setPopularity] = useState<{
+    trending: Array<{ book: { id: string; title: string; author?: { name: string } }; rentalCount: number }>;
+    topRated: Array<{ book: { id: string; title: string; author?: { name: string } }; avgRating: number }>;
+  }>({ trending: [], topRated: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,11 +55,12 @@ export default function DashboardPage() {
         const userRes = await fetchCurrentUser();
         setUser(userRes ?? null);
 
-        const [rentalsRes, configRes, overviewRes, recommendationRes] = await Promise.all([
+        const [rentalsRes, configRes, overviewRes, recommendationRes, popularityRes] = await Promise.all([
           fetchApi("/rentals/mine?limit=20"),
           fetchApi("/system-config"),
           fetchApi("/student/overview"),
           fetchApi("/student/recommendations?limit=6"),
+          fetchApi("/student/popularity?limit=6"),
         ]);
 
         if (rentalsRes && Array.isArray(rentalsRes.rentals)) {
@@ -72,8 +78,17 @@ export default function DashboardPage() {
             dueSoon: overviewRes.data.stats.dueSoon || 0,
           });
         }
+        if (overviewRes?.data?.topCategories) {
+          setFavoriteCategories(overviewRes.data.topCategories);
+        }
         if (recommendationRes?.data?.physical) {
           setRecommendations(recommendationRes.data.physical);
+        }
+        if (popularityRes?.data) {
+          setPopularity({
+            trending: popularityRes.data.trending || [],
+            topRated: popularityRes.data.topRated || [],
+          });
         }
       } catch (e) {
         console.error("Dashboard load error:", e);
@@ -171,6 +186,60 @@ export default function DashboardPage() {
             ))}
           </div>
         )}
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-xl font-serif font-bold text-primary">Favorite Categories</h2>
+        {favoriteCategories.length === 0 ? (
+          <div className="text-sm text-secondary">No category insights yet.</div>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {favoriteCategories.map((cat) => (
+              <span key={cat.name} className="px-3 py-1.5 rounded-full bg-white border border-border text-sm text-primary">
+                {cat.name} ({cat.count})
+              </span>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div className="space-y-3">
+          <h2 className="text-xl font-serif font-bold text-primary">Trending Books</h2>
+          <div className="space-y-2">
+            {popularity.trending.length === 0 ? (
+              <div className="text-sm text-secondary">No trending data yet.</div>
+            ) : (
+              popularity.trending.map((item) => (
+                <div key={item.book.id} className="bg-white border border-border/50 rounded-xl p-3 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-bold text-primary">{item.book.title}</p>
+                    <p className="text-xs text-secondary">{item.book.author?.name ?? "Author"}</p>
+                  </div>
+                  <span className="text-xs font-bold text-primary">{item.rentalCount} rentals</span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+        <div className="space-y-3">
+          <h2 className="text-xl font-serif font-bold text-primary">Top Rated Books</h2>
+          <div className="space-y-2">
+            {popularity.topRated.length === 0 ? (
+              <div className="text-sm text-secondary">No rating data yet.</div>
+            ) : (
+              popularity.topRated.map((item) => (
+                <div key={item.book.id} className="bg-white border border-border/50 rounded-xl p-3 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-bold text-primary">{item.book.title}</p>
+                    <p className="text-xs text-secondary">{item.book.author?.name ?? "Author"}</p>
+                  </div>
+                  <span className="text-xs font-bold text-primary">{item.avgRating.toFixed(1)} ★</span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
       </section>
     </div>
   );

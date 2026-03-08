@@ -56,6 +56,7 @@ export const updateConfig = async (adminId, data, io) => {
     max_books_per_user,
     reservation_window_hr,
     low_stock_threshold,
+    never_returned_days,
     enable_notifications,
   } = data;
 
@@ -65,6 +66,7 @@ export const updateConfig = async (adminId, data, io) => {
   const maxBooks = parseInt(max_books_per_user, 10);
   const reservationWindow = parseInt(reservation_window_hr, 10);
   const lowStockThreshold = parseInt(low_stock_threshold, 10);
+  const neverReturnedDays = parseInt(never_returned_days, 10);
 
   if (max_loan_days !== undefined) {
     if (isNaN(maxDays) || maxDays < 1 || maxDays > 365) {
@@ -91,6 +93,11 @@ export const updateConfig = async (adminId, data, io) => {
       throw new AppError('low_stock_threshold must be between 0 and 50', 400);
     }
   }
+  if (never_returned_days !== undefined) {
+    if (isNaN(neverReturnedDays) || neverReturnedDays < 7 || neverReturnedDays > 365) {
+      throw new AppError('never_returned_days must be between 7 and 365', 400);
+    }
+  }
 
   const existing = await prisma.systemConfig.findFirst({ orderBy: { id: 'desc' } });
 
@@ -110,6 +117,7 @@ export const updateConfig = async (adminId, data, io) => {
         max_books_per_user: maxBooks,
         reservation_window_hr: reservationWindow || 24,
         low_stock_threshold: lowStockThreshold || 2,
+        never_returned_days: neverReturnedDays || 60,
         enable_notifications: enable_notifications !== undefined ? Boolean(enable_notifications) : true,
         last_updated_by_id: adminId,
       },
@@ -124,6 +132,7 @@ export const updateConfig = async (adminId, data, io) => {
     if (max_books_per_user !== undefined) updateData.max_books_per_user = maxBooks;
     if (reservation_window_hr !== undefined) updateData.reservation_window_hr = reservationWindow;
     if (low_stock_threshold !== undefined) updateData.low_stock_threshold = lowStockThreshold;
+    if (never_returned_days !== undefined) updateData.never_returned_days = neverReturnedDays;
     if (enable_notifications !== undefined) updateData.enable_notifications = Boolean(enable_notifications);
 
     config = await prisma.systemConfig.update({

@@ -1,303 +1,232 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import {
-  Book,
-  Users,
-  ArrowLeftRight,
-  TrendingUp,
-  Award,
-  BookMarked,
-  ChevronDown,
-} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { fetchApi } from "@/lib/api";
 
+type WeeklyPoint = { week_start: string; count: number };
+
+type GoalProgress = {
+  target: number;
+  actual: number;
+  progress: number;
+};
+
+type Overview = {
+  users: { total: number; newThisMonth: number; blocked: number };
+  books: { total: number; available: number; outOfStock: number };
+  rentals: { active: number; overdue: number; reservations: number; completed: number };
+  revenue: { thisMonth: number; growth: number };
+  monthlyTargets: {
+    progress: {
+      rentals: GoalProgress;
+      activeReaders: GoalProgress;
+      onTimeReturns: GoalProgress;
+      newBooks: GoalProgress;
+    };
+  };
+  trends: { rentalsPerWeek: WeeklyPoint[] };
+};
+
+const defaultOverview: Overview = {
+  users: { total: 0, newThisMonth: 0, blocked: 0 },
+  books: { total: 0, available: 0, outOfStock: 0 },
+  rentals: { active: 0, overdue: 0, reservations: 0, completed: 0 },
+  revenue: { thisMonth: 0, growth: 0 },
+  monthlyTargets: {
+    progress: {
+      rentals: { target: 0, actual: 0, progress: 0 },
+      activeReaders: { target: 0, actual: 0, progress: 0 },
+      onTimeReturns: { target: 0, actual: 0, progress: 0 },
+      newBooks: { target: 0, actual: 0, progress: 0 },
+    },
+  },
+  trends: { rentalsPerWeek: [] },
+};
+
+function ProgressRow({ label, item }: { label: string; item: GoalProgress }) {
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between text-xs">
+        <span className="font-bold text-[#2B1A10]">{label}</span>
+        <span className="text-[#8B6B4A]">
+          {item.actual} / {item.target}
+        </span>
+      </div>
+      <div className="w-full h-2 rounded-full bg-[#F1E7DA] overflow-hidden">
+        <div className="h-full bg-[#8B6B4A]" style={{ width: `${Math.min(100, item.progress)}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function LineChart({ points }: { points: WeeklyPoint[] }) {
+  const width = 680;
+  const height = 220;
+  const pad = 24;
+  const safePoints = points.length > 0 ? points : [{ week_start: "", count: 0 }];
+  const max = Math.max(...safePoints.map((p) => p.count), 1);
+
+  const mapped = safePoints.map((p, i) => {
+    const x = pad + (i * (width - pad * 2)) / Math.max(1, safePoints.length - 1);
+    const y = height - pad - (p.count / max) * (height - pad * 2);
+    return { x, y, label: p.week_start, value: p.count };
+  });
+
+  const d = mapped.map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`).join(" ");
+
+  return (
+    <div className="bg-white rounded-2xl border border-[#E1D2BD]/50 p-4">
+      <h3 className="text-sm font-bold text-[#2B1A10] mb-3">Rentals Per Week</h3>
+      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-52">
+        <rect x="0" y="0" width={width} height={height} fill="#fff" />
+        {Array.from({ length: 5 }).map((_, i) => {
+          const y = pad + (i * (height - pad * 2)) / 4;
+          return <line key={i} x1={pad} y1={y} x2={width - pad} y2={y} stroke="#F3EFE6" strokeWidth="1" />;
+        })}
+        <path d={d} fill="none" stroke="#8B6B4A" strokeWidth="3" />
+        {mapped.map((p, i) => (
+          <circle key={i} cx={p.x} cy={p.y} r="4" fill="#2B1A10" />
+        ))}
+      </svg>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[11px] text-[#8B6B4A] mt-2">
+        {mapped.map((p, i) => (
+          <div key={i} className="truncate">{p.label || "Week"}: {p.value}</div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
-  const [stats, setStats] = useState<any>(null);
-  const [userStats, setUserStats] = useState<any>(null);
+  const [overview, setOverview] = useState<Overview>(defaultOverview);
+  const [form, setForm] = useState({
+    target_rentals: "",
+    target_active_readers: "",
+    target_on_time_returns: "",
+    target_new_books: "",
+  });
   const [loading, setLoading] = useState(true);
-  const [sendingReminders, setSendingReminders] = useState(false);
-  const router = useRouter();
+  const [savingTargets, setSavingTargets] = useState(false);
 
-  useEffect(() => {
-    Promise.all([fetchApi("/stats/overview"), fetchApi("/stats/users")])
-      .then(([overviewData, usersData]) => {
-        setStats(overviewData?.data || null);
-        setUserStats(usersData?.data || null);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Failed to fetch stats:", err);
-        setLoading(false);
-      });
-  }, []);
-
-  const handleSendReminder = async () => {
-    setSendingReminders(true);
+  const load = async () => {
+    setLoading(true);
     try {
-      await fetchApi("/rentals/admin/send-reminders", { method: "POST" });
-      await fetchApi("/stats/overview").then((data) => setStats(data?.data || null));
-    } catch (err) {
-      console.error("Failed to send reminders:", err);
+      const [overviewRes, targetRes] = await Promise.all([
+        fetchApi("/stats/overview"),
+        fetchApi("/stats/targets/current"),
+      ]);
+      setOverview((overviewRes?.data || defaultOverview) as Overview);
+      const target = targetRes?.data?.target;
+      if (target) {
+        setForm({
+          target_rentals: String(target.target_rentals ?? 0),
+          target_active_readers: String(target.target_active_readers ?? 0),
+          target_on_time_returns: String(target.target_on_time_returns ?? 0),
+          target_new_books: String(target.target_new_books ?? 0),
+        });
+      }
     } finally {
-      setSendingReminders(false);
+      setLoading(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="flex flex-col items-center gap-3">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#8B6B4A]"></div>
-          <p className="text-[#AE9E85] font-serif italic text-sm">
-            Curating your scriptorium...
-          </p>
-        </div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    load();
+  }, []);
 
-  const overview = stats || {
-    users: { total: 0 },
-    books: { total: 0 },
-    rentals: {
-      active: 0,
-      overdue: 0,
-      pendingRequests: 0,
-      pendingReturns: 0,
-      completed: 0,
-    },
-    revenue: { thisMonth: 0 },
-    topBook: null,
+  const summary = useMemo(
+    () => [
+      { label: "Students", value: overview.users.total },
+      { label: "Books", value: overview.books.total },
+      { label: "Active Rentals", value: overview.rentals.active },
+      { label: "Overdue", value: overview.rentals.overdue },
+      { label: "Reservations", value: overview.rentals.reservations },
+      { label: "Revenue (Month)", value: `${overview.revenue.thisMonth} ETB` },
+    ],
+    [overview],
+  );
+
+  const saveTargets = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingTargets(true);
+    try {
+      await fetchApi("/stats/targets/current", {
+        method: "PUT",
+        body: JSON.stringify({
+          target_rentals: Number(form.target_rentals || 0),
+          target_active_readers: Number(form.target_active_readers || 0),
+          target_on_time_returns: Number(form.target_on_time_returns || 0),
+          target_new_books: Number(form.target_new_books || 0),
+        }),
+      });
+      await load();
+    } finally {
+      setSavingTargets(false);
+    }
   };
 
   return (
-    <div className="p-6 lg:p-12 space-y-12">
-      <header className="space-y-2">
-        <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-[#2B1A10]">
-          Dashboard
-        </h1>
-        <p className="text-[#AE9E85] font-medium">
-          Here&apos;s a live overview of the library system.
-        </p>
-      </header>
+    <div className="p-6 lg:p-12 space-y-8">
+      <div>
+        <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-[#2B1A10]">Analytics Dashboard</h1>
+        <p className="text-[#AE9E85] font-medium">Goals, trends, and live library KPIs.</p>
+      </div>
 
-      {/* System Alerts */}
-      <section>
-        <h2 className="text-xl font-serif font-bold text-[#2B1A10] mb-6">
-          System Alerts
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {/* Overdue */}
-          <div className="bg-[#FDE2E2] p-6 rounded-2xl flex flex-col items-center text-center">
-            <span className="text-4xl font-black text-[#2B1A10] mb-1 tracking-tighter">
-              {overview.rentals.overdue}
-            </span>
-            <p className="text-[#2B1A10]/60 font-medium text-sm mb-5">
-              Overdue Books
-            </p>
-            <button
-              onClick={handleSendReminder}
-              disabled={sendingReminders}
-              className="bg-[#8B6B4A] text-white px-5 py-2.5 rounded-xl font-bold hover:bg-[#6D5339] transition-all w-full text-sm disabled:opacity-60"
-            >
-              {sendingReminders ? "Sending..." : "Send Reminder"}
-            </button>
-          </div>
-
-          {/* Pending Requests */}
-          <div className="bg-[#FEF3C7] p-6 rounded-2xl flex flex-col items-center text-center">
-            <span className="text-4xl font-black text-[#2B1A10] mb-1 tracking-tighter">
-              {overview.rentals.pendingRequests}
-            </span>
-            <p className="text-[#2B1A10]/60 font-medium text-sm mb-5">
-              Pending Requests
-            </p>
-            <button
-              onClick={() => router.push("/dashboard/admin/borrowings?status=PENDING")}
-              className="bg-[#8B6B4A] text-white px-5 py-2.5 rounded-xl font-bold hover:bg-[#6D5339] transition-all w-full text-sm"
-            >
-              Approve Request
-            </button>
-          </div>
-
-          {/* Pending Returns */}
-          <div className="bg-[#D1FAE5] p-6 rounded-2xl flex flex-col items-center text-center">
-            <span className="text-4xl font-black text-[#2B1A10] mb-1 tracking-tighter">
-              {overview.rentals.pendingReturns}
-            </span>
-            <p className="text-[#2B1A10]/60 font-medium text-sm mb-5">
-              Pending returns
-            </p>
-            <button
-              onClick={() => router.push("/dashboard/admin/borrowings?status=RETURNED")}
-              className="bg-[#8B6B4A] text-white px-5 py-2.5 rounded-xl font-bold hover:bg-[#6D5339] transition-all w-full text-sm"
-            >
-              Confirm Return
-            </button>
-          </div>
-        </div>
-        <div className="mt-4 bg-white p-4 rounded-2xl border border-[#E1D2BD]/50 flex items-center justify-between">
-          <div>
-            <p className="text-xs font-bold text-[#AE9E85] uppercase tracking-wider">
-              Active Reservations
-            </p>
-            <p className="text-2xl font-black text-[#2B1A10]">
-              {overview.rentals.reservations || 0}
-            </p>
-          </div>
-          <button
-            onClick={() => router.push("/dashboard/admin/reservations")}
-            className="bg-[#2B1A10] text-white px-4 py-2 rounded-xl text-sm font-bold"
-          >
-            Manage Queue
-          </button>
-        </div>
-      </section>
-
-      {/* Seasonal Summary */}
-      <section>
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-serif font-bold text-[#2B1A10]">
-            Seasonal Summary
-          </h2>
-          <div className="relative group">
-            <select className="appearance-none bg-white border border-[#E1D2BD] rounded-xl px-3 py-2 pr-8 text-sm font-medium text-[#2B1A10] focus:outline-none focus:border-[#8B6B4A] transition-all cursor-pointer">
-              <option>This Month</option>
-              <option>Last Month</option>
-            </select>
-            <ChevronDown
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#8B6B4A] pointer-events-none"
-              size={14}
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Most Borrowed */}
-          <div className="bg-white p-4 rounded-2xl border border-[#E1D2BD]/50 flex items-start gap-3 hover:shadow-md transition-all">
-            <div className="w-9 h-9 rounded-xl bg-[#FDF8F0] flex items-center justify-center text-[#8B6B4A] shrink-0">
-              <BookMarked size={18} strokeWidth={2} />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[10px] font-bold text-[#AE9E85] uppercase tracking-wider mb-1">
-                Most Borrowed Book
-              </p>
-              <p className="text-sm font-bold text-[#2B1A10] truncate leading-tight">
-                {overview.topBook?.title || "No data"}
-              </p>
-              <p className="text-[11px] italic text-[#AE9E85]">
-                {overview.topBook?.author?.name || ""}
-              </p>
-            </div>
-          </div>
-
-          {/* Revenue */}
-          <div className="bg-white p-4 rounded-2xl border border-[#E1D2BD]/50 flex items-start gap-3 hover:shadow-md transition-all">
-            <div className="w-9 h-9 rounded-xl bg-[#FDF8F0] flex items-center justify-center text-[#8B6B4A] shrink-0">
-              <TrendingUp size={18} strokeWidth={2} />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-[#AE9E85] uppercase tracking-wider mb-1">
-                Total Revenue
-              </p>
-              <p className="text-lg font-bold text-[#2B1A10]">
-                {overview.revenue.thisMonth}{" "}
-                <span className="text-xs text-[#AE9E85]">birr</span>
-              </p>
-            </div>
-          </div>
-
-          {/* Top Reader */}
-          <div className="bg-white p-4 rounded-2xl border border-[#E1D2BD]/50 flex items-start gap-3 hover:shadow-md transition-all">
-            <div className="w-9 h-9 rounded-xl bg-[#FDF8F0] flex items-center justify-center text-[#8B6B4A] shrink-0">
-              <Award size={18} strokeWidth={2} />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-[#AE9E85] uppercase tracking-wider mb-1">
-                Top Reader
-              </p>
-              <p className="text-sm font-bold text-[#2B1A10]">
-                {userStats?.topBorrowers?.[0]?.user?.name || "No data"}{" "}
-                <span className="text-xs font-normal text-[#AE9E85]">
-                  ({userStats?.topBorrowers?.[0]?.rentalCount || 0} books)
-                </span>
-              </p>
-            </div>
-          </div>
-
-          {/* Borrowed Books */}
-          <div className="bg-white p-4 rounded-2xl border border-[#E1D2BD]/50 flex items-start gap-3 hover:shadow-md transition-all">
-            <div className="w-9 h-9 rounded-xl bg-[#FDF8F0] flex items-center justify-center text-[#8B6B4A] shrink-0">
-              <ArrowLeftRight size={18} strokeWidth={2} />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-[#AE9E85] uppercase tracking-wider mb-1">
-                Borrowed Books
-              </p>
-              <p className="text-lg font-bold text-[#2B1A10]">
-                {overview.rentals.active +
-                  overview.rentals.overdue +
-                  overview.rentals.completed}
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Overall Summary */}
-      <section className="max-w-md">
-        <h2 className="text-xl font-serif font-bold text-[#2B1A10] mb-6">
-          Overall Summary
-        </h2>
-        <div className="space-y-3">
-          {/* Total Books */}
-          <div className="bg-white p-4 rounded-2xl border border-[#E1D2BD]/50 flex items-center justify-between hover:shadow-md transition-all">
-            <div className="flex items-center gap-4">
-              <div className="bg-[#FDF8F0] p-2.5 rounded-lg">
-                <Book className="text-[#AE9E85]" size={20} strokeWidth={2} />
+      {loading ? (
+        <div className="py-16 text-center text-[#AE9E85]">Loading analytics...</div>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
+            {summary.map((item) => (
+              <div key={item.label} className="bg-white border border-[#E1D2BD]/50 rounded-xl p-3">
+                <p className="text-[11px] uppercase tracking-wider text-[#AE9E85] font-bold">{item.label}</p>
+                <p className="text-2xl font-black text-[#2B1A10] mt-1">{item.value}</p>
               </div>
-              <span className="text-sm font-bold text-[#2B1A10]">
-                Total Books
-              </span>
-            </div>
-            <span className="text-xl font-bold text-[#2B1A10]">
-              {overview.books.total}
-            </span>
+            ))}
           </div>
 
-          {/* Active Borrowers */}
-          <div className="bg-white p-4 rounded-2xl border border-[#E1D2BD]/50 flex items-center justify-between hover:shadow-md transition-all">
-            <div className="flex items-center gap-4">
-              <div className="bg-[#FDF8F0] p-2.5 rounded-lg">
-                <Users className="text-[#AE9E85]" size={20} strokeWidth={2} />
-              </div>
-              <span className="text-sm font-bold text-[#2B1A10]">
-                Active Borrowers
-              </span>
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+            <div className="xl:col-span-2">
+              <LineChart points={overview.trends?.rentalsPerWeek || []} />
             </div>
-            <span className="text-xl font-bold text-[#2B1A10]">
-              {overview.rentals.active}
-            </span>
+            <div className="bg-white rounded-2xl border border-[#E1D2BD]/50 p-4 space-y-3">
+              <h3 className="text-sm font-bold text-[#2B1A10]">Monthly Goal Progress</h3>
+              <ProgressRow label="Rentals" item={overview.monthlyTargets.progress.rentals} />
+              <ProgressRow label="Active Readers" item={overview.monthlyTargets.progress.activeReaders} />
+              <ProgressRow label="On-Time Returns" item={overview.monthlyTargets.progress.onTimeReturns} />
+              <ProgressRow label="New Books" item={overview.monthlyTargets.progress.newBooks} />
+            </div>
           </div>
 
-          {/* Total Users */}
-          <div className="bg-white p-4 rounded-2xl border border-[#E1D2BD]/50 flex items-center justify-between hover:shadow-md transition-all">
-            <div className="flex items-center gap-4">
-              <div className="bg-[#FDF8F0] p-2.5 rounded-lg">
-                <Users className="text-[#AE9E85]" size={20} strokeWidth={2} />
-              </div>
-              <span className="text-sm font-bold text-[#2B1A10]">
-                Total Users
-              </span>
+          <form onSubmit={saveTargets} className="bg-white rounded-2xl border border-[#E1D2BD]/50 p-5 space-y-4">
+            <h3 className="text-sm font-bold text-[#2B1A10]">Set Monthly Targets</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+              <Field label="Rentals" value={form.target_rentals} onChange={(v) => setForm((p) => ({ ...p, target_rentals: v }))} />
+              <Field label="Active Readers" value={form.target_active_readers} onChange={(v) => setForm((p) => ({ ...p, target_active_readers: v }))} />
+              <Field label="On-Time Returns" value={form.target_on_time_returns} onChange={(v) => setForm((p) => ({ ...p, target_on_time_returns: v }))} />
+              <Field label="New Books" value={form.target_new_books} onChange={(v) => setForm((p) => ({ ...p, target_new_books: v }))} />
             </div>
-            <span className="text-xl font-bold text-[#2B1A10]">
-              {overview.users.total}
-            </span>
-          </div>
-        </div>
-      </section>
+            <button type="submit" disabled={savingTargets} className="px-4 py-2.5 rounded-xl bg-[#2B1A10] text-white text-sm font-bold disabled:opacity-50">
+              {savingTargets ? "Saving..." : "Save Targets"}
+            </button>
+          </form>
+        </>
+      )}
     </div>
+  );
+}
+
+function Field({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+  return (
+    <label className="space-y-1 block">
+      <span className="text-xs font-bold text-[#2B1A10]">{label}</span>
+      <input
+        type="number"
+        min={0}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full px-3 py-2 rounded-lg border border-[#E1D2BD] text-sm"
+      />
+    </label>
   );
 }

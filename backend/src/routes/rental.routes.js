@@ -22,6 +22,7 @@ router.use(restrictTo('ADMIN'));
 
 router.get('/', rentalController.getAllRentals);               // Admin: all rentals (filterable)
 router.get('/admin/overdue', rentalController.getOverdueRentals);  // Admin: overdue list + estimated fines
+router.get('/admin/overdue-ranking', rentalController.getOverdueRanking);
 router.post('/admin/send-reminders', rentalController.sendOverdueReminders); // Admin: blast overdue reminders
 router.patch('/:id/return', rentalController.returnBook);     // Admin: process return
 router.patch('/:id/extend', rentalController.extendRental);   // Admin: extend due date

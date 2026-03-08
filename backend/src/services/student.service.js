@@ -211,3 +211,59 @@ export const getStudentRecommendations = async (userId, limit = 8) => {
     digital: digitalRecommendations,
   };
 };
+
+export const getStudentPopularity = async (limit = 8) => {
+  const [mostRented, topRated] = await Promise.all([
+    prisma.rental.groupBy({
+      by: ['book_id'],
+      _count: { book_id: true },
+      orderBy: { _count: { book_id: 'desc' } },
+      take: limit,
+    }),
+    prisma.review.groupBy({
+      by: ['physical_book_id'],
+      where: { physical_book_id: { not: null } },
+      _avg: { rating: true },
+      _count: { rating: true },
+      orderBy: [{ _avg: { rating: 'desc' } }, { _count: { rating: 'desc' } }],
+      take: limit,
+    }),
+  ]);
+
+  const ids = Array.from(
+    new Set([
+      ...mostRented.map((r) => r.book_id),
+      ...topRated.map((r) => r.physical_book_id).filter(Boolean),
+    ]),
+  );
+
+  const books = await prisma.book.findMany({
+    where: { id: { in: ids }, deleted_at: null },
+    select: {
+      id: true,
+      title: true,
+      cover_image_url: true,
+      available: true,
+      author: { select: { name: true } },
+      category: { select: { name: true } },
+    },
+  });
+  const map = Object.fromEntries(books.map((b) => [b.id, b]));
+
+  const trending = mostRented.slice(0, 5).map((row) => ({
+    book: map[row.book_id],
+    rentalCount: row._count.book_id,
+  })).filter((item) => item.book);
+
+  const topRatedBooks = topRated.slice(0, 5).map((row) => ({
+    book: map[row.physical_book_id || ''],
+    avgRating: Number(Number(row._avg.rating || 0).toFixed(2)),
+    reviewCount: row._count.rating,
+  })).filter((item) => item.book);
+
+  return {
+    trending,
+    mostRented: trending,
+    topRated: topRatedBooks,
+  };
+};

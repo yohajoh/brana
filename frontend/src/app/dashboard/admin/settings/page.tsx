@@ -12,6 +12,7 @@ export default function AdminSettingsPage() {
     max_books_per_user: "3",
     reservation_window_hr: "24",
     low_stock_threshold: "2",
+    never_returned_days: "60",
     enable_notifications: true,
   });
 
@@ -26,6 +27,7 @@ export default function AdminSettingsPage() {
             max_books_per_user: String(config.max_books_per_user),
             reservation_window_hr: String(config.reservation_window_hr),
             low_stock_threshold: String(config.low_stock_threshold),
+            never_returned_days: String(config.never_returned_days ?? 60),
             enable_notifications: Boolean(config.enable_notifications),
           });
         }
@@ -45,6 +47,7 @@ export default function AdminSettingsPage() {
           max_books_per_user: Number(form.max_books_per_user),
           reservation_window_hr: Number(form.reservation_window_hr),
           low_stock_threshold: Number(form.low_stock_threshold),
+          never_returned_days: Number(form.never_returned_days),
           enable_notifications: form.enable_notifications,
         }),
       });
@@ -70,6 +73,7 @@ export default function AdminSettingsPage() {
             <Field label="Max Books Per User" value={form.max_books_per_user} onChange={(value) => setForm((p) => ({ ...p, max_books_per_user: value }))} />
             <Field label="Reservation Window (Hours)" value={form.reservation_window_hr} onChange={(value) => setForm((p) => ({ ...p, reservation_window_hr: value }))} />
             <Field label="Low Stock Threshold" value={form.low_stock_threshold} onChange={(value) => setForm((p) => ({ ...p, low_stock_threshold: value }))} />
+            <Field label="Never Returned Alert (Days)" value={form.never_returned_days} onChange={(value) => setForm((p) => ({ ...p, never_returned_days: value }))} />
 
             <label className="flex items-center gap-3 text-sm font-medium text-[#2B1A10]">
               <input

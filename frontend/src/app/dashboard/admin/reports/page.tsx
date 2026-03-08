@@ -52,6 +52,18 @@ export default function AdminReportsPage() {
         >
           Download CSV
         </a>
+        <a
+          href={`${API_BASE_URL}/admin/reports/export?type=${active}&format=excel`}
+          className="px-4 py-2 rounded-xl text-sm font-bold bg-[#6D5339] text-white"
+        >
+          Download Excel
+        </a>
+        <a
+          href={`${API_BASE_URL}/admin/reports/export?type=${active}&format=pdf`}
+          className="px-4 py-2 rounded-xl text-sm font-bold bg-[#2B1A10] text-white"
+        >
+          Download PDF
+        </a>
       </div>
 
       <div className="bg-white rounded-2xl border border-[#E1D2BD]/50 overflow-hidden">

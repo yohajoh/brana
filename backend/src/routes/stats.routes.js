@@ -13,6 +13,8 @@ const router = Router();
 router.use(protect, restrictTo('ADMIN'));
 
 router.get('/overview', statsController.getOverviewStats);  // KPI dashboard cards
+router.get('/targets/current', statsController.getCurrentMonthTarget);
+router.put('/targets/current', statsController.upsertCurrentMonthTarget);
 router.get('/books', statsController.getBooksStats);        // Book rankings, stock alerts
 router.get('/users', statsController.getUserStats);         // Active users, top borrowers
 router.get('/rentals', statsController.getRentalStats);     // Rental status, time-series

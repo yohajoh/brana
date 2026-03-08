@@ -12,6 +12,55 @@ const toCsv = (headers, rows) => {
   return `${head}\n${body}`;
 };
 
+const toExcelTsv = (headers, rows) => {
+  const esc = (value) => {
+    if (value === null || value === undefined) return '';
+    return String(value).replace(/\t/g, ' ').replace(/\r?\n/g, ' ');
+  };
+  const head = headers.join('\t');
+  const body = rows.map((row) => headers.map((h) => esc(row[h])).join('\t')).join('\n');
+  return `${head}\n${body}`;
+};
+
+const toSimplePdf = (title, headers, rows) => {
+  const lines = [];
+  lines.push(title);
+  lines.push('');
+  lines.push(headers.join(' | '));
+  lines.push('-'.repeat(Math.min(120, headers.join(' | ').length)));
+  rows.slice(0, 120).forEach((row) => {
+    const line = headers.map((h) => String(row[h] ?? '')).join(' | ');
+    lines.push(line.slice(0, 120));
+  });
+
+  const contentLines = [];
+  let y = 760;
+  for (const raw of lines) {
+    const safe = raw.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+    contentLines.push(`BT /F1 10 Tf 40 ${y} Td (${safe}) Tj ET`);
+    y -= 12;
+    if (y < 40) break;
+  }
+  const stream = contentLines.join('\n');
+  const objects = [];
+  objects.push('1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj');
+  objects.push('2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj');
+  objects.push('3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >> endobj');
+  objects.push(`4 0 obj << /Length ${stream.length} >> stream\n${stream}\nendstream endobj`);
+  objects.push('5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj');
+
+  const chunks = ['%PDF-1.4\n'];
+  const xref = ['xref', `0 ${objects.length + 1}`, '0000000000 65535 f '];
+  objects.forEach((obj) => {
+    xref.push(`${String(chunks.join('').length).padStart(10, '0')} 00000 n `);
+    chunks.push(`${obj}\n`);
+  });
+  const xrefPos = chunks.join('').length;
+  chunks.push(`${xref.join('\n')}\n`);
+  chunks.push(`trailer << /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefPos}\n%%EOF`);
+  return Buffer.from(chunks.join(''), 'utf-8');
+};
+
 export const getReportData = async (type) => {
   if (type === 'rentals') {
     const data = await prisma.rental.findMany({
@@ -153,8 +202,23 @@ export const buildReport = async (type, format = 'json') => {
   if (format === 'json') return { contentType: 'application/json', body: { rows } };
 
   const headers = rows.length > 0 ? Object.keys(rows[0]) : [];
+  if (format === 'excel') {
+    return {
+      contentType: 'application/vnd.ms-excel',
+      body: toExcelTsv(headers, rows),
+      extension: 'xls',
+    };
+  }
+  if (format === 'pdf') {
+    return {
+      contentType: 'application/pdf',
+      body: toSimplePdf(`${type.toUpperCase()} REPORT`, headers, rows),
+      extension: 'pdf',
+    };
+  }
   return {
     contentType: 'text/csv',
     body: toCsv(headers, rows),
+    extension: 'csv',
   };
 };

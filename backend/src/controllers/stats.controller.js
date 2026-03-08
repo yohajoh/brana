@@ -28,3 +28,13 @@ export const getRevenueStats = async (req, res) => {
   const data = await statsService.getRevenueStats();
   res.json({ status: 'success', data });
 };
+
+export const getCurrentMonthTarget = async (req, res) => {
+  const data = await statsService.getCurrentMonthTarget();
+  res.json({ status: 'success', data });
+};
+
+export const upsertCurrentMonthTarget = async (req, res) => {
+  const data = await statsService.upsertCurrentMonthTarget(req.user.id, req.body);
+  res.json({ status: 'success', data });
+};

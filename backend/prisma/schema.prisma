@@ -71,6 +71,7 @@ enum BookCondition {
 enum InventoryAlertType {
   LOW_STOCK
   EXTENDED_OVERDUE
+  NEVER_RETURNED
 }
 
 enum AlertSeverity {
@@ -117,6 +118,8 @@ model User {
   system_config_updates  SystemConfig[]     @relation("SystemConfigUpdatedBy")
   admin_activity_logs    AdminActivityLog[] @relation("AdminActivityBy")
   resolved_stock_alerts  InventoryAlert[]   @relation("InventoryAlertResolvedBy")
+  condition_updates      BookConditionHistory[]
+  analytics_targets      AnalyticsTarget[]
 
   @@index([role])
   @@index([is_blocked])
@@ -129,6 +132,7 @@ model SystemConfig {
   max_books_per_user    Int
   reservation_window_hr Int      @default(24)
   low_stock_threshold   Int      @default(2)
+  never_returned_days   Int      @default(60)
   enable_notifications  Boolean  @default(true)
   last_updated_by_id    String   @db.Uuid
   created_at            DateTime @default(now())
@@ -219,6 +223,8 @@ model Book {
   publication_year  Int?
   publisher         String?
   language          String?
+  tags              String[]         @default([])
+  topics            String[]         @default([])
   deleted_at        DateTime?
 
   author            Author      @relation(fields: [author_id], references: [id])
@@ -249,6 +255,8 @@ model DigitalBook {
   pdf_name          String
   pdf_access        PDFAccess
   pages             Int
+  tags              String[]     @default([])
+  topics            String[]     @default([])
   publication_year  Int?
   deleted_at        DateTime?
 
@@ -350,9 +358,40 @@ model BookCopy {
 
   book                  Book          @relation(fields: [book_id], references: [id])
   rentals               Rental[]
+  condition_history     BookConditionHistory[]
 
   @@index([book_id, condition])
   @@index([book_id, is_available])
+}
+
+model BookConditionHistory {
+  id                 String        @id @default(uuid()) @db.Uuid
+  copy_id            String        @db.Uuid
+  old_condition      BookCondition
+  new_condition      BookCondition
+  notes              String?       @db.Text
+  updated_by_user_id String?       @db.Uuid
+  created_at         DateTime      @default(now())
+
+  copy               BookCopy      @relation(fields: [copy_id], references: [id])
+  updated_by_user    User?         @relation(fields: [updated_by_user_id], references: [id])
+
+  @@index([copy_id, created_at])
+}
+
+model AnalyticsTarget {
+  id                     String   @id @default(uuid()) @db.Uuid
+  month_start            DateTime @unique
+  target_rentals         Int      @default(0)
+  target_active_readers  Int      @default(0)
+  target_on_time_returns Int      @default(0)
+  target_new_books       Int      @default(0)
+  updated_by_user_id     String?  @db.Uuid
+  created_at             DateTime @default(now())
+
+  updated_by_user        User?    @relation(fields: [updated_by_user_id], references: [id])
+
+  @@index([month_start])
 }
 
 model InventoryAlert {

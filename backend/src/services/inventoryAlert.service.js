@@ -116,6 +116,57 @@ export const scanExtendedOverdueAlerts = async () => {
   return { created };
 };
 
+export const scanNeverReturnedAlerts = async () => {
+  const config = await getConfig();
+  if (!config) return { created: 0, thresholdDays: 60 };
+
+  const thresholdDays = config.never_returned_days ?? 60;
+  const now = new Date();
+  const rentals = await prisma.rental.findMany({
+    where: /** @type {any} */ ({
+      status: 'BORROWED',
+      due_date: { lt: now },
+    }),
+    select: {
+      id: true,
+      book_id: true,
+      due_date: true,
+      physical_book: { select: { title: true } },
+      user: { select: { name: true, email: true } },
+    },
+  });
+
+  let created = 0;
+  for (const rental of rentals) {
+    const days = Math.ceil((now.getTime() - new Date(rental.due_date).getTime()) / (1000 * 60 * 60 * 24));
+    if (days < thresholdDays) continue;
+
+    const existing = await prisma.inventoryAlert.findFirst({
+      where: {
+        book_id: rental.book_id,
+        type: 'NEVER_RETURNED',
+        is_resolved: false,
+        message: { contains: rental.id },
+      },
+    });
+    if (existing) continue;
+
+    await prisma.inventoryAlert.create({
+      data: {
+        book_id: rental.book_id,
+        type: 'NEVER_RETURNED',
+        severity: days >= thresholdDays * 2 ? 'HIGH' : 'MEDIUM',
+        threshold: thresholdDays,
+        current_available: null,
+        message: `Never-returned risk rental ${rental.id}: "${rental.physical_book.title}" is ${days} day(s) overdue by ${rental.user.name} (${rental.user.email}).`,
+      },
+    });
+    created += 1;
+  }
+
+  return { created, thresholdDays };
+};
+
 export const getInventoryAlerts = async (query) => {
   const page = Math.max(1, parseInt(query.page, 10) || 1);
   const limit = Math.min(100, Math.max(1, parseInt(query.limit, 10) || 20));

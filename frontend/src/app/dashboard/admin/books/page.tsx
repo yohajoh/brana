@@ -61,6 +61,9 @@ export default function AdminBooksPage() {
     category_id: "",
     copies: "",
     description: "",
+    publication_year: "",
+    tags: "",
+    topics: "",
     pdf_access: "RESTRICTED" as "FREE" | "PAID" | "RESTRICTED",
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -165,6 +168,46 @@ export default function AdminBooksPage() {
     }
   };
 
+  const manageCondition = async (bookId: string) => {
+    try {
+      const copyRes = await fetchApi(`/books/${bookId}/copies`);
+      const copies = copyRes?.data?.copies || [];
+      if (!copies.length) {
+        alert("No copy records available for this book.");
+        return;
+      }
+
+      const options = copies
+        .map((c: { id: string; copy_code: string; condition: string }) => `${c.copy_code} (${c.condition})`)
+        .join("\\n");
+      const selectedCode = prompt(`Enter copy code to update:\\n${options}`);
+      if (!selectedCode) return;
+
+      const copy = copies.find((c: { copy_code: string }) => c.copy_code === selectedCode.trim());
+      if (!copy) {
+        alert("Invalid copy code.");
+        return;
+      }
+
+      const nextCondition = prompt("Enter condition: NEW, GOOD, WORN, DAMAGED, LOST", copy.condition);
+      if (!nextCondition) return;
+      const notes = prompt("Optional condition note", "") || "";
+
+      await fetchApi(`/books/copies/${copy.id}/condition`, {
+        method: "PATCH",
+        body: JSON.stringify({ condition: nextCondition, notes }),
+      });
+
+      const historyRes = await fetchApi(`/books/copies/${copy.id}/condition-history`);
+      const latest = historyRes?.data?.history?.[0];
+      if (latest) {
+        alert(`Condition updated to ${latest.new_condition}.`);
+      }
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Condition update failed");
+    }
+  };
+
   const TABS: { key: Tab; label: string }[] = [
     { key: "all", label: "All Books" },
     { key: "physical", label: "Physical Books" },
@@ -203,6 +246,9 @@ export default function AdminBooksPage() {
       category_id: "",
       copies: "",
       description: "",
+      publication_year: "",
+      tags: "",
+      topics: "",
       pdf_access: "RESTRICTED",
     });
     setImageFile(null);
@@ -257,6 +303,9 @@ export default function AdminBooksPage() {
       fd.append("author_id", form.author_id);
       fd.append("category_id", form.category_id);
       fd.append("description", form.description);
+      if (form.publication_year) fd.append("publication_year", form.publication_year);
+      if (form.tags.trim()) fd.append("tags", form.tags);
+      if (form.topics.trim()) fd.append("topics", form.topics);
       if (modalTab === "physical") {
         fd.append("total", form.copies);
         if (imageFile) fd.append("image", imageFile);
@@ -531,6 +580,14 @@ export default function AdminBooksPage() {
                           (book.available === 0 ? "Out of Stock" : "Available")}
                     </span>
                     <div className="flex items-center gap-2">
+                      {book.type === "physical" && (
+                        <button
+                          onClick={() => manageCondition(book.id)}
+                          className="px-2 py-1 text-[10px] font-bold rounded-md border border-[#C2B199] text-[#2B1A10]"
+                        >
+                          Condition
+                        </button>
+                      )}
                       <button className="w-8 h-8 flex items-center justify-center rounded-lg text-[#AE9E85] hover:text-[#2B1A10] hover:bg-[#F3EFE6] transition-all">
                         <Pencil size={15} strokeWidth={1.5} />
                       </button>
@@ -729,6 +786,42 @@ export default function AdminBooksPage() {
                   }
                   className="w-full px-3 py-2.5 text-sm border border-[#E1D2BD] rounded-xl text-[#2B1A10] resize-none focus:outline-none focus:ring-2 focus:ring-[#8B6B4A]/30 focus:border-[#8B6B4A] transition-all"
                 />
+              </div>
+
+              <div className="grid grid-cols-1 gap-3">
+                <div>
+                  <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">
+                    Publication Year
+                  </label>
+                  <input
+                    type="number"
+                    value={form.publication_year}
+                    onChange={(e) => setForm((f) => ({ ...f, publication_year: e.target.value }))}
+                    className="w-full px-3 py-2.5 text-sm border border-[#E1D2BD] rounded-xl text-[#2B1A10]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">
+                    Tags (comma separated)
+                  </label>
+                  <input
+                    type="text"
+                    value={form.tags}
+                    onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))}
+                    className="w-full px-3 py-2.5 text-sm border border-[#E1D2BD] rounded-xl text-[#2B1A10]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">
+                    Topics (comma separated)
+                  </label>
+                  <input
+                    type="text"
+                    value={form.topics}
+                    onChange={(e) => setForm((f) => ({ ...f, topics: e.target.value }))}
+                    className="w-full px-3 py-2.5 text-sm border border-[#E1D2BD] rounded-xl text-[#2B1A10]"
+                  />
+                </div>
               </div>
 
               {modalTab === "digital" && (

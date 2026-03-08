@@ -28,7 +28,7 @@ import { AppError } from '../middlewares/error.middleware.js';
 import { paginationMeta } from '../utils/apiFeatures.js';
 import { createNotification, notifyAdmins } from './notification.service.js';
 import { notifyNextInQueue, markReservationFulfilledForBorrow } from './reservation.service.js';
-import { syncLowStockAlertForBook } from './inventoryAlert.service.js';
+import { syncLowStockAlertForBook, scanExtendedOverdueAlerts, scanNeverReturnedAlerts } from './inventoryAlert.service.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS
@@ -533,6 +533,7 @@ export const returnBook = async (rentalId, io) => {
  * Includes how many days overdue and estimated fine.
  */
 export const getOverdueRentals = async (query) => {
+  await Promise.all([scanExtendedOverdueAlerts(), scanNeverReturnedAlerts()]);
   const page = Math.max(1, parseInt(query.page, 10) || 1);
   const limit = Math.min(100, Math.max(1, parseInt(query.limit, 10) || 20));
   const skip = (page - 1) * limit;
@@ -571,6 +572,59 @@ export const getOverdueRentals = async (query) => {
   return { rentals: enriched, meta: paginationMeta(total, page, limit) };
 };
 
+export const getOverdueRanking = async (query) => {
+  const limit = Math.min(100, Math.max(1, parseInt(query.limit, 10) || 20));
+  const config = await getConfig();
+  const now = new Date();
+
+  const rows = await prisma.rental.findMany({
+    where: /** @type {any} */ ({ status: 'BORROWED', due_date: { lt: now } }),
+    select: {
+      id: true,
+      due_date: true,
+      fine: true,
+      user: { select: { id: true, name: true, email: true, student_id: true } },
+      physical_book: { select: { title: true } },
+    },
+  });
+
+  const grouped = rows.reduce((acc, row) => {
+    const days = Math.ceil((now.getTime() - new Date(row.due_date).getTime()) / (1000 * 60 * 60 * 24));
+    const estimated = Number(row.fine ?? 0) > 0
+      ? Number(row.fine ?? 0)
+      : parseFloat((days * Number(config.daily_fine)).toFixed(2));
+    if (!acc[row.user.id]) {
+      acc[row.user.id] = {
+        user: row.user,
+        overdueCount: 0,
+        totalDaysOverdue: 0,
+        totalEstimatedFine: 0,
+        items: [],
+      };
+    }
+    acc[row.user.id].overdueCount += 1;
+    acc[row.user.id].totalDaysOverdue += days;
+    acc[row.user.id].totalEstimatedFine += estimated;
+    acc[row.user.id].items.push({
+      rentalId: row.id,
+      bookTitle: row.physical_book.title,
+      daysOverdue: days,
+      estimatedFine: estimated,
+    });
+    return acc;
+  }, {});
+
+  const ranking = Object.values(grouped)
+    .map((entry) => ({
+      ...entry,
+      totalEstimatedFine: parseFloat(entry.totalEstimatedFine.toFixed(2)),
+    }))
+    .sort((a, b) => b.totalDaysOverdue - a.totalDaysOverdue || b.totalEstimatedFine - a.totalEstimatedFine)
+    .slice(0, limit);
+
+  return { ranking };
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // SEND OVERDUE REMINDERS (Admin cron action)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -580,6 +634,7 @@ export const getOverdueRentals = async (query) => {
  * Returns count of notifications sent.
  */
 export const sendOverdueReminders = async (io) => {
+  await Promise.all([scanExtendedOverdueAlerts(), scanNeverReturnedAlerts()]);
   const overdue = await prisma.rental.findMany({
     where: /** @type {any} */ ({ status: 'BORROWED', due_date: { lt: new Date() } }),
     select: {

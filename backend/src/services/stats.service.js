@@ -12,6 +12,14 @@
 
 import { prisma } from "../prisma.js";
 
+const getMonthStart = (date = new Date()) =>
+  new Date(date.getFullYear(), date.getMonth(), 1, 0, 0, 0, 0);
+
+const toPercent = (actual, target) => {
+  if (!target || target <= 0) return 0;
+  return Number(Math.min(100, ((actual / target) * 100)).toFixed(1));
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // OVERVIEW / KPI DASHBOARD
 // ─────────────────────────────────────────────────────────────────────────────
@@ -22,7 +30,7 @@ import { prisma } from "../prisma.js";
  */
 export const getOverviewStats = async () => {
   const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfMonth = getMonthStart(now);
   const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const endOfLastMonth = new Date(
     now.getFullYear(),
@@ -56,6 +64,12 @@ export const getOverviewStats = async () => {
     unreadNotifications,
     totalReviews,
     mostBorrowed,
+    target,
+    monthlyRentals,
+    monthlyActiveReaders,
+    monthlyReturned,
+    monthlyNewBooks,
+    rentalsPerWeek,
   ] = await Promise.all([
     prisma.user.count({ where: { role: "STUDENT" } }),
     prisma.user.count({
@@ -114,6 +128,39 @@ export const getOverviewStats = async () => {
       orderBy: { _count: { book_id: "desc" } },
       take: 1,
     }),
+    prisma.analyticsTarget.findUnique({
+      where: { month_start: startOfMonth },
+    }),
+    prisma.rental.count({
+      where: { loan_date: { gte: startOfMonth } },
+    }),
+    prisma.rental.groupBy({
+      by: ["user_id"],
+      where: { loan_date: { gte: startOfMonth } },
+    }),
+    prisma.rental.findMany({
+      where: {
+        loan_date: { gte: startOfMonth },
+        status: { in: ["RETURNED", "COMPLETED"] },
+      },
+      select: { due_date: true, return_date: true },
+    }),
+    prisma.adminActivityLog.count({
+      where: {
+        action: "CREATE",
+        entity_type: { in: ["BOOK", "DIGITAL_BOOK"] },
+        created_at: { gte: startOfMonth },
+      },
+    }),
+    prisma.$queryRaw`
+      SELECT
+        TO_CHAR(DATE_TRUNC('week', loan_date), 'YYYY-MM-DD') AS week_start,
+        COUNT(*)::int as count
+      FROM "Rental"
+      WHERE loan_date >= ${startOfMonth}
+      GROUP BY DATE_TRUNC('week', loan_date)
+      ORDER BY week_start ASC
+    `,
   ]);
 
   const revenueThisMonth = Number(finesThisMonth._sum.amount ?? 0);
@@ -136,6 +183,42 @@ export const getOverviewStats = async () => {
       select: { title: true, author: { select: { name: true } } },
     });
   }
+
+  const onTimeReturnsThisMonth = monthlyReturned.filter(
+    (item) =>
+      item.return_date &&
+      new Date(item.return_date).getTime() <= new Date(item.due_date).getTime(),
+  ).length;
+
+  const effectiveTarget = target || {
+    target_rentals: 0,
+    target_active_readers: 0,
+    target_on_time_returns: 0,
+    target_new_books: 0,
+  };
+
+  const monthlyGoalProgress = {
+    rentals: {
+      target: effectiveTarget.target_rentals,
+      actual: monthlyRentals,
+      progress: toPercent(monthlyRentals, effectiveTarget.target_rentals),
+    },
+    activeReaders: {
+      target: effectiveTarget.target_active_readers,
+      actual: monthlyActiveReaders.length,
+      progress: toPercent(monthlyActiveReaders.length, effectiveTarget.target_active_readers),
+    },
+    onTimeReturns: {
+      target: effectiveTarget.target_on_time_returns,
+      actual: onTimeReturnsThisMonth,
+      progress: toPercent(onTimeReturnsThisMonth, effectiveTarget.target_on_time_returns),
+    },
+    newBooks: {
+      target: effectiveTarget.target_new_books,
+      actual: monthlyNewBooks,
+      progress: toPercent(monthlyNewBooks, effectiveTarget.target_new_books),
+    },
+  };
 
   return {
     users: {
@@ -175,6 +258,14 @@ export const getOverviewStats = async () => {
       total: totalReviews,
     },
     topBook: mostBorrowedBook,
+    monthlyTargets: {
+      monthStart: startOfMonth,
+      target: effectiveTarget,
+      progress: monthlyGoalProgress,
+    },
+    trends: {
+      rentalsPerWeek,
+    },
   };
 };
 
@@ -497,4 +588,49 @@ export const getRevenueStats = async () => {
     })),
     monthlyTimeSeries: monthlyRevenue,
   };
+};
+
+export const getCurrentMonthTarget = async () => {
+  const monthStart = getMonthStart();
+  const target = await prisma.analyticsTarget.findUnique({
+    where: { month_start: monthStart },
+    include: { updated_by_user: { select: { id: true, name: true, email: true } } },
+  });
+  return {
+    monthStart,
+    target: target || {
+      target_rentals: 0,
+      target_active_readers: 0,
+      target_on_time_returns: 0,
+      target_new_books: 0,
+      updated_by_user: null,
+    },
+  };
+};
+
+export const upsertCurrentMonthTarget = async (adminId, payload) => {
+  const monthStart = getMonthStart();
+  const safe = (value) => Math.max(0, parseInt(value, 10) || 0);
+
+  const target = await prisma.analyticsTarget.upsert({
+    where: { month_start: monthStart },
+    create: {
+      month_start: monthStart,
+      target_rentals: safe(payload.target_rentals),
+      target_active_readers: safe(payload.target_active_readers),
+      target_on_time_returns: safe(payload.target_on_time_returns),
+      target_new_books: safe(payload.target_new_books),
+      updated_by_user_id: adminId,
+    },
+    update: {
+      target_rentals: safe(payload.target_rentals),
+      target_active_readers: safe(payload.target_active_readers),
+      target_on_time_returns: safe(payload.target_on_time_returns),
+      target_new_books: safe(payload.target_new_books),
+      updated_by_user_id: adminId,
+    },
+    include: { updated_by_user: { select: { id: true, name: true, email: true } } },
+  });
+
+  return { monthStart, target };
 };

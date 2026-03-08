@@ -80,6 +80,15 @@ const buildCopyCode = (bookId, sequence) => {
   return `BC-${bookId.slice(0, 8).toUpperCase()}-${seq}`;
 };
 
+const parseList = (value) => {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.map((v) => String(v).trim()).filter(Boolean);
+  return String(value)
+    .split(',')
+    .map((v) => v.trim())
+    .filter(Boolean);
+};
+
 const resolveAuthorId = async (data) => {
   if (data.author_id) {
     const author = await prisma.author.findUnique({ where: { id: data.author_id } });
@@ -173,6 +182,21 @@ export const getBooks = async (query) => {
   if (query.available === 'true') where.available = { gt: 0 };
   if (query.available === 'false') where.available = 0;
 
+  if (query.year) {
+    const year = parseInt(query.year, 10);
+    if (!isNaN(year)) where.publication_year = year;
+  }
+  if (query.year_from || query.year_to) {
+    where.publication_year = {};
+    if (query.year_from) where.publication_year.gte = parseInt(query.year_from, 10);
+    if (query.year_to) where.publication_year.lte = parseInt(query.year_to, 10);
+  }
+
+  const tags = parseList(query.tags);
+  const topics = parseList(query.topics);
+  if (tags.length > 0) where.tags = { hasSome: tags };
+  if (topics.length > 0) where.topics = { hasSome: topics };
+
   // Page range
   if (query.min_pages) where.pages = { ...where.pages, gte: parseInt(query.min_pages, 10) };
   if (query.max_pages) where.pages = { ...where.pages, lte: parseInt(query.max_pages, 10) };
@@ -208,6 +232,33 @@ export const getBooks = async (query) => {
     }),
     prisma.book.count({ where }),
   ]);
+
+  if (query.min_rating) {
+    const min = parseFloat(query.min_rating);
+    if (!Number.isNaN(min)) {
+      const qualified = await prisma.review.groupBy({
+        by: ['physical_book_id'],
+        where: { physical_book_id: { not: null } },
+        _avg: { rating: true },
+      });
+      const allowedIds = new Set(
+        qualified
+          .filter((row) => Number(row._avg.rating ?? 0) >= min)
+          .map((row) => row.physical_book_id),
+      );
+      const filtered = books.filter((b) => allowedIds.has(b.id));
+      const booksWithRatings = await Promise.all(
+        filtered.map(async (book) => ({
+          ...book,
+          rating: await buildRatingSummary('physical_book_id', book.id),
+        }))
+      );
+      return {
+        books: booksWithRatings,
+        meta: paginationMeta(booksWithRatings.length, page, limit),
+      };
+    }
+  }
 
   // Attach rating summaries for each book
   const booksWithRatings = await Promise.all(
@@ -300,6 +351,8 @@ export const createBook = async (data, imageFile = null, galleryFiles = []) => {
     folder: 'brana/physical-books/covers',
   });
   const description = data.description?.trim() || 'No description provided.';
+  const tags = parseList(data.tags);
+  const topics = parseList(data.topics);
 
   const created = await prisma.book.create({
     data: {
@@ -311,6 +364,9 @@ export const createBook = async (data, imageFile = null, galleryFiles = []) => {
       copies: copiesInt,
       available: copiesInt, // all copies start available
       pages: pagesInt,
+      publication_year: data.publication_year ? parseInt(data.publication_year, 10) : null,
+      tags,
+      topics,
     },
     include: BOOK_DETAIL_INCLUDE,
   });
@@ -378,6 +434,11 @@ export const updateBook = async (id, data, imageFile = null, galleryFiles = []) 
   if (data.description) updateData.description = data.description.trim();
   if (data.cover_image_url) updateData.cover_image_url = data.cover_image_url;
   if (data.pages) updateData.pages = parseInt(data.pages, 10);
+  if (data.publication_year !== undefined) {
+    updateData.publication_year = data.publication_year ? parseInt(data.publication_year, 10) : null;
+  }
+  if (data.tags !== undefined) updateData.tags = parseList(data.tags);
+  if (data.topics !== undefined) updateData.topics = parseList(data.topics);
   let uploadedCover = null;
   if (imageFile) {
     uploadedCover = await uploadImageToCloudinary(imageFile, {
@@ -566,6 +627,87 @@ export const getBookAvailability = async (id) => {
     borrowed: activeRentals,
     isAvailable: book.available > 0,
   };
+};
+
+export const getBookCopies = async (bookId) => {
+  const copies = await prisma.bookCopy.findMany({
+    where: { book_id: bookId, deleted_at: null },
+    orderBy: { copy_code: 'asc' },
+    select: {
+      id: true,
+      copy_code: true,
+      condition: true,
+      is_available: true,
+      last_condition_update: true,
+      notes: true,
+      rentals: {
+        where: { status: { in: ['BORROWED', 'PENDING'] } },
+        select: { id: true, user: { select: { id: true, name: true, email: true } } },
+        take: 1,
+      },
+    },
+  });
+  return copies;
+};
+
+export const updateBookCopyCondition = async (copyId, { condition, notes }, adminUserId) => {
+  const valid = ['NEW', 'GOOD', 'WORN', 'DAMAGED', 'LOST'];
+  const next = String(condition || '').toUpperCase();
+  if (!valid.includes(next)) throw new AppError('Invalid condition value', 400);
+
+  const copy = await prisma.bookCopy.findUnique({
+    where: { id: copyId },
+    select: { id: true, condition: true, notes: true },
+  });
+  if (!copy) throw new AppError('Book copy not found', 404);
+  if (copy.condition === next && (notes ?? copy.notes) === copy.notes) return copy;
+
+  const updated = await prisma.$transaction(async (tx) => {
+    const updatedCopy = await tx.bookCopy.update({
+      where: { id: copyId },
+      data: {
+        condition: next,
+        notes: notes ?? copy.notes,
+        last_condition_update: new Date(),
+        ...(next === 'LOST'
+          ? { is_available: false }
+          : {}),
+      },
+      select: {
+        id: true,
+        book_id: true,
+        copy_code: true,
+        condition: true,
+        notes: true,
+        is_available: true,
+        last_condition_update: true,
+      },
+    });
+    await tx.bookConditionHistory.create({
+      data: {
+        copy_id: copyId,
+        old_condition: copy.condition,
+        new_condition: next,
+        notes: notes ?? null,
+        updated_by_user_id: adminUserId,
+      },
+    });
+    return updatedCopy;
+  });
+
+  return updated;
+};
+
+export const getBookConditionHistory = async (copyId) => {
+  return prisma.bookConditionHistory.findMany({
+    where: { copy_id: copyId },
+    orderBy: { created_at: 'desc' },
+    include: {
+      updated_by_user: {
+        select: { id: true, name: true, email: true },
+      },
+    },
+  });
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

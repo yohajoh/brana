@@ -114,6 +114,37 @@ export const login = async ({ email, password }) => {
   return user;
 };
 
+export const loginOrCreateGoogleUser = async ({ email, name }) => {
+  if (!email) throw new AppError("Google account email is required", 400);
+
+  let user = await prisma.user.findUnique({ where: { email } });
+  if (user) {
+    if (user.is_blocked) {
+      throw new AppError("Your account is blocked. Please contact admin.", 403);
+    }
+    if (!user.is_confirmed) {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { is_confirmed: true, confirmation_token: null },
+      });
+    }
+    return user;
+  }
+
+  const generatedPassword = crypto.randomBytes(32).toString("hex");
+  const hashedPassword = await hashPassword(generatedPassword);
+  user = await prisma.user.create({
+    data: {
+      name: name || email.split("@")[0],
+      email,
+      password_hash: hashedPassword,
+      is_confirmed: true,
+    },
+  });
+
+  return user;
+};
+
 export const forgotPassword = async (email) => {
   const user = await prisma.user.findUnique({ where: { email } });
 

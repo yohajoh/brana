@@ -13,6 +13,7 @@ const router = Router();
 // ─── Public ───────────────────────────────────────────────────────────────────
 router.get('/', bookController.getBooks);
 router.get('/:id/availability', bookController.getBookAvailability);
+router.get('/:id/copies', protect, restrictTo('ADMIN'), bookController.getBookCopies);
 
 // ─── Public but enriched with user context when logged in ─────────────────────
 router.get('/:id', protect, bookController.getBook);
@@ -38,5 +39,7 @@ router.patch(
   bookController.updateBook,
 );
 router.delete('/:id', bookController.deleteBook);
+router.patch('/copies/:copyId/condition', bookController.updateBookCopyCondition);
+router.get('/copies/:copyId/condition-history', bookController.getBookCopyConditionHistory);
 
 export default router;
