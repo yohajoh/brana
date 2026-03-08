@@ -38,6 +38,25 @@ interface Author {
   name: string;
 }
 
+interface BookCopy {
+  id: string;
+  copy_code: string;
+  condition: "NEW" | "GOOD" | "WORN" | "DAMAGED" | "LOST";
+  is_available: boolean;
+  last_condition_update: string;
+  notes?: string | null;
+  rentals?: Array<{ id: string; user: { id: string; name: string; email: string } }>;
+}
+
+interface ConditionHistoryEntry {
+  id: string;
+  old_condition: string;
+  new_condition: string;
+  notes?: string | null;
+  created_at: string;
+  updated_by_user?: { name: string; email: string } | null;
+}
+
 const ITEMS_PER_PAGE = 8;
 
 export default function AdminBooksPage() {
@@ -75,6 +94,15 @@ export default function AdminBooksPage() {
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [categoryName, setCategoryName] = useState("");
   const [categorySubmitting, setCategorySubmitting] = useState(false);
+  const [showConditionModal, setShowConditionModal] = useState(false);
+  const [conditionBookId, setConditionBookId] = useState<string>("");
+  const [conditionBookTitle, setConditionBookTitle] = useState("");
+  const [bookCopies, setBookCopies] = useState<BookCopy[]>([]);
+  const [selectedCopyId, setSelectedCopyId] = useState<string>("");
+  const [conditionHistory, setConditionHistory] = useState<ConditionHistoryEntry[]>([]);
+  const [conditionForm, setConditionForm] = useState({ condition: "GOOD", notes: "" });
+  const [conditionLoading, setConditionLoading] = useState(false);
+  const [conditionSaving, setConditionSaving] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
@@ -168,43 +196,88 @@ export default function AdminBooksPage() {
     }
   };
 
-  const manageCondition = async (bookId: string) => {
+  const loadConditionHistory = async (copyId: string) => {
+    const historyRes = await fetchApi(`/books/copies/${copyId}/condition-history`);
+    const history = (historyRes?.data?.history || []) as ConditionHistoryEntry[];
+    setConditionHistory(history);
+  };
+
+  const refreshConditionCopies = async (bookId: string, preferredCopyId?: string) => {
+    const copyRes = await fetchApi(`/books/${bookId}/copies`);
+    const copies = (copyRes?.data?.copies || []) as BookCopy[];
+    setBookCopies(copies);
+    if (!copies.length) {
+      setSelectedCopyId("");
+      setConditionHistory([]);
+      return;
+    }
+
+    const nextCopy =
+      copies.find((copy) => copy.id === preferredCopyId) ||
+      copies.find((copy) => copy.id === selectedCopyId) ||
+      copies[0];
+
+    setSelectedCopyId(nextCopy.id);
+    setConditionForm({
+      condition: nextCopy.condition,
+      notes: nextCopy.notes || "",
+    });
+    await loadConditionHistory(nextCopy.id);
+  };
+
+  const manageCondition = async (bookId: string, title: string) => {
     try {
+      setConditionLoading(true);
       const copyRes = await fetchApi(`/books/${bookId}/copies`);
-      const copies = copyRes?.data?.copies || [];
+      const copies = (copyRes?.data?.copies || []) as BookCopy[];
       if (!copies.length) {
         alert("No copy records available for this book.");
         return;
       }
-
-      const options = copies
-        .map((c: { id: string; copy_code: string; condition: string }) => `${c.copy_code} (${c.condition})`)
-        .join("\\n");
-      const selectedCode = prompt(`Enter copy code to update:\\n${options}`);
-      if (!selectedCode) return;
-
-      const copy = copies.find((c: { copy_code: string }) => c.copy_code === selectedCode.trim());
-      if (!copy) {
-        alert("Invalid copy code.");
-        return;
-      }
-
-      const nextCondition = prompt("Enter condition: NEW, GOOD, WORN, DAMAGED, LOST", copy.condition);
-      if (!nextCondition) return;
-      const notes = prompt("Optional condition note", "") || "";
-
-      await fetchApi(`/books/copies/${copy.id}/condition`, {
-        method: "PATCH",
-        body: JSON.stringify({ condition: nextCondition, notes }),
+      const firstCopy = copies[0];
+      setConditionBookId(bookId);
+      setConditionBookTitle(title);
+      setBookCopies(copies);
+      setSelectedCopyId(firstCopy.id);
+      setConditionForm({
+        condition: firstCopy.condition,
+        notes: firstCopy.notes || "",
       });
-
-      const historyRes = await fetchApi(`/books/copies/${copy.id}/condition-history`);
-      const latest = historyRes?.data?.history?.[0];
-      if (latest) {
-        alert(`Condition updated to ${latest.new_condition}.`);
-      }
+      await loadConditionHistory(firstCopy.id);
+      setShowConditionModal(true);
     } catch (error) {
       alert(error instanceof Error ? error.message : "Condition update failed");
+    } finally {
+      setConditionLoading(false);
+    }
+  };
+
+  const handleSelectCopy = async (copyId: string) => {
+    setSelectedCopyId(copyId);
+    const copy = bookCopies.find((item) => item.id === copyId);
+    if (copy) {
+      setConditionForm({
+        condition: copy.condition,
+        notes: copy.notes || "",
+      });
+    }
+    await loadConditionHistory(copyId);
+  };
+
+  const submitConditionUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedCopyId) return;
+    setConditionSaving(true);
+    try {
+      await fetchApi(`/books/copies/${selectedCopyId}/condition`, {
+        method: "PATCH",
+        body: JSON.stringify(conditionForm),
+      });
+      await refreshConditionCopies(conditionBookId, selectedCopyId);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Condition update failed");
+    } finally {
+      setConditionSaving(false);
     }
   };
 
@@ -582,7 +655,7 @@ export default function AdminBooksPage() {
                     <div className="flex items-center gap-2">
                       {book.type === "physical" && (
                         <button
-                          onClick={() => manageCondition(book.id)}
+                          onClick={() => manageCondition(book.id, book.title)}
                           className="px-2 py-1 text-[10px] font-bold rounded-md border border-[#C2B199] text-[#2B1A10]"
                         >
                           Condition
@@ -984,6 +1057,127 @@ export default function AdminBooksPage() {
                 {categorySubmitting ? "Saving..." : editingCategoryId ? "Update Category" : "Create Category"}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showConditionModal && (
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowConditionModal(false);
+          }}
+        >
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden">
+            <div className="flex items-center justify-between px-8 pt-7 pb-4 border-b border-[#E1D2BD]/50">
+              <div>
+                <h3 className="text-xl font-serif font-extrabold text-[#2B1A10]">Condition Tracking</h3>
+                <p className="text-sm text-[#AE9E85]">{conditionBookTitle}</p>
+              </div>
+              <button
+                onClick={() => setShowConditionModal(false)}
+                className="w-8 h-8 flex items-center justify-center text-[#AE9E85] hover:text-[#2B1A10] rounded-lg hover:bg-[#F3EFE6] transition-all"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-0">
+              <div className="border-r border-[#E1D2BD]/50 p-6 space-y-4">
+                <h4 className="text-sm font-bold text-[#2B1A10]">Book Copies</h4>
+                {conditionLoading ? (
+                  <div className="text-sm text-[#AE9E85]">Loading copies...</div>
+                ) : (
+                  <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
+                    {bookCopies.map((copy) => (
+                      <button
+                        key={copy.id}
+                        type="button"
+                        onClick={() => handleSelectCopy(copy.id)}
+                        className={`w-full text-left rounded-2xl border px-4 py-3 transition-all ${
+                          copy.id === selectedCopyId
+                            ? "border-[#2B1A10] bg-[#F8F1E8]"
+                            : "border-[#E1D2BD] hover:bg-[#FDFAF6]"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-bold text-[#2B1A10]">{copy.copy_code}</p>
+                            <p className="text-xs text-[#AE9E85]">
+                              {copy.is_available ? "Available" : "Checked out"} • Updated {new Date(copy.last_condition_update).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#EFE4D4] text-[#2B1A10]">
+                            {copy.condition}
+                          </span>
+                        </div>
+                        {copy.notes && <p className="mt-2 text-xs text-[#6D5339]">{copy.notes}</p>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="p-6 space-y-5">
+                <h4 className="text-sm font-bold text-[#2B1A10]">Update Condition</h4>
+                <form onSubmit={submitConditionUpdate} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">Condition</label>
+                    <select
+                      value={conditionForm.condition}
+                      onChange={(e) => setConditionForm((prev) => ({ ...prev, condition: e.target.value }))}
+                      className="w-full px-3 py-2.5 text-sm border border-[#E1D2BD] rounded-xl text-[#2B1A10]"
+                    >
+                      {["NEW", "GOOD", "WORN", "DAMAGED", "LOST"].map((value) => (
+                        <option key={value} value={value}>{value}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">Notes</label>
+                    <textarea
+                      rows={4}
+                      value={conditionForm.notes}
+                      onChange={(e) => setConditionForm((prev) => ({ ...prev, notes: e.target.value }))}
+                      className="w-full px-3 py-2.5 text-sm border border-[#E1D2BD] rounded-xl text-[#2B1A10] resize-none"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={!selectedCopyId || conditionSaving}
+                    className="w-full py-3 bg-[#2B1A10] text-white text-sm font-bold rounded-xl disabled:opacity-50"
+                  >
+                    {conditionSaving ? "Saving..." : "Save Condition"}
+                  </button>
+                </form>
+
+                <div className="space-y-3">
+                  <h4 className="text-sm font-bold text-[#2B1A10]">Condition History</h4>
+                  <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                    {conditionHistory.length === 0 ? (
+                      <div className="text-sm text-[#AE9E85]">No history yet.</div>
+                    ) : (
+                      conditionHistory.map((entry) => (
+                        <div key={entry.id} className="rounded-2xl border border-[#E1D2BD] px-4 py-3 bg-[#FDFAF6]">
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="text-sm font-bold text-[#2B1A10]">
+                              {entry.old_condition} {"->"} {entry.new_condition}
+                            </p>
+                            <span className="text-[11px] text-[#AE9E85]">
+                              {new Date(entry.created_at).toLocaleString()}
+                            </span>
+                          </div>
+                          {entry.notes && <p className="mt-1 text-xs text-[#6D5339]">{entry.notes}</p>}
+                          {entry.updated_by_user?.name && (
+                            <p className="mt-1 text-[11px] text-[#AE9E85]">By {entry.updated_by_user.name}</p>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

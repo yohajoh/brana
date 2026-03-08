@@ -4,6 +4,7 @@ import { Server } from "socket.io";
 import app from "./app.js";
 import { verifyToken } from "./utils/token.utils.js";
 import { scanExtendedOverdueAlerts, scanNeverReturnedAlerts } from "./services/inventoryAlert.service.js";
+import { sendOverdueReminders } from "./services/rental.service.js";
 
 /**
  * @typedef {import("socket.io").Socket & { userId: string }} AuthenticatedSocket
@@ -70,6 +71,7 @@ httpServer.listen(PORT, () => {
 });
 
 const AUTO_ALERT_SCAN_MS = Number(process.env.AUTO_ALERT_SCAN_MS || 6 * 60 * 60 * 1000);
+const AUTO_REMINDER_INTERVAL_MS = Number(process.env.AUTO_REMINDER_INTERVAL_MS || 24 * 60 * 60 * 1000);
 setInterval(async () => {
   try {
     const [extended, neverReturned] = await Promise.all([
@@ -84,3 +86,14 @@ setInterval(async () => {
     console.error("Auto alert scan failed:", error?.message || error);
   }
 }, AUTO_ALERT_SCAN_MS);
+
+setInterval(async () => {
+  try {
+    const result = await sendOverdueReminders(app.locals.io);
+    if ((result?.remindersSent || 0) > 0) {
+      console.log(`Reminder job sent ${result.remindersSent} overdue reminder(s)`);
+    }
+  } catch (error) {
+    console.error("Reminder job failed:", error?.message || error);
+  }
+}, AUTO_REMINDER_INTERVAL_MS);
