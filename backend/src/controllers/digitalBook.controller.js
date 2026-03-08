@@ -8,6 +8,7 @@ import { broadcastNotification } from '../services/notification.service.js';
 
 export const getDigitalBooks = async (req, res) => {
   const result = await digitalBookService.getDigitalBooks(req.query, req.user || null);
+  res.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=120');
   res.json({ status: 'success', ...result });
 };
 
@@ -19,7 +20,21 @@ export const getAdminDigitalBooks = async (req, res) => {
 export const getDigitalBook = async (req, res) => {
   const userId = req.user?.id || null;
   const book = await digitalBookService.getDigitalBookById(req.params.id, userId);
+  res.set(
+    'Cache-Control',
+    userId ? 'private, max-age=15, stale-while-revalidate=60' : 'public, max-age=30, stale-while-revalidate=120',
+  );
   res.json({ status: 'success', data: { book } });
+};
+
+export const getDigitalBookPageData = async (req, res) => {
+  const userId = req.user?.id || null;
+  const data = await digitalBookService.getDigitalBookPageData(req.params.id, userId);
+  res.set(
+    'Cache-Control',
+    userId ? 'private, max-age=15, stale-while-revalidate=60' : 'public, max-age=30, stale-while-revalidate=120',
+  );
+  res.json({ status: 'success', data });
 };
 
 export const streamPdf = async (req, res) => {

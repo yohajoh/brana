@@ -28,7 +28,7 @@ import { AppError } from '../middlewares/error.middleware.js';
 import { paginationMeta } from '../utils/apiFeatures.js';
 import { createNotification, notifyAdmins } from './notification.service.js';
 import { notifyNextInQueue, markReservationFulfilledForBorrow } from './reservation.service.js';
-import { syncLowStockAlertForBook, scanExtendedOverdueAlerts, scanNeverReturnedAlerts } from './inventoryAlert.service.js';
+import { syncLowStockAlertForBook } from './inventoryAlert.service.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS
@@ -36,14 +36,40 @@ import { syncLowStockAlertForBook, scanExtendedOverdueAlerts, scanNeverReturnedA
 
 /** Fetch the latest system config, throw if none exists. */
 const getConfig = async () => {
-  const config = await prisma.systemConfig.findFirst({ orderBy: { id: 'desc' } });
-  if (!config) {
-    throw new AppError(
-      'System configuration is not set up. Please contact the admin.',
-      503
-    );
+  const defaults = {
+    max_loan_days: 14,
+    daily_fine: 0,
+    max_books_per_user: 3,
+  };
+
+  try {
+    const config = await prisma.systemConfig.findFirst({
+      orderBy: { id: 'desc' },
+      select: {
+        id: true,
+        max_loan_days: true,
+        daily_fine: true,
+        max_books_per_user: true,
+      },
+    });
+    return config ? { ...defaults, ...config } : defaults;
+  } catch (error) {
+    // Backward compatibility: DB might be behind the Prisma schema.
+    if (error?.code === 'P2022') {
+      const legacy = await prisma.systemConfig.findFirst({
+        orderBy: { id: 'desc' },
+        select: { id: true },
+      });
+      if (!legacy) {
+        throw new AppError(
+          'System configuration is not set up. Please contact the admin.',
+          503
+        );
+      }
+      return { ...defaults, ...legacy };
+    }
+    throw error;
   }
-  return config;
 };
 
 /**
@@ -533,7 +559,6 @@ export const returnBook = async (rentalId, io) => {
  * Includes how many days overdue and estimated fine.
  */
 export const getOverdueRentals = async (query) => {
-  await Promise.all([scanExtendedOverdueAlerts(), scanNeverReturnedAlerts()]);
   const page = Math.max(1, parseInt(query.page, 10) || 1);
   const limit = Math.min(100, Math.max(1, parseInt(query.limit, 10) || 20));
   const skip = (page - 1) * limit;
@@ -634,7 +659,6 @@ export const getOverdueRanking = async (query) => {
  * Returns count of notifications sent.
  */
 export const sendOverdueReminders = async (io) => {
-  await Promise.all([scanExtendedOverdueAlerts(), scanNeverReturnedAlerts()]);
   const overdue = await prisma.rental.findMany({
     where: /** @type {any} */ ({ status: 'BORROWED', due_date: { lt: new Date() } }),
     select: {

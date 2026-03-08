@@ -1,12 +1,40 @@
 import { prisma } from '../prisma.js';
-import { createNotification, notifyAdmins } from './notification.service.js';
+import { createNotification } from './notification.service.js';
 import { sendEmail } from './mail.service.js';
 
 const getConfig = async () => {
-  const config = await prisma.systemConfig.findFirst({ orderBy: { id: 'desc' } });
-  if (!config) return null;
-  return config;
+  const defaults = {
+    daily_fine: 0,
+    reminder_days_before_due: 3,
+  };
+
+  try {
+    const config = await prisma.systemConfig.findFirst({
+      orderBy: { id: 'desc' },
+      select: {
+        id: true,
+        daily_fine: true,
+        reminder_days_before_due: true,
+      },
+    });
+    return config ? { ...defaults, ...config } : null;
+  } catch (error) {
+    // Backward compatibility: older DBs may not have reminder_days_before_due.
+    if (error?.code === 'P2022') {
+      const legacy = await prisma.systemConfig.findFirst({
+        orderBy: { id: 'desc' },
+        select: {
+          id: true,
+          daily_fine: true,
+        },
+      });
+      return legacy ? { ...defaults, ...legacy } : null;
+    }
+    throw error;
+  }
 };
+
+const toDayKey = (date = new Date()) => date.toISOString().slice(0, 10);
 
 export const sendUpcomingReturnReminders = async (io) => {
   const config = await getConfig();
@@ -41,20 +69,6 @@ export const sendUpcomingReturnReminders = async (io) => {
       (new Date(rental.due_date).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
     );
 
-    const existingNotification = await prisma.notification.findFirst({
-      where: {
-        user_id: rental.user_id,
-        message: {
-          contains: `"${rental.physical_book.title}" is due in ${daysUntilDue} day(s)`,
-        },
-        created_at: {
-          gte: new Date(now.getTime() - 24 * 60 * 60 * 1000),
-        },
-      },
-    });
-
-    if (existingNotification) continue;
-
     const dueDateStr = new Date(rental.due_date).toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
@@ -62,12 +76,14 @@ export const sendUpcomingReturnReminders = async (io) => {
       day: 'numeric',
     });
 
-    await createNotification({
+    const notification = await createNotification({
       userId: rental.user_id,
       message: `⏰ Reminder: "${rental.physical_book.title}" is due in ${daysUntilDue} day(s). Due date: ${dueDateStr}. Please return on time to avoid fines.`,
       type: 'REMINDER',
       io,
+      dedupeKey: `reminder:upcoming:${rental.id}:${toDayKey(now)}`,
     });
+    if (!notification) continue;
 
     try {
       await sendEmail({
@@ -111,29 +127,16 @@ export const sendOverdueRemindersAutomated = async (io) => {
       (now.getTime() - new Date(rental.due_date).getTime()) / (1000 * 60 * 60 * 24)
     );
 
-    const existingNotification = await prisma.notification.findFirst({
-      where: {
-        user_id: rental.user_id,
-        type: 'OVERDUE',
-        message: {
-          contains: `"${rental.physical_book.title}" is now overdue`,
-        },
-        created_at: {
-          gte: new Date(now.getTime() - 24 * 60 * 60 * 1000),
-        },
-      },
-    });
-
-    if (existingNotification) continue;
-
     const estimatedFine = parseFloat((daysOverdue * Number(config.daily_fine)).toFixed(2));
 
-    await createNotification({
+    const notification = await createNotification({
       userId: rental.user_id,
       message: `🔴 OVERDUE ALERT: "${rental.physical_book.title}" is now ${daysOverdue} day(s) overdue. Estimated fine: ${estimatedFine} ETB. Please return it immediately to avoid additional fines.`,
       type: 'OVERDUE',
       io,
+      dedupeKey: `reminder:overdue:${rental.id}:${toDayKey(now)}`,
     });
+    if (!notification) continue;
 
     try {
       await sendEmail({

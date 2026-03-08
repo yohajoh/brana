@@ -4,9 +4,27 @@ import { paginationMeta } from '../utils/apiFeatures.js';
 import { createNotification } from './notification.service.js';
 
 const getConfig = async () => {
-  const config = await prisma.systemConfig.findFirst({ orderBy: { id: 'desc' } });
-  if (!config) throw new AppError('System configuration is not set up', 503);
-  return config;
+  const defaults = { reservation_window_hr: 24 };
+  try {
+    const config = await prisma.systemConfig.findFirst({
+      orderBy: { id: 'desc' },
+      select: {
+        id: true,
+        reservation_window_hr: true,
+      },
+    });
+    return config ? { ...defaults, ...config } : defaults;
+  } catch (error) {
+    // Backward compatibility: DB might not yet include reservation_window_hr.
+    if (error?.code === 'P2022') {
+      const legacy = await prisma.systemConfig.findFirst({
+        orderBy: { id: 'desc' },
+        select: { id: true },
+      });
+      return legacy ? { ...defaults, ...legacy } : defaults;
+    }
+    throw error;
+  }
 };
 
 const RESERVATION_INCLUDE = {

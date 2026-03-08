@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchApi } from "@/lib/api";
-import { toast } from "sonner";
 import { useNotifications, useMarkAsRead, Notification, useMarkAllAsRead } from "@/lib/hooks/useNotifications";
 import { LoadingList } from "@/components/ui/Loading";
 import { NotificationOverlay } from "@/components/notifications/NotificationOverlay";
@@ -23,7 +23,7 @@ type TabType = "alerts" | "notifications";
 export function useInventoryAlerts() {
   return useQuery({
     queryKey: ["inventory-alerts"],
-    queryFn: () => fetchApi("/admin/inventory-alerts?limit=200"),
+    queryFn: () => fetchApi<{ alerts?: Alert[]; data?: { alerts?: Alert[] } }>("/admin/inventory-alerts?limit=200"),
     staleTime: 60 * 1000,
   });
 }
@@ -49,18 +49,25 @@ export function useScanAlerts() {
 }
 
 function AlertsContent() {
-  const [activeTab, setActiveTab] = useState<TabType>("alerts");
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get("tab") === "notifications" ? "notifications" : "alerts";
+  const [activeTab, setActiveTab] = useState<TabType>(initialTab);
   const [overlayNotification, setOverlayNotification] = useState<Notification | null>(null);
 
-  const { data: alertsData, isLoading: loadingAlerts } = useInventoryAlerts();
+  const { data: alertsData, isLoading: loadingAlerts, error: alertsError, refetch: refetchAlerts } = useInventoryAlerts();
   const resolveAlert = useResolveAlert();
   const scanAlerts = useScanAlerts();
 
-  const { data: notificationsData, isLoading: loadingNotifications, refetch } = useNotifications({ limit: 50 });
+  const {
+    data: notificationsData,
+    isLoading: loadingNotifications,
+    error: notificationsError,
+    refetch: refetchNotifications,
+  } = useNotifications({ limit: 50 }, { enabled: activeTab === "notifications" });
   const markAsReadMutation = useMarkAsRead();
   const markAllAsRead = useMarkAllAsRead();
 
-  const alerts: Alert[] = alertsData?.alerts || [];
+  const alerts: Alert[] = alertsData?.alerts || alertsData?.data?.alerts || [];
 
   const handleResolveAlert = async (id: string) => {
     await resolveAlert.mutateAsync(id);
@@ -79,7 +86,7 @@ function AlertsContent() {
     if (!notification.is_read) {
       try {
         await markAsReadMutation.mutateAsync(notification.id);
-        await refetch();
+        await refetchNotifications();
       } catch {
         // Continue even if mark as read fails
       }
@@ -102,6 +109,14 @@ function AlertsContent() {
           <button onClick={handleScanAlerts} disabled={scanAlerts.isPending} className="flex items-center gap-2 px-4 py-2.5 bg-[#2B1A10] text-white text-sm font-bold rounded-xl disabled:opacity-50">
             {scanAlerts.isPending ? "Scanning..." : "Run Scan"}
           </button>
+          {alertsError && (
+            <button
+              onClick={() => refetchAlerts()}
+              className="flex items-center gap-2 px-4 py-2.5 border border-[#C2B199] text-[#2B1A10] text-sm font-bold rounded-xl hover:bg-[#F3EFE6]"
+            >
+              Retry Alerts
+            </button>
+          )}
         </div>
       </div>
 
@@ -109,7 +124,13 @@ function AlertsContent() {
         <button onClick={() => setActiveTab("alerts")} className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === "alerts" ? "border-[#2B1A10] text-[#2B1A10]" : "border-transparent text-[#AE9E85] hover:text-[#2B1A10]"}`}>
           Inventory Alerts
         </button>
-        <button onClick={() => { setActiveTab("notifications"); refetch(); }} className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === "notifications" ? "border-[#2B1A10] text-[#2B1A10]" : "border-transparent text-[#AE9E85] hover:text-[#2B1A10]"}`}>
+        <button
+          onClick={() => {
+            setActiveTab("notifications");
+            void refetchNotifications();
+          }}
+          className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === "notifications" ? "border-[#2B1A10] text-[#2B1A10]" : "border-transparent text-[#AE9E85] hover:text-[#2B1A10]"}`}
+        >
           Notifications
           {notificationsData?.unreadCount && notificationsData.unreadCount > 0 && <span className="ml-1 px-2 py-0.5 text-xs bg-red-500 text-white rounded-full">{notificationsData.unreadCount}</span>}
         </button>
@@ -127,6 +148,10 @@ function AlertsContent() {
           </div>
           {loadingAlerts ? (
             <div className="py-16 text-center text-[#AE9E85] text-sm"><LoadingList count={3} /></div>
+          ) : alertsError ? (
+            <div className="py-16 text-center text-red-600 text-sm px-6">
+              Failed to load alerts: {alertsError instanceof Error ? alertsError.message : "Unknown error"}
+            </div>
           ) : alerts.length === 0 ? (
             <div className="py-16 text-center text-[#AE9E85] text-sm">No alerts</div>
           ) : (
@@ -155,6 +180,19 @@ function AlertsContent() {
           </div>
           {loadingNotifications ? (
             <LoadingList count={5} />
+          ) : notificationsError ? (
+            <div className="py-16 text-center text-red-600 text-sm px-6 bg-white rounded-2xl border border-[#E1D2BD]/50">
+              Failed to load notifications:{" "}
+              {notificationsError instanceof Error ? notificationsError.message : "Unknown error"}
+              <div className="mt-4">
+                <button
+                  onClick={() => refetchNotifications()}
+                  className="px-4 py-2 border border-[#C2B199] text-[#2B1A10] text-sm font-bold rounded-xl hover:bg-[#F3EFE6]"
+                >
+                  Retry Notifications
+                </button>
+              </div>
+            </div>
           ) : notificationsData?.notifications && notificationsData.notifications.length > 0 ? (
             <div className="grid gap-3">
               {notificationsData.notifications.map((notification) => (
@@ -176,21 +214,12 @@ function AlertsContent() {
         </div>
       )}
 
-      <NotificationOverlay notification={overlayNotification} isOpen={!!overlayNotification} onClose={handleCloseOverlay} refetch={refetch} />
-    </div>
-  );
-}
-
-function AlertsLoading() {
-  return (
-    <div className="p-6 lg:p-12 space-y-8">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div className="space-y-2">
-          <div className="h-12 w-80 bg-[#E1D2BD]/30 rounded-lg animate-pulse" />
-          <div className="h-5 w-96 bg-[#E1D2BD]/30 rounded-lg animate-pulse" />
-        </div>
-      </div>
-      <LoadingList count={5} />
+      <NotificationOverlay
+        notification={overlayNotification}
+        isOpen={!!overlayNotification}
+        onClose={handleCloseOverlay}
+        refetch={refetchNotifications}
+      />
     </div>
   );
 }

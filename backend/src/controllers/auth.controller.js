@@ -3,6 +3,7 @@ import { AppError } from "../middlewares/error.middleware.js";
 import { sendTokenCookie } from "../utils/token.utils.js";
 import { validationResult } from "express-validator";
 import { logAdminActivity } from "../services/adminActivity.service.js";
+import { invalidateAuthUserCache } from "../middlewares/auth.middleware.js";
 
 export const signup = async (req, res, next) => {
   const errors = validationResult(req);
@@ -82,10 +83,9 @@ export const resetPassword = async (req, res, next) => {
 
 export const getMe = async (req, res, next) => {
   try {
-    const user = await authService.getMe(req.user.id);
     res.status(200).json({
       status: "success",
-      data: { user },
+      data: { user: req.user },
     });
   } catch (error) {
     next(error);
@@ -95,6 +95,7 @@ export const getMe = async (req, res, next) => {
 export const updateMe = async (req, res, next) => {
   try {
     const user = await authService.updateMe(req.user.id, req.body);
+    invalidateAuthUserCache(req.user.id);
     res.status(200).json({
       status: "success",
       data: { user },
@@ -115,6 +116,7 @@ export const updatePassword = async (req, res, next) => {
     }
     
     await authService.updatePassword(req.user.id, currentPassword, newPassword);
+    invalidateAuthUserCache(req.user.id);
     res.status(200).json({
       status: "success",
       message: "Password updated successfully",
@@ -140,6 +142,7 @@ export const getAllUsers = async (req, res, next) => {
 export const blockUser = async (req, res, next) => {
   try {
     await authService.blockUser(req.params.id);
+    invalidateAuthUserCache(req.params.id);
     await logAdminActivity({
       adminUserId: req.user.id,
       action: "BLOCK",
@@ -160,6 +163,7 @@ export const blockUser = async (req, res, next) => {
 export const unblockUser = async (req, res, next) => {
   try {
     await authService.unblockUser(req.params.id);
+    invalidateAuthUserCache(req.params.id);
     await logAdminActivity({
       adminUserId: req.user.id,
       action: "UNBLOCK",
@@ -180,6 +184,7 @@ export const unblockUser = async (req, res, next) => {
 export const deleteUser = async (req, res, next) => {
   try {
     await authService.deleteUser(req.params.id, req.user.id);
+    invalidateAuthUserCache(req.params.id);
     await logAdminActivity({
       adminUserId: req.user.id,
       action: "DELETE",

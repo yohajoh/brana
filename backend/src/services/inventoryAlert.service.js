@@ -2,9 +2,33 @@ import { prisma } from '../prisma.js';
 import { AppError } from '../middlewares/error.middleware.js';
 import { paginationMeta } from '../utils/apiFeatures.js';
 
+const DEFAULT_CONFIG = {
+  low_stock_threshold: 2,
+  never_returned_days: 60,
+};
+
 const getConfig = async () => {
-  const config = await prisma.systemConfig.findFirst({ orderBy: { id: 'desc' } });
-  return config;
+  try {
+    const config = await prisma.systemConfig.findFirst({
+      orderBy: { id: 'desc' },
+      select: {
+        id: true,
+        low_stock_threshold: true,
+        never_returned_days: true,
+      },
+    });
+    return config ? { ...DEFAULT_CONFIG, ...config } : { ...DEFAULT_CONFIG };
+  } catch (error) {
+    // Backward compatibility: older DBs may not have new SystemConfig columns yet.
+    if (error?.code === 'P2022') {
+      const legacy = await prisma.systemConfig.findFirst({
+        orderBy: { id: 'desc' },
+        select: { id: true },
+      });
+      return legacy ? { ...DEFAULT_CONFIG, ...legacy } : { ...DEFAULT_CONFIG };
+    }
+    throw error;
+  }
 };
 
 export const syncLowStockAlertForBook = async (bookId) => {
@@ -16,7 +40,7 @@ export const syncLowStockAlertForBook = async (bookId) => {
     getConfig(),
   ]);
 
-  if (!book || !config) return null;
+  if (!book) return null;
 
   const threshold = config.low_stock_threshold ?? 2;
   const existing = await prisma.inventoryAlert.findFirst({

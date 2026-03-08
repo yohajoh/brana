@@ -8,6 +8,7 @@ import { broadcastNotification } from '../services/notification.service.js';
 
 export const getBooks = async (req, res) => {
   const result = await bookService.getBooks(req.query);
+  res.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=120');
   res.json({ status: 'success', ...result });
 };
 
@@ -19,7 +20,21 @@ export const getAdminBooks = async (req, res) => {
 export const getBook = async (req, res) => {
   const userId = req.user?.id || null;
   const book = await bookService.getBookById(req.params.id, userId);
+  res.set(
+    'Cache-Control',
+    userId ? 'private, max-age=15, stale-while-revalidate=60' : 'public, max-age=30, stale-while-revalidate=120',
+  );
   res.json({ status: 'success', data: { book } });
+};
+
+export const getBookPageData = async (req, res) => {
+  const userId = req.user?.id || null;
+  const data = await bookService.getBookPageData(req.params.id, userId);
+  res.set(
+    'Cache-Control',
+    userId ? 'private, max-age=15, stale-while-revalidate=60' : 'public, max-age=30, stale-while-revalidate=120',
+  );
+  res.json({ status: 'success', data });
 };
 
 export const getBookAvailability = async (req, res) => {

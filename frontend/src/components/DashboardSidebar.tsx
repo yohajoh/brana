@@ -23,7 +23,7 @@ import {
   FileSpreadsheet,
   Layers,
 } from "lucide-react";
-import { fetchCurrentUser, API_BASE_URL } from "@/lib/api";
+import { fetchCurrentUser, API_BASE_URL, invalidateCurrentUserCache } from "@/lib/api";
 
 interface DashboardSidebarProps {
   variant?: "default" | "admin";
@@ -186,9 +186,11 @@ export const DashboardSidebar = ({ variant = "default" }: DashboardSidebarProps)
         method: "GET",
         credentials: "include",
       });
+      invalidateCurrentUserCache();
       router.push("/auth/login");
     } catch (error) {
       console.error("Logout error:", error);
+      invalidateCurrentUserCache();
       router.push("/auth/login");
     }
   };

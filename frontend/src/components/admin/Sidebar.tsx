@@ -18,7 +18,7 @@ import {
   Settings,
   Layers,
 } from "lucide-react";
-import { fetchApi, fetchCurrentUser } from "@/lib/api";
+import { fetchApi, fetchCurrentUser, invalidateCurrentUserCache } from "@/lib/api";
 
 const NAV_ITEMS = [
   { name: "Dashboard", href: "/dashboard/admin", icon: LayoutGrid },
@@ -53,6 +53,7 @@ export default function Sidebar() {
   const handleLogout = async () => {
     try {
       await fetchApi("/auth/logout");
+      invalidateCurrentUserCache();
       router.push("/auth/login");
     } catch (error) {
       console.error("Logout failed:", error);

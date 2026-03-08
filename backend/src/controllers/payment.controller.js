@@ -27,8 +27,17 @@ export const verifyPayment = async (req, res) => {
 
 export const handleWebhook = async (req, res) => {
   const signature = req.headers['chapa-signature'] || req.headers['x-chapa-signature'] || '';
-  const rawPayload = req.rawBody || JSON.stringify(req.body); // needs rawBody middleware
-  const result = await paymentService.handleWebhook(rawPayload, req.body, signature, getIo(req));
+  const isBufferPayload = Buffer.isBuffer(req.body);
+  const rawPayload = isBufferPayload ? req.body.toString('utf8') : JSON.stringify(req.body || {});
+  let parsedPayload = req.body || {};
+  if (isBufferPayload) {
+    try {
+      parsedPayload = JSON.parse(rawPayload || '{}');
+    } catch {
+      parsedPayload = {};
+    }
+  }
+  const result = await paymentService.handleWebhook(rawPayload, parsedPayload, signature, getIo(req));
   res.json({ status: 'success', data: result });
 };
 

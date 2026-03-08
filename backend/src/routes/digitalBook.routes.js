@@ -5,7 +5,7 @@
 
 import { Router } from 'express';
 import * as digitalBookController from '../controllers/digitalBook.controller.js';
-import { protect, restrictTo } from '../middlewares/auth.middleware.js';
+import { optionalProtect, protect, restrictTo } from '../middlewares/auth.middleware.js';
 import { uploadBookFiles } from '../utils/upload.js';
 
 const router = Router();
@@ -15,7 +15,8 @@ router.get('/', digitalBookController.getDigitalBooks);
 
 // IMPORTANT: More specific routes must come before parameterized routes
 router.get('/:id/pdf', protect, digitalBookController.streamPdf);
-router.get('/:id', digitalBookController.getDigitalBook);
+router.get('/:id/page-data', optionalProtect, digitalBookController.getDigitalBookPageData);
+router.get('/:id', optionalProtect, digitalBookController.getDigitalBook);
 
 // ─── Admin only ───────────────────────────────────────────────────────────────
 router.use(protect, restrictTo('ADMIN'));

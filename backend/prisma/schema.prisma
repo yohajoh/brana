@@ -166,11 +166,14 @@ model Notification {
   message    String           @db.Text
   type       NotificationType
   is_read    Boolean          @default(false)
+  dedupe_key String?
   created_at DateTime         @default(now())
 
   user       User     @relation(fields: [user_id], references: [id])
 
+  @@unique([user_id, dedupe_key])
   @@index([user_id, is_read])
+  @@index([user_id, created_at])
   @@index([created_at])
 }
 

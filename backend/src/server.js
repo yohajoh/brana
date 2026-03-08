@@ -1,82 +1,45 @@
 import "dotenv/config";
+import cluster from "node:cluster";
+import os from "node:os";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import app from "./app.js";
 import { verifyToken } from "./utils/token.utils.js";
 import { scanExtendedOverdueAlerts, scanNeverReturnedAlerts } from "./services/inventoryAlert.service.js";
-import { sendOverdueReminders } from "./services/rental.service.js";
 import { sendUpcomingReturnReminders, sendOverdueRemindersAutomated } from "./services/automatedReminder.service.js";
 
 /**
  * @typedef {import("socket.io").Socket & { userId: string }} AuthenticatedSocket
  */
 
-const PORT = process.env.PORT || 5000;
+const toNumber = (value, fallback) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+const PORT = toNumber(process.env.PORT, 5000);
+const defaultParallelism = os.cpus().length;
+const CLUSTER_ENABLED = process.env.ENABLE_CLUSTER === "true";
+const WEB_CONCURRENCY = Math.max(1, Math.floor(toNumber(process.env.WEB_CONCURRENCY, defaultParallelism)));
+
 const envOrigins = (process.env.FRONTEND_URL || "")
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
 const allowedOrigins = Array.from(new Set(["http://localhost:3000", "http://localhost:3001", ...envOrigins]));
 
-// ─── Create HTTP server ───────────────────────────────────────────────────────
-const httpServer = createServer(app);
-
-// ─── Socket.io Setup ──────────────────────────────────────────────────────────
-const io = new Server(httpServer, {
-  cors: {
-    origin: allowedOrigins,
-    credentials: true,
-    methods: ["GET", "POST"],
-  },
-});
-
-// ─── Socket.io Authentication Middleware ─────────────────────────────────────
-io.use((/** @type {AuthenticatedSocket} */ socket, next) => {
-  try {
-    const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.split(" ")[1];
-
-    if (!token) {
-      return next(new Error("Authentication error: No token provided"));
-    }
-
-    const decoded = /** @type {{ id: string }} */ (verifyToken(token));
-    socket.userId = decoded.id;
-    next();
-  } catch {
-    next(new Error("Authentication error: Invalid token"));
-  }
-});
-
-// ─── Connection Handler ───────────────────────────────────────────────────────
-io.on("connection", (/** @type {AuthenticatedSocket} */ socket) => {
-  const userId = socket.userId;
-  console.log(`⚡ Socket connected: user ${userId} (socket ${socket.id})`);
-
-  // Join personal room for targeted notifications
-  socket.join(`user:${userId}`);
-
-  socket.on("disconnect", () => {
-    console.log(`🔌 Socket disconnected: user ${userId} (socket ${socket.id})`);
-  });
-});
-
-// ─── Attach io to app so controllers can access it ───────────────────────────
-app.locals.io = io;
-
-// ─── Start Server ─────────────────────────────────────────────────────────────
-httpServer.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(`📡 Socket.io ready`);
-});
-
 // ─── Automated Jobs Configuration ───────────────────────────────────────────
 // Default intervals (can be overridden via environment variables)
 // AUTO_ALERT_SCAN_MS: How often to scan for inventory alerts (default: 6 hours)
 // AUTO_REMINDER_INTERVAL_MS: How often to send overdue reminders (default: 1 hour for testing)
 // AUTO_UPCOMING_REMINDER_INTERVAL_MS: How often to send upcoming return reminders (default: 1 hour for testing)
-const AUTO_ALERT_SCAN_MS = Number(process.env.AUTO_ALERT_SCAN_MS || 6 * 60 * 60 * 1000);
-const AUTO_REMINDER_INTERVAL_MS = Number(process.env.AUTO_REMINDER_INTERVAL_MS || 60 * 60 * 1000); // 1 hour for testing
-const AUTO_UPCOMING_REMINDER_INTERVAL_MS = Number(process.env.AUTO_UPCOMING_REMINDER_INTERVAL_MS || 60 * 60 * 1000); // 1 hour for testing
+const AUTO_ALERT_SCAN_MS = toNumber(process.env.AUTO_ALERT_SCAN_MS, 6 * 60 * 60 * 1000);
+const AUTO_REMINDER_INTERVAL_MS = toNumber(process.env.AUTO_REMINDER_INTERVAL_MS, 60 * 60 * 1000); // 1 hour for testing
+const AUTO_UPCOMING_REMINDER_INTERVAL_MS = toNumber(process.env.AUTO_UPCOMING_REMINDER_INTERVAL_MS, 60 * 60 * 1000); // 1 hour for testing
+const RUN_BACKGROUND_JOBS = process.env.RUN_BACKGROUND_JOBS
+  ? process.env.RUN_BACKGROUND_JOBS === "true"
+  : CLUSTER_ENABLED
+    ? process.env.JOB_WORKER === "true"
+    : process.env.NODE_ENV !== "production";
 
 // ─── Run initial scans on server startup ───────────────────────────────────
 const runInitialScans = async () => {
@@ -120,61 +83,134 @@ const runInitialScans = async () => {
   console.log("✅ Initial automated scans completed");
 };
 
-// Run initial scans after a short delay to ensure server is fully ready
-setTimeout(runInitialScans, 5000);
-
-// ─── Scheduled Jobs ─────────────────────────────────────────────────────────
-
-// Scan for inventory alerts periodically
-setInterval(async () => {
-  try {
-    const [extended, neverReturned] = await Promise.all([scanExtendedOverdueAlerts(), scanNeverReturnedAlerts()]);
-    const created = (extended?.created || 0) + (neverReturned?.created || 0);
-    if (created > 0) {
-      console.log(`🔔 Auto alert scan created ${created} alert(s)`);
-    }
-  } catch (error) {
-    console.error("Auto alert scan failed:", error?.message || error);
+const configureBackgroundJobs = () => {
+  if (!RUN_BACKGROUND_JOBS) {
+    console.log("⏸️ Background jobs disabled on this instance (set RUN_BACKGROUND_JOBS=true to enable).");
+    return;
   }
-}, AUTO_ALERT_SCAN_MS);
 
-// Send overdue reminders periodically
-setInterval(async () => {
-  try {
-    const result = await sendOverdueRemindersAutomated(app.locals.io);
-    if ((result?.remindersSent || 0) > 0) {
-      console.log(`🔴 Automated overdue reminder job sent ${result.remindersSent} reminder(s)`);
+  // Run initial scans after a short delay to ensure server is fully ready.
+  setTimeout(runInitialScans, 5000);
+
+  setInterval(async () => {
+    try {
+      const [extended, neverReturned] = await Promise.all([scanExtendedOverdueAlerts(), scanNeverReturnedAlerts()]);
+      const created = (extended?.created || 0) + (neverReturned?.created || 0);
+      if (created > 0) {
+        console.log(`🔔 Auto alert scan created ${created} alert(s)`);
+      }
+    } catch (error) {
+      console.error("Auto alert scan failed:", error?.message || error);
     }
-  } catch (error) {
-    console.error("Automated overdue reminder job failed:", error?.message || error);
-  }
-}, AUTO_REMINDER_INTERVAL_MS);
+  }, AUTO_ALERT_SCAN_MS);
 
-// Send upcoming return reminders periodically
-setInterval(async () => {
-  try {
-    const result = await sendUpcomingReturnReminders(app.locals.io);
-    if ((result?.remindersSent || 0) > 0) {
-      console.log(`⏰ Upcoming return reminder job sent ${result.remindersSent} reminder(s)`);
+  setInterval(async () => {
+    try {
+      const result = await sendOverdueRemindersAutomated(app.locals.io);
+      if ((result?.remindersSent || 0) > 0) {
+        console.log(`🔴 Automated overdue reminder job sent ${result.remindersSent} reminder(s)`);
+      }
+    } catch (error) {
+      console.error("Automated overdue reminder job failed:", error?.message || error);
     }
-  } catch (error) {
-    console.error("Upcoming reminder job failed:", error?.message || error);
-  }
-}, AUTO_UPCOMING_REMINDER_INTERVAL_MS);
+  }, AUTO_REMINDER_INTERVAL_MS);
 
-// Also keep the old sendOverdueReminders for backward compatibility
-setInterval(async () => {
-  try {
-    const result = await sendOverdueReminders(app.locals.io);
-    if ((result?.remindersSent || 0) > 0) {
-      console.log(`Reminder job sent ${result.remindersSent} overdue reminder(s)`);
+  setInterval(async () => {
+    try {
+      const result = await sendUpcomingReturnReminders(app.locals.io);
+      if ((result?.remindersSent || 0) > 0) {
+        console.log(`⏰ Upcoming return reminder job sent ${result.remindersSent} reminder(s)`);
+      }
+    } catch (error) {
+      console.error("Upcoming reminder job failed:", error?.message || error);
     }
-  } catch (error) {
-    console.error("Reminder job failed:", error?.message || error);
-  }
-}, AUTO_REMINDER_INTERVAL_MS);
+  }, AUTO_UPCOMING_REMINDER_INTERVAL_MS);
 
-console.log(`📅 Scheduled jobs configured:`);
-console.log(`   - Alert scan: every ${AUTO_ALERT_SCAN_MS / 1000 / 60} minutes`);
-console.log(`   - Overdue reminders: every ${AUTO_REMINDER_INTERVAL_MS / 1000 / 60} minutes`);
-console.log(`   - Upcoming reminders: every ${AUTO_UPCOMING_REMINDER_INTERVAL_MS / 1000 / 60} minutes`);
+  console.log(`📅 Scheduled jobs configured:`);
+  console.log(`   - Alert scan: every ${AUTO_ALERT_SCAN_MS / 1000 / 60} minutes`);
+  console.log(`   - Overdue reminders: every ${AUTO_REMINDER_INTERVAL_MS / 1000 / 60} minutes`);
+  console.log(`   - Upcoming reminders: every ${AUTO_UPCOMING_REMINDER_INTERVAL_MS / 1000 / 60} minutes`);
+};
+
+const startWorker = () => {
+  const httpServer = createServer(app);
+
+  const io = new Server(httpServer, {
+    cors: {
+      origin: allowedOrigins,
+      credentials: true,
+      methods: ["GET", "POST"],
+    },
+    transports: ["websocket"],
+  });
+
+  io.use((/** @type {AuthenticatedSocket} */ socket, next) => {
+    try {
+      const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.split(" ")[1];
+
+      if (!token) {
+        return next(new Error("Authentication error: No token provided"));
+      }
+
+      const decoded = /** @type {{ id: string }} */ (verifyToken(token));
+      socket.userId = decoded.id;
+      next();
+    } catch {
+      next(new Error("Authentication error: Invalid token"));
+    }
+  });
+
+  io.on("connection", (/** @type {AuthenticatedSocket} */ socket) => {
+    const userId = socket.userId;
+    console.log(`⚡ Socket connected: user ${userId} (socket ${socket.id})`);
+    socket.join(`user:${userId}`);
+    socket.on("disconnect", () => {
+      console.log(`🔌 Socket disconnected: user ${userId} (socket ${socket.id})`);
+    });
+  });
+
+  app.locals.io = io;
+
+  httpServer.keepAliveTimeout = Math.max(1000, toNumber(process.env.HTTP_KEEP_ALIVE_TIMEOUT_MS, 65_000));
+  httpServer.headersTimeout = Math.max(2000, toNumber(process.env.HTTP_HEADERS_TIMEOUT_MS, 66_000));
+  httpServer.requestTimeout = Math.max(1000, toNumber(process.env.HTTP_REQUEST_TIMEOUT_MS, 30_000));
+  httpServer.maxRequestsPerSocket = Math.max(100, toNumber(process.env.HTTP_MAX_REQUESTS_PER_SOCKET, 1000));
+
+  httpServer.listen(PORT, () => {
+    console.log(`🚀 Worker ${process.pid} serving on http://localhost:${PORT}`);
+    console.log(`📡 Socket.io ready`);
+  });
+
+  configureBackgroundJobs();
+};
+
+if (CLUSTER_ENABLED && cluster.isPrimary) {
+  console.log(`🧵 Primary ${process.pid} starting ${WEB_CONCURRENCY} worker(s).`);
+  console.warn("⚠️ Cluster mode is active. For cross-worker Socket.IO broadcasts, use a shared adapter (e.g., Redis).");
+  let workerIndex = 0;
+  const workerRoles = new Map();
+
+  const forkWorker = (isJobWorker) => {
+    workerIndex += 1;
+    const worker = cluster.fork({
+      WORKER_INDEX: String(workerIndex),
+      JOB_WORKER: isJobWorker ? "true" : "false",
+    });
+    workerRoles.set(worker.id, isJobWorker);
+  };
+
+  for (let i = 0; i < WEB_CONCURRENCY; i += 1) {
+    forkWorker(i === 0);
+  }
+
+  cluster.on("exit", (worker, code, signal) => {
+    const wasJobWorker = workerRoles.get(worker.id) === true;
+    workerRoles.delete(worker.id);
+    console.error(
+      `❌ Worker ${worker.process.pid} exited (code=${code ?? "unknown"} signal=${signal ?? "none"}). Restarting...`,
+    );
+    forkWorker(wasJobWorker);
+  });
+} else {
+  startWorker();
+}

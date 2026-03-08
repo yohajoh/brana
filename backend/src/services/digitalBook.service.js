@@ -18,30 +18,55 @@ import { uploadImageToCloudinary } from '../utils/cloudinary.js';
 // HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
 
-const buildRatingSummary = async (bookId) => {
-  const where = { digital_book_id: bookId };
+const createEmptyRatingSummary = () => ({
+  average: 0,
+  total: 0,
+  distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+});
 
-  const [agg, distribution] = await Promise.all([
-    prisma.review.aggregate({
+const buildRatingSummaries = async (ids) => {
+  const uniqueIds = Array.from(new Set(ids.filter(Boolean)));
+  const summaries = new Map(uniqueIds.map((id) => [id, createEmptyRatingSummary()]));
+  if (uniqueIds.length === 0) return summaries;
+
+  const where = { digital_book_id: { in: uniqueIds } };
+  const [avgRows, distributionRows] = await Promise.all([
+    prisma.review.groupBy({
+      by: ['digital_book_id'],
       where,
       _avg: { rating: true },
       _count: { rating: true },
     }),
     prisma.review.groupBy({
-      by: ['rating'],
+      by: ['digital_book_id', 'rating'],
       where,
       _count: { rating: true },
     }),
   ]);
 
-  const dist = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-  distribution.forEach((r) => { dist[r.rating] = r._count.rating; });
+  for (const row of avgRows) {
+    const id = row.digital_book_id;
+    if (!id) continue;
+    const current = summaries.get(id) || createEmptyRatingSummary();
+    current.average = row._avg.rating ? parseFloat(Number(row._avg.rating).toFixed(2)) : 0;
+    current.total = row._count.rating;
+    summaries.set(id, current);
+  }
 
-  return {
-    average: agg._avg.rating ? parseFloat(Number(agg._avg.rating).toFixed(2)) : 0,
-    total: agg._count.rating,
-    distribution: dist,
-  };
+  for (const row of distributionRows) {
+    const id = row.digital_book_id;
+    if (!id) continue;
+    const current = summaries.get(id) || createEmptyRatingSummary();
+    current.distribution[row.rating] = row._count.rating;
+    summaries.set(id, current);
+  }
+
+  return summaries;
+};
+
+const buildRatingSummary = async (bookId) => {
+  const summaries = await buildRatingSummaries([bookId]);
+  return summaries.get(bookId) || createEmptyRatingSummary();
 };
 
 /** Select fields for list view – NEVER include pdf_file bytes in lists */
@@ -84,6 +109,18 @@ const DIGITAL_DETAIL_SELECT = /** @type {any} */ ({
   images: { orderBy: /** @type {any} */ ({ sort_order: 'asc' }) },
   _count: { select: { reviews: true, wishlists: true } },
 });
+
+const RELATED_PHYSICAL_SELECT = {
+  id: true,
+  title: true,
+  cover_image_url: true,
+};
+
+const RELATED_DIGITAL_SELECT = {
+  id: true,
+  title: true,
+  cover_image_url: true,
+};
 
 const DEFAULT_COVER_IMAGE = 'https://placehold.co/400x600?text=Brana+Digital';
 
@@ -244,22 +281,20 @@ export const getDigitalBooks = async (query, _requestUser = null) => {
           .map((row) => row.digital_book_id),
       );
       const filtered = books.filter((b) => allowed.has(b.id));
-      const booksWithRatings = await Promise.all(
-        filtered.map(async (book) => ({
-          ...book,
-          rating: await buildRatingSummary(book.id),
-        })),
-      );
+      const ratingSummaries = await buildRatingSummaries(filtered.map((book) => book.id));
+      const booksWithRatings = filtered.map((book) => ({
+        ...book,
+        rating: ratingSummaries.get(book.id) || createEmptyRatingSummary(),
+      }));
       return { books: booksWithRatings, meta: paginationMeta(booksWithRatings.length, page, limit) };
     }
   }
 
-  const booksWithRatings = await Promise.all(
-    books.map(async (book) => ({
-      ...book,
-      rating: await buildRatingSummary(book.id),
-    }))
-  );
+  const ratingSummaries = await buildRatingSummaries(books.map((book) => book.id));
+  const booksWithRatings = books.map((book) => ({
+    ...book,
+    rating: ratingSummaries.get(book.id) || createEmptyRatingSummary(),
+  }));
 
   return { books: booksWithRatings, meta: paginationMeta(total, page, limit) };
 };
@@ -307,6 +342,75 @@ export const getDigitalBookById = async (id, userId = null) => {
   }
 
   return { ...book, rating, userContext };
+};
+
+export const getDigitalBookPageData = async (id, userId = null) => {
+  const book = await getDigitalBookById(id, userId);
+
+  const [myReview, physicalByAuthor, digitalByAuthor] = await Promise.all([
+    userId
+      ? prisma.review.findFirst({
+          where: { user_id: userId, digital_book_id: id },
+          select: { id: true, rating: true, comment: true },
+        })
+      : Promise.resolve(null),
+    prisma.book.findMany({
+      where: {
+        deleted_at: null,
+        author_id: book.author.id,
+      },
+      select: RELATED_PHYSICAL_SELECT,
+      take: 12,
+      orderBy: { title: 'asc' },
+    }),
+    prisma.digitalBook.findMany({
+      where: {
+        deleted_at: null,
+        author_id: book.author.id,
+        id: { not: id },
+      },
+      select: RELATED_DIGITAL_SELECT,
+      take: 12,
+      orderBy: { title: 'asc' },
+    }),
+  ]);
+
+  let related = [
+    ...physicalByAuthor.map((item) => ({ ...item, type: 'physical' })),
+    ...digitalByAuthor.map((item) => ({ ...item, type: 'digital' })),
+  ].slice(0, 8);
+  let relatedSource = 'author';
+
+  if (related.length === 0) {
+    const [physicalByCategory, digitalByCategory] = await Promise.all([
+      prisma.book.findMany({
+        where: {
+          deleted_at: null,
+          category_id: book.category.id,
+        },
+        select: RELATED_PHYSICAL_SELECT,
+        take: 12,
+        orderBy: { title: 'asc' },
+      }),
+      prisma.digitalBook.findMany({
+        where: {
+          deleted_at: null,
+          category_id: book.category.id,
+          id: { not: id },
+        },
+        select: RELATED_DIGITAL_SELECT,
+        take: 12,
+        orderBy: { title: 'asc' },
+      }),
+    ]);
+    related = [
+      ...physicalByCategory.map((item) => ({ ...item, type: 'physical' })),
+      ...digitalByCategory.map((item) => ({ ...item, type: 'digital' })),
+    ].slice(0, 8);
+    relatedSource = 'category';
+  }
+
+  return { book, myReview, related, relatedSource };
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

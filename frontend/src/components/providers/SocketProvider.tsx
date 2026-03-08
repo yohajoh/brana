@@ -43,16 +43,17 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
     const newSocket = io(SOCKET_URL, {
       auth: { token },
-      transports: ["websocket", "polling"],
+      transports: ["websocket"],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
     });
 
     newSocket.on("connect", () => {
-      console.log("Socket connected");
       setSocket(newSocket);
     });
 
     newSocket.on("notification", (notification: Notification) => {
-      console.log("Received real-time notification:", notification);
       setNotifications((prev) => [notification, ...prev]);
       setUnreadCount((prev) => prev + 1);
 
@@ -62,7 +63,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     });
 
     newSocket.on("disconnect", () => {
-      console.log("Socket disconnected");
+      setSocket(null);
     });
 
     return () => {

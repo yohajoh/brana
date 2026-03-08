@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { fetchApi, API_BASE_URL } from "../api";
+import { fetchApi, API_BASE_URL, fetchCurrentUser } from "../api";
 
 export type Book = {
   id: string;
@@ -148,7 +148,11 @@ export type ConditionHistoryEntry = {
 
 const defaultOptions = {
   staleTime: 60 * 1000,
+  gcTime: 10 * 60 * 1000,
   retry: 1,
+  refetchOnWindowFocus: false,
+  refetchOnReconnect: false,
+  refetchOnMount: false,
 };
 
 const api = {
@@ -280,7 +284,7 @@ export function useUpdateTargets() {
 export function useBooks(params?: string) {
   return useQuery({
     queryKey: queryKeys.books(params),
-    queryFn: () => api.get<{ books: Book[]; meta?: unknown }>(`/books?${params || "limit=200"}`),
+    queryFn: () => api.get<{ books: Book[]; meta?: unknown }>(`/books?${params || "limit=24"}`),
     ...defaultOptions,
   });
 }
@@ -288,7 +292,7 @@ export function useBooks(params?: string) {
 export function useDigitalBooks(params?: string) {
   return useQuery({
     queryKey: queryKeys.digitalBooks(params),
-    queryFn: () => api.get<{ books: DigitalBook[]; meta?: unknown }>(`/digital-books?${params || "limit=200"}`),
+    queryFn: () => api.get<{ books: DigitalBook[]; meta?: unknown }>(`/digital-books?${params || "limit=24"}`),
     ...defaultOptions,
   });
 }
@@ -327,7 +331,7 @@ export function useDeleteBook() {
 export function useCategories(params?: string) {
   return useQuery({
     queryKey: queryKeys.categories(params),
-    queryFn: () => api.get<{ categories: Category[]; meta?: unknown }>(`/categories?${params || "limit=200"}`),
+    queryFn: () => api.get<{ categories: Category[]; meta?: unknown }>(`/categories?${params || "limit=50"}`),
     ...defaultOptions,
   });
 }
@@ -366,7 +370,7 @@ export function useDeleteCategory() {
 export function useAuthors(params?: string) {
   return useQuery({
     queryKey: queryKeys.authors(params),
-    queryFn: () => api.get<{ authors: Author[]; meta?: unknown }>(`/authors?${params || "limit=200"}`),
+    queryFn: () => api.get<{ authors: Author[]; meta?: unknown }>(`/authors?${params || "limit=50"}`),
     ...defaultOptions,
   });
 }
@@ -443,7 +447,7 @@ export function useUnblockUser() {
 export function useRentals(params?: string) {
   return useQuery({
     queryKey: queryKeys.rentals(params),
-    queryFn: () => api.get<{ rentals: Rental[] }>(`/rentals?${params || "limit=200"}`),
+    queryFn: () => api.get<{ rentals: Rental[] }>(`/rentals?${params || "limit=20"}`),
     ...defaultOptions,
   });
 }
@@ -459,7 +463,7 @@ export function useMyRentals(params?: string) {
 export function useOverdueRentals(params?: string) {
   return useQuery({
     queryKey: queryKeys.overdueRentals(params),
-    queryFn: () => api.get<{ rentals: Rental[] }>(`/rentals/admin/overdue?${params || "limit=200"}`),
+    queryFn: () => api.get<{ rentals: Rental[] }>(`/rentals/admin/overdue?${params || "limit=20"}`),
     ...defaultOptions,
   });
 }
@@ -496,7 +500,7 @@ export function useProcessReturn() {
 export function useReservations(params?: string) {
   return useQuery({
     queryKey: queryKeys.reservations(params),
-    queryFn: () => api.get<{ reservations: Reservation[] }>(`/reservations?${params || "limit=200"}`),
+    queryFn: () => api.get<{ reservations: Reservation[] }>(`/reservations?${params || "limit=20"}`),
     ...defaultOptions,
   });
 }
@@ -504,7 +508,7 @@ export function useReservations(params?: string) {
 export function useMyReservations(params?: string) {
   return useQuery({
     queryKey: queryKeys.myReservations(params),
-    queryFn: () => api.get<{ reservations: Reservation[] }>(`/reservations/mine?${params || "limit=100"}`),
+    queryFn: () => api.get<{ reservations: Reservation[] }>(`/reservations/mine?${params || "limit=20"}`),
     ...defaultOptions,
   });
 }
@@ -620,11 +624,16 @@ export function useTrendingBooks() {
 export function useCurrentUser() {
   return useQuery({
     queryKey: ["current-user"],
-    queryFn: async () => {
-      const data = await fetchApi("/auth/me");
-      return data;
-    },
-    ...defaultOptions,
+    queryFn: async () => ({
+      status: "success",
+      data: { user: await fetchCurrentUser() },
+    }),
+    staleTime: 30 * 1000,
+    gcTime: 10 * 60 * 1000,
+    retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: false,
   });
 }
 
@@ -671,7 +680,7 @@ export function useUpdateSystemConfig() {
 export function useActivityLogs(params?: string) {
   return useQuery({
     queryKey: queryKeys.activityLogs(params),
-    queryFn: () => api.get<{ logs: ActivityLog[]; meta?: unknown }>(`/admin/activity-logs?${params || "limit=100"}`),
+    queryFn: () => api.get<{ logs: ActivityLog[]; meta?: unknown }>(`/admin/activity-logs?${params || "limit=50"}`),
     ...defaultOptions,
   });
 }
@@ -679,7 +688,7 @@ export function useActivityLogs(params?: string) {
 export function useAlerts() {
   return useQuery({
     queryKey: queryKeys.alerts,
-    queryFn: () => api.get<{ data: unknown }>("/admin/alerts"),
+    queryFn: () => api.get<{ alerts: unknown[]; meta?: unknown }>("/admin/inventory-alerts?limit=50"),
     ...defaultOptions,
   });
 }
@@ -687,7 +696,7 @@ export function useAlerts() {
 export function usePayments(params?: string) {
   return useQuery({
     queryKey: queryKeys.payments(params),
-    queryFn: () => api.get<{ payments: Payment[] }>(`/payments?${params || "limit=100"}`),
+    queryFn: () => api.get<{ payments: Payment[] }>(`/payments?${params || "limit=20"}`),
     ...defaultOptions,
   });
 }
@@ -695,7 +704,7 @@ export function usePayments(params?: string) {
 export function useMyPayments(params?: string) {
   return useQuery({
     queryKey: queryKeys.myPayments(params),
-    queryFn: () => api.get<{ payments: Payment[] }>(`/payments/mine?${params || "limit=100"}`),
+    queryFn: () => api.get<{ payments: Payment[] }>(`/payments/mine?${params || "limit=20"}`),
     ...defaultOptions,
   });
 }
@@ -714,7 +723,7 @@ export function useCreatePayment() {
 export function useDigitalBooksList(params?: string) {
   return useQuery({
     queryKey: queryKeys.digitalBooksList(params),
-    queryFn: () => api.get<{ data: unknown }>(`/digital-books?${params || "limit=200"}`),
+    queryFn: () => api.get<{ data: unknown }>(`/digital-books?${params || "limit=24"}`),
     ...defaultOptions,
   });
 }

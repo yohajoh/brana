@@ -6,6 +6,8 @@ const router = Router();
 
 router.use(protect, restrictTo('ADMIN'));
 
+// Backward-compatible alias
+router.get('/alerts', adminController.getInventoryAlerts);
 router.get('/activity-logs', adminController.getActivityLogs);
 router.get('/inventory-alerts', adminController.getInventoryAlerts);
 router.patch('/inventory-alerts/:id/resolve', adminController.resolveInventoryAlert);

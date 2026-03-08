@@ -3,6 +3,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import morgan from "morgan";
 import helmet from "helmet";
+import compression from "compression";
 import passport from "passport";
 import "./config/passport.js";
 
@@ -27,8 +28,19 @@ import studentRoutes from "./routes/student.routes.js";
 import { globalErrorHandler, AppError } from "./middlewares/error.middleware.js";
 
 const app = express();
+const compressionLevel = Number(process.env.HTTP_COMPRESSION_LEVEL);
+const resolvedCompressionLevel = Number.isFinite(compressionLevel)
+  ? Math.max(1, Math.min(9, compressionLevel))
+  : 6;
 
 app.use(passport.initialize());
+app.disable("x-powered-by");
+app.set("etag", "strong");
+
+if (process.env.TRUST_PROXY) {
+  const trustProxyValue = Number(process.env.TRUST_PROXY);
+  app.set("trust proxy", Number.isNaN(trustProxyValue) ? process.env.TRUST_PROXY : trustProxyValue);
+}
 
 // Security HTTP headers
 app.use(helmet());
@@ -60,13 +72,13 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.use(
-  express.json({
-    limit: "10mb",
-    verify: (req, res, buf) => {
-      req.rawBody = buf?.toString?.() || "";
-    },
+  compression({
+    threshold: 1024,
+    level: resolvedCompressionLevel,
   }),
 );
+app.use(express.json({ limit: "1mb" }));
+app.use(express.urlencoded({ extended: false, limit: "50kb" }));
 app.use(cookieParser());
 
 // ─── API Routes ───────────────────────────────────────────────────────────────

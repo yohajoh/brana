@@ -5,7 +5,7 @@
 
 import { Router } from 'express';
 import * as bookController from '../controllers/book.controller.js';
-import { protect, restrictTo } from '../middlewares/auth.middleware.js';
+import { optionalProtect, protect, restrictTo } from '../middlewares/auth.middleware.js';
 import { uploadImage } from '../utils/upload.js';
 
 const router = Router();
@@ -14,9 +14,10 @@ const router = Router();
 router.get('/', bookController.getBooks);
 router.get('/:id/availability', bookController.getBookAvailability);
 router.get('/:id/copies', protect, restrictTo('ADMIN'), bookController.getBookCopies);
+router.get('/:id/page-data', optionalProtect, bookController.getBookPageData);
 
 // ─── Public but enriched with user context when logged in ─────────────────────
-router.get('/:id', protect, bookController.getBook);
+router.get('/:id', optionalProtect, bookController.getBook);
 
 // ─── Admin ────────────────────────────────────────────────────────────────────
 router.use(protect, restrictTo('ADMIN'));

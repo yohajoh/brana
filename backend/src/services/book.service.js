@@ -23,30 +23,55 @@ import { uploadImageToCloudinary } from '../utils/cloudinary.js';
  * Build rating summary for a book from raw review aggregation data.
  * Returns average, total, and star distribution (1-5).
  */
-const buildRatingSummary = async (field, bookId) => {
-  const where = { [field]: bookId };
+const createEmptyRatingSummary = () => ({
+  average: 0,
+  total: 0,
+  distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+});
 
-  const [agg, distribution] = await Promise.all([
-    prisma.review.aggregate({
+const buildRatingSummaries = async (field, ids) => {
+  const uniqueIds = Array.from(new Set(ids.filter(Boolean)));
+  const summaries = new Map(uniqueIds.map((id) => [id, createEmptyRatingSummary()]));
+  if (uniqueIds.length === 0) return summaries;
+
+  const where = { [field]: { in: uniqueIds } };
+  const [avgRows, distributionRows] = await Promise.all([
+    prisma.review.groupBy({
+      by: [field],
       where,
       _avg: { rating: true },
       _count: { rating: true },
     }),
     prisma.review.groupBy({
-      by: ['rating'],
+      by: [field, 'rating'],
       where,
       _count: { rating: true },
     }),
   ]);
 
-  const dist = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-  distribution.forEach((r) => { dist[r.rating] = r._count.rating; });
+  for (const row of avgRows) {
+    const id = row[field];
+    if (!id) continue;
+    const current = summaries.get(id) || createEmptyRatingSummary();
+    current.average = row._avg.rating ? parseFloat(Number(row._avg.rating).toFixed(2)) : 0;
+    current.total = row._count.rating;
+    summaries.set(id, current);
+  }
 
-  return {
-    average: agg._avg.rating ? parseFloat(Number(agg._avg.rating).toFixed(2)) : 0,
-    total: agg._count.rating,
-    distribution: dist,
-  };
+  for (const row of distributionRows) {
+    const id = row[field];
+    if (!id) continue;
+    const current = summaries.get(id) || createEmptyRatingSummary();
+    current.distribution[row.rating] = row._count.rating;
+    summaries.set(id, current);
+  }
+
+  return summaries;
+};
+
+const buildRatingSummary = async (field, bookId) => {
+  const summaries = await buildRatingSummaries(field, [bookId]);
+  return summaries.get(bookId) || createEmptyRatingSummary();
 };
 
 /**
@@ -73,7 +98,109 @@ const BOOK_DETAIL_INCLUDE = {
   _count: { select: { rentals: true, reviews: true, wishlists: true } },
 };
 
+const RELATED_PHYSICAL_SELECT = {
+  id: true,
+  title: true,
+  cover_image_url: true,
+};
+
+const RELATED_DIGITAL_SELECT = {
+  id: true,
+  title: true,
+  cover_image_url: true,
+};
+
 const DEFAULT_COVER_IMAGE = 'https://placehold.co/400x600?text=Brana+Book';
+const ASYNC_BOOK_IMAGE_UPLOADS = process.env.ASYNC_BOOK_IMAGE_UPLOADS !== 'false';
+
+const runAsyncTask = (label, task) => {
+  setImmediate(() => {
+    void task().catch((error) => {
+      console.error(`[BookService:${label}]`, error?.message || error);
+    });
+  });
+};
+
+const uploadBookImageAssets = async (coverFile, galleryFiles = []) => {
+  const [coverUrl, galleryUrlsRaw] = await Promise.all([
+    coverFile
+      ? uploadImageToCloudinary(coverFile, {
+          folder: 'brana/physical-books/covers',
+        })
+      : Promise.resolve(null),
+    galleryFiles.length > 0
+      ? Promise.all(
+          galleryFiles.map((file) =>
+            uploadImageToCloudinary(file, {
+              folder: 'brana/physical-books/gallery',
+            }),
+          ),
+        )
+      : Promise.resolve([]),
+  ]);
+
+  return {
+    coverUrl,
+    galleryUrls: galleryUrlsRaw.filter(Boolean),
+  };
+};
+
+const persistBookImages = async ({ bookId, coverUrl = null, galleryUrls = [], updateBookCover = false }) => {
+  let nextSortOrder = 1;
+
+  if (coverUrl) {
+    if (updateBookCover) {
+      await prisma.book.update({
+        where: { id: bookId },
+        data: { cover_image_url: coverUrl },
+      });
+    }
+
+    await prisma.bookImage.create({
+      data: {
+        book_id: bookId,
+        book_type: 'PHYSICAL',
+        image_url: coverUrl,
+        sort_order: 1,
+        physical_book_id: bookId,
+      },
+    });
+    nextSortOrder = 2;
+  } else {
+    const lastImage = await prisma.bookImage.findFirst({
+      where: { physical_book_id: bookId, book_type: 'PHYSICAL' },
+      orderBy: { sort_order: 'desc' },
+      select: { sort_order: true },
+    });
+    nextSortOrder = (lastImage?.sort_order ?? 0) + 1;
+  }
+
+  if (galleryUrls.length > 0) {
+    await prisma.bookImage.createMany({
+      data: galleryUrls.map((url, idx) => ({
+        book_id: bookId,
+        book_type: 'PHYSICAL',
+        image_url: url,
+        sort_order: nextSortOrder + idx,
+        physical_book_id: bookId,
+      })),
+    });
+  }
+};
+
+const scheduleBookImageProcessing = (bookId, coverFile, galleryFiles = []) => {
+  if (!coverFile && galleryFiles.length === 0) return;
+
+  runAsyncTask('create-book-images', async () => {
+    const { coverUrl, galleryUrls } = await uploadBookImageAssets(coverFile, galleryFiles);
+    await persistBookImages({
+      bookId,
+      coverUrl,
+      galleryUrls,
+      updateBookCover: Boolean(coverUrl),
+    });
+  });
+};
 
 const buildCopyCode = (bookId, sequence) => {
   const seq = String(sequence).padStart(4, '0');
@@ -247,12 +374,14 @@ export const getBooks = async (query) => {
           .map((row) => row.physical_book_id),
       );
       const filtered = books.filter((b) => allowedIds.has(b.id));
-      const booksWithRatings = await Promise.all(
-        filtered.map(async (book) => ({
-          ...book,
-          rating: await buildRatingSummary('physical_book_id', book.id),
-        }))
+      const ratingSummaries = await buildRatingSummaries(
+        'physical_book_id',
+        filtered.map((book) => book.id),
       );
+      const booksWithRatings = filtered.map((book) => ({
+        ...book,
+        rating: ratingSummaries.get(book.id) || createEmptyRatingSummary(),
+      }));
       return {
         books: booksWithRatings,
         meta: paginationMeta(booksWithRatings.length, page, limit),
@@ -260,13 +389,14 @@ export const getBooks = async (query) => {
     }
   }
 
-  // Attach rating summaries for each book
-  const booksWithRatings = await Promise.all(
-    books.map(async (book) => ({
-      ...book,
-      rating: await buildRatingSummary('physical_book_id', book.id),
-    }))
+  const ratingSummaries = await buildRatingSummaries(
+    'physical_book_id',
+    books.map((book) => book.id),
   );
+  const booksWithRatings = books.map((book) => ({
+    ...book,
+    rating: ratingSummaries.get(book.id) || createEmptyRatingSummary(),
+  }));
 
   return {
     books: booksWithRatings,
@@ -327,6 +457,75 @@ export const getBookById = async (id, userId = null) => {
   return { ...book, rating, userContext };
 };
 
+export const getBookPageData = async (id, userId = null) => {
+  const book = await getBookById(id, userId);
+
+  const [myReview, physicalByAuthor, digitalByAuthor] = await Promise.all([
+    userId
+      ? prisma.review.findFirst({
+          where: { user_id: userId, physical_book_id: id },
+          select: { id: true, rating: true, comment: true },
+        })
+      : Promise.resolve(null),
+    prisma.book.findMany({
+      where: {
+        deleted_at: null,
+        author_id: book.author.id,
+        id: { not: id },
+      },
+      select: RELATED_PHYSICAL_SELECT,
+      take: 12,
+      orderBy: { title: 'asc' },
+    }),
+    prisma.digitalBook.findMany({
+      where: {
+        deleted_at: null,
+        author_id: book.author.id,
+      },
+      select: RELATED_DIGITAL_SELECT,
+      take: 12,
+      orderBy: { title: 'asc' },
+    }),
+  ]);
+
+  let related = [
+    ...physicalByAuthor.map((item) => ({ ...item, type: 'physical' })),
+    ...digitalByAuthor.map((item) => ({ ...item, type: 'digital' })),
+  ].slice(0, 8);
+  let relatedSource = 'author';
+
+  if (related.length === 0) {
+    const [physicalByCategory, digitalByCategory] = await Promise.all([
+      prisma.book.findMany({
+        where: {
+          deleted_at: null,
+          category_id: book.category.id,
+          id: { not: id },
+        },
+        select: RELATED_PHYSICAL_SELECT,
+        take: 12,
+        orderBy: { title: 'asc' },
+      }),
+      prisma.digitalBook.findMany({
+        where: {
+          deleted_at: null,
+          category_id: book.category.id,
+        },
+        select: RELATED_DIGITAL_SELECT,
+        take: 12,
+        orderBy: { title: 'asc' },
+      }),
+    ]);
+    related = [
+      ...physicalByCategory.map((item) => ({ ...item, type: 'physical' })),
+      ...digitalByCategory.map((item) => ({ ...item, type: 'digital' })),
+    ].slice(0, 8);
+    relatedSource = 'category';
+  }
+
+  return { book, myReview, related, relatedSource };
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // CREATE BOOK
 // ─────────────────────────────────────────────────────────────────────────────
@@ -347,12 +546,19 @@ export const createBook = async (data, imageFile = null, galleryFiles = []) => {
   const copiesRaw = data.copies ?? data.total;
   const copiesInt = Math.max(1, parseInt(copiesRaw, 10) || 1);
   const pagesInt = Math.max(1, parseInt(data.pages, 10) || 100);
-  const coverFromUpload = await uploadImageToCloudinary(imageFile, {
-    folder: 'brana/physical-books/covers',
-  });
   const description = data.description?.trim() || 'No description provided.';
   const tags = parseList(data.tags);
   const topics = parseList(data.topics);
+  const hasImages = Boolean(imageFile) || galleryFiles.length > 0;
+  const useAsyncImagePipeline = ASYNC_BOOK_IMAGE_UPLOADS && hasImages;
+
+  let coverFromUpload = null;
+  let galleryUrls = [];
+  if (!useAsyncImagePipeline && hasImages) {
+    const uploaded = await uploadBookImageAssets(imageFile, galleryFiles);
+    coverFromUpload = uploaded.coverUrl;
+    galleryUrls = uploaded.galleryUrls;
+  }
 
   const created = await prisma.book.create({
     data: {
@@ -380,39 +586,20 @@ export const createBook = async (data, imageFile = null, galleryFiles = []) => {
     })),
   });
 
-  if (coverFromUpload) {
-    await prisma.bookImage.create({
-      data: {
-        book_id: created.id,
-        book_type: 'PHYSICAL',
-        image_url: coverFromUpload,
-        sort_order: 1,
-        physical_book_id: created.id,
-      },
+  if (useAsyncImagePipeline) {
+    scheduleBookImageProcessing(created.id, imageFile, galleryFiles);
+  } else if (coverFromUpload || galleryUrls.length > 0) {
+    await persistBookImages({
+      bookId: created.id,
+      coverUrl: coverFromUpload,
+      galleryUrls,
+      updateBookCover: false,
     });
   }
 
-  if (galleryFiles.length > 0) {
-    const galleryUrls = await Promise.all(
-      galleryFiles.map((file) =>
-        uploadImageToCloudinary(file, {
-          folder: 'brana/physical-books/gallery',
-        }),
-      ),
-    );
-
-    await prisma.bookImage.createMany({
-      data: galleryUrls.map((url, idx) => ({
-        book_id: created.id,
-        book_type: 'PHYSICAL',
-        image_url: url,
-        sort_order: (coverFromUpload ? 2 : 1) + idx,
-        physical_book_id: created.id,
-      })),
-    });
-  }
-
-  await syncLowStockAlertForBook(created.id);
+  runAsyncTask('sync-low-stock-after-create', async () => {
+    await syncLowStockAlertForBook(created.id);
+  });
   return created;
 };
 

@@ -17,6 +17,18 @@ import { prisma } from '../prisma.js';
 import { AppError } from '../middlewares/error.middleware.js';
 import { paginationMeta } from '../utils/apiFeatures.js';
 
+const NOTIFICATION_SELECT = {
+  id: true,
+  user_id: true,
+  message: true,
+  type: true,
+  is_read: true,
+  created_at: true,
+};
+
+const isMissingColumnError = (error) =>
+  error?.code === 'P2022' || /column .* does not exist/i.test(String(error?.message || ''));
+
 // ─────────────────────────────────────────────────────────────────────────────
 // CORE NOTIFICATION CREATOR
 // ─────────────────────────────────────────────────────────────────────────────
@@ -25,19 +37,39 @@ import { paginationMeta } from '../utils/apiFeatures.js';
  * Create a notification for a specific user and emit it via Socket.io.
  * This is used internally by all other services.
  *
- * @param {{ userId: string, message: string, type?: 'INFO'|'ALERT'|'SYSTEM', io?: any }} opts
+ * @param {{ userId: string, message: string, type?: string, io?: any, dedupeKey?: string|null }} opts
  */
-export const createNotification = async ({ userId, message, type = 'INFO', io }) => {
+export const createNotification = async ({ userId, message, type = 'INFO', io, dedupeKey = null }) => {
   // Check if user has notifications enabled (via global system config)
   // We skip this check here and let callers decide – it keeps this fn fast.
 
-  const notification = await prisma.notification.create({
-    data: {
-      user_id: userId,
-      message,
-      type: /** @type {any} */ (type),
-    },
-  });
+  const data = {
+    user_id: userId,
+    message,
+    type: /** @type {any} */ (type),
+  };
+
+  let notification;
+  try {
+    notification = await prisma.notification.create({
+      data: dedupeKey ? { ...data, dedupe_key: dedupeKey } : data,
+      select: NOTIFICATION_SELECT,
+    });
+  } catch (error) {
+    // Duplicate dedupe key means this notification was already created.
+    if (error?.code === 'P2002' && dedupeKey) {
+      return null;
+    }
+    // Backward compatibility: DB schema may not yet have dedupe_key column.
+    if (dedupeKey && isMissingColumnError(error)) {
+      notification = await prisma.notification.create({
+        data,
+        select: NOTIFICATION_SELECT,
+      });
+    } else {
+      throw error;
+    }
+  }
 
   // Emit real-time if Socket.io instance is provided
   if (io) {
@@ -170,6 +202,7 @@ export const getMyNotifications = async (userId, query) => {
       orderBy: { created_at: 'desc' },
       skip,
       take: limit,
+      select: NOTIFICATION_SELECT,
     }),
     prisma.notification.count({ where }),
     prisma.notification.count({ where: { user_id: userId, is_read: false } }),
@@ -218,7 +251,8 @@ export const getAllNotifications = async (query) => {
       orderBy: { created_at: 'desc' },
       skip,
       take: limit,
-      include: {
+      select: {
+        ...NOTIFICATION_SELECT,
         user: { select: { id: true, name: true, email: true, role: true } },
       },
     }),
@@ -248,7 +282,14 @@ export const getAllNotifications = async (query) => {
 
 /** Mark a single notification as read. Ownership-checked. */
 export const markAsRead = async (id, userId) => {
-  const notif = await prisma.notification.findUnique({ where: { id } });
+  const notif = await prisma.notification.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      user_id: true,
+      is_read: true,
+    },
+  });
   if (!notif) throw new AppError('Notification not found', 404);
   if (notif.user_id !== userId) throw new AppError('Forbidden: not your notification', 403);
   if (notif.is_read) return notif; // already read, no-op
@@ -256,6 +297,7 @@ export const markAsRead = async (id, userId) => {
   return prisma.notification.update({
     where: { id },
     data: { is_read: true },
+    select: NOTIFICATION_SELECT,
   });
 };
 
@@ -274,12 +316,21 @@ export const markAllAsRead = async (userId) => {
 
 /** Delete a single notification. Ownership-checked (admin can delete any). */
 export const deleteNotification = async (id, user) => {
-  const notif = await prisma.notification.findUnique({ where: { id } });
+  const notif = await prisma.notification.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      user_id: true,
+    },
+  });
   if (!notif) throw new AppError('Notification not found', 404);
   if (user.role !== 'ADMIN' && notif.user_id !== user.id) {
     throw new AppError('Forbidden: not your notification', 403);
   }
-  return prisma.notification.delete({ where: { id } });
+  return prisma.notification.delete({
+    where: { id },
+    select: NOTIFICATION_SELECT,
+  });
 };
 
 /** Delete all read notifications for current user (inbox cleanup). */

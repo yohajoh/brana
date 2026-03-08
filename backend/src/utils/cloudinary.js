@@ -47,10 +47,10 @@ export const uploadImageToCloudinary = async (imageFile, opts = {}) => {
     apiSecret,
   );
 
-  const dataUri = `data:${imageFile.mimetype};base64,${imageFile.buffer.toString('base64')}`;
-
   const form = new FormData();
-  form.append('file', dataUri);
+  // Binary upload avoids expensive base64 encoding and reduces request size.
+  const blob = new Blob([imageFile.buffer], { type: imageFile.mimetype || 'application/octet-stream' });
+  form.append('file', blob, imageFile.originalname || `upload-${Date.now()}`);
   form.append('api_key', apiKey);
   form.append('timestamp', String(timestamp));
   form.append('folder', folder);

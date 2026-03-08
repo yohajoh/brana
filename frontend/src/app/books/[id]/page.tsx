@@ -110,31 +110,39 @@ export default function BookDetailPage() {
       setLoading(true);
       setError(null);
 
-      const currentUser = await fetchCurrentUser().catch(() => null);
-      setUser(currentUser);
+      const currentUserPromise = fetchCurrentUser().catch(() => null);
 
       let foundType: "physical" | "digital" = forcedType;
-      let detail: PhysicalBook | DigitalBook | null = null;
+      let pageData: {
+        book: PhysicalBook | DigitalBook;
+        myReview?: { id: string; rating: number; comment: string | null } | null;
+        related?: RelatedBook[];
+        relatedSource?: "author" | "category";
+      } | null = null;
 
       if (forcedType === "digital") {
-        const digital = await fetchApi(`/digital-books/${params.id}`);
-        detail = digital?.data?.book || null;
+        const digital = await fetchApi(`/digital-books/${params.id}/page-data`);
+        pageData = digital?.data || null;
       } else {
         try {
-          const physical = await fetchApi(`/books/${params.id}`);
-          detail = physical?.data?.book || null;
+          const physical = await fetchApi(`/books/${params.id}/page-data`);
+          pageData = physical?.data || null;
           foundType = "physical";
         } catch {
-          const digital = await fetchApi(`/digital-books/${params.id}`);
-          detail = digital?.data?.book || null;
+          const digital = await fetchApi(`/digital-books/${params.id}/page-data`);
+          pageData = digital?.data || null;
           foundType = "digital";
         }
       }
 
+      const detail = pageData?.book || null;
       if (!detail) {
         setError("Book not found");
         return;
       }
+
+      const currentUser = await currentUserPromise;
+      setUser(currentUser);
 
       setBookType(foundType);
       if (foundType === "physical") {
@@ -150,67 +158,14 @@ export default function BookDetailPage() {
       const firstImage = detailImages[0]?.image_url || detail.cover_image_url;
       setActiveImage(firstImage);
 
-      const [reviewsRes, myReviewRes, relatedPhysicalRes, relatedDigitalRes, sameCategoryPhysicalRes, sameCategoryDigitalRes] = await Promise.all([
-        fetchApi(`/reviews/${foundType}/${params.id}?limit=6`),
-        currentUser ? fetchApi(`/reviews/${foundType}/${params.id}/mine`).catch(() => null) : Promise.resolve(null),
-        fetchApi(`/books?author_id=${detail.author.id}&limit=12`).catch(() => null),
-        fetchApi(`/digital-books?author_id=${detail.author.id}&limit=12`).catch(() => null),
-        fetchApi(`/books?category_id=${detail.category.id}&limit=12`).catch(() => null),
-        fetchApi(`/digital-books?category_id=${detail.category.id}&limit=12`).catch(() => null),
-      ]);
-
-      const reviews = (reviewsRes?.reviews || []) as ReviewItem[];
-      const ratingSummary = (reviewsRes?.ratingSummary || detail.rating) as RatingSummary;
-
-      if (foundType === "physical") {
-        setPhysicalBook((prev) => (prev ? { ...prev, reviews, rating: ratingSummary } : prev));
-      } else {
-        setDigitalBook((prev) => (prev ? { ...prev, reviews, rating: ratingSummary } : prev));
-      }
-
-      const mine = myReviewRes?.data?.review || null;
+      const mine = pageData?.myReview || null;
       setMyReview(mine);
       setReviewRating(mine?.rating || 0);
       setReviewComment(mine?.comment || "");
 
-      const physicalByAuthor = ((relatedPhysicalRes?.books || relatedPhysicalRes?.data?.books || []) as Array<{
-        id: string;
-        title: string;
-        cover_image_url: string;
-      }>).map((b) => ({ ...b, type: "physical" as const }));
-
-      const digitalByAuthor = ((relatedDigitalRes?.books || relatedDigitalRes?.data?.books || []) as Array<{
-        id: string;
-        title: string;
-        cover_image_url: string;
-      }>).map((b) => ({ ...b, type: "digital" as const }));
-
-      const relatedBooks = [...physicalByAuthor, ...digitalByAuthor]
-        .filter((b) => !(b.id === params.id && b.type === foundType))
-        .slice(0, 8);
-      if (relatedBooks.length > 0) {
-        setRelatedSource("author");
-        setRelated(relatedBooks);
-      } else {
-        const physicalByCategory = ((sameCategoryPhysicalRes?.books || sameCategoryPhysicalRes?.data?.books || []) as Array<{
-          id: string;
-          title: string;
-          cover_image_url: string;
-        }>).map((b) => ({ ...b, type: "physical" as const }));
-
-        const digitalByCategory = ((sameCategoryDigitalRes?.books || sameCategoryDigitalRes?.data?.books || []) as Array<{
-          id: string;
-          title: string;
-          cover_image_url: string;
-        }>).map((b) => ({ ...b, type: "digital" as const }));
-
-        const categoryRelated = [...physicalByCategory, ...digitalByCategory]
-          .filter((b) => !(b.id === params.id && b.type === foundType))
-          .slice(0, 8);
-
-        setRelatedSource("category");
-        setRelated(categoryRelated);
-      }
+      const relatedBooks = (pageData?.related || []) as RelatedBook[];
+      setRelatedSource(pageData?.relatedSource || "author");
+      setRelated(relatedBooks);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load book");
     } finally {
@@ -300,34 +255,27 @@ export default function BookDetailPage() {
 
   const openDigital = async (download = false) => {
     if (!book || bookType !== "digital") {
-      console.error("Book or bookType invalid:", { book: !!book, bookType });
       return;
     }
     
     try {
       setActionLoading(true);
-      
-      const currentUser = await fetchCurrentUser();
+
+      const currentUser = user ?? (await fetchCurrentUser());
       if (!currentUser) {
         router.push("/auth/login");
         return;
       }
+      if (!user) setUser(currentUser);
       
       const url = `${API_BASE_URL}/digital-books/${book.id}/pdf${download ? "?download=true" : ""}`;
-      console.log("Fetching PDF from:", url);
       
       const response = await fetch(url, {
         credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
       });
-      
-      console.log("PDF Response status:", response.status);
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("PDF fetch error:", response.status, errorText);
         try {
           const errorData = JSON.parse(errorText);
           throw new Error(errorData.message || `Failed to load PDF (${response.status})`);
@@ -337,12 +285,9 @@ export default function BookDetailPage() {
       }
       
       const contentType = response.headers.get("Content-Type");
-      console.log("PDF Content-Type:", contentType);
-      
       const blob = await response.blob();
-      console.log("PDF blob size:", blob.size);
       
-      if (blob.size === 0) {
+      if (!contentType?.includes("application/pdf") || blob.size === 0) {
         throw new Error("PDF file is empty - the PDF may not have been uploaded correctly");
       }
       
@@ -365,9 +310,7 @@ export default function BookDetailPage() {
       }
       
       setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
-      console.log("PDF opened successfully");
     } catch (err) {
-      console.error("Error opening PDF:", err);
       const message = err instanceof Error ? err.message : "Failed to open PDF. Make sure you are logged in and the PDF was uploaded correctly.";
       alert(message);
     } finally {

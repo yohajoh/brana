@@ -28,6 +28,10 @@ export type NotificationsResponse = {
   };
 };
 
+type NotificationsQueryOptions = {
+  enabled?: boolean;
+};
+
 // Query key factory for better caching
 export const notificationKeys = {
   all: ["notifications"] as const,
@@ -37,7 +41,10 @@ export const notificationKeys = {
   detail: (id: string) => ["notifications", "detail", id] as const,
 };
 
-export function useNotifications(options?: { limit?: number; isRead?: boolean; type?: string }) {
+export function useNotifications(
+  options?: { limit?: number; isRead?: boolean; type?: string },
+  queryOptions?: NotificationsQueryOptions
+) {
   return useQuery<NotificationsResponse>({
     queryKey: notificationKeys.mine(options),
     queryFn: async () => {
@@ -58,10 +65,14 @@ export function useNotifications(options?: { limit?: number; isRead?: boolean; t
     gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes (formerly cacheTime)
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
+    enabled: queryOptions?.enabled ?? true,
   });
 }
 
-export function useAllNotifications(options?: { limit?: number; isRead?: boolean; type?: string; userId?: string }) {
+export function useAllNotifications(
+  options?: { limit?: number; isRead?: boolean; type?: string; userId?: string },
+  queryOptions?: NotificationsQueryOptions
+) {
   return useQuery<NotificationsResponse>({
     queryKey: notificationKeys.allAdmin(options),
     queryFn: async () => {
@@ -81,6 +92,7 @@ export function useAllNotifications(options?: { limit?: number; isRead?: boolean
     staleTime: 30 * 1000,
     gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: true,
+    enabled: queryOptions?.enabled ?? true,
   });
 }
 

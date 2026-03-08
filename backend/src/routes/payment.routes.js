@@ -4,13 +4,14 @@
  */
 
 import { Router } from 'express';
+import express from 'express';
 import * as paymentController from '../controllers/payment.controller.js';
 import { protect, restrictTo } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
 // ─── Public: Chapa webhook (no auth – verified by HMAC) ──────────────────────
-router.post('/webhook', paymentController.handleWebhook);
+router.post('/webhook', express.raw({ type: 'application/json', limit: '1mb' }), paymentController.handleWebhook);
 
 // All other routes require authentication
 router.use(protect);

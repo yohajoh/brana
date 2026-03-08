@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { CategorySidebar } from "@/components/CategorySidebar";
 import { SearchBar } from "@/components/SearchBar";
 import { BookCardGrid } from "@/components/BookCardGrid";
 import { Pagination } from "@/components/Pagination";
-import { useBooks, useDigitalBooks, useCategories, useAuthors, api } from "@/lib/hooks/useQueries";
+import { useBooks, useDigitalBooks, useCategories, useAuthors } from "@/lib/hooks/useQueries";
 
 export type CatalogBook = {
   id: string;
@@ -30,11 +30,7 @@ type Author = { id: string; name: string };
 type CatalogMode = "all" | "physical" | "digital";
 
 export default function BooksPage() {
-  const [books, setBooks] = useState<CatalogBook[]>([]);
-  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [total, setTotal] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("title");
@@ -48,7 +44,7 @@ export default function BooksPage() {
   const limit = 12;
 
   const params = useMemo(() => {
-    const p = new URLSearchParams({ limit: "100", sort: sortBy });
+    const p = new URLSearchParams({ limit: "24", sort: sortBy });
     if (selectedCategory) p.append("category_id", selectedCategory);
     if (selectedAuthor) p.append("author_id", selectedAuthor);
     if (availability) p.append("available", availability);
@@ -62,36 +58,34 @@ export default function BooksPage() {
 
   const { data: physicalData, isLoading: physicalLoading } = useBooks(params);
   const { data: digitalData, isLoading: digitalLoading } = useDigitalBooks(params);
-  const { data: categoriesData, isLoading: categoriesLoading } = useCategories("limit=100");
-  const { data: authorsData } = useAuthors("limit=200");
+  const { data: categoriesData, isLoading: categoriesLoading } = useCategories("limit=50");
+  const { data: authorsData } = useAuthors("limit=50");
 
   const categories: Category[] = (categoriesData?.categories || []) as unknown as Category[];
   const authors: Author[] = (authorsData?.authors || []) as unknown as Author[];
 
-  useEffect(() => {
+  const mergedBooks = useMemo(() => {
     const physicalBooks = ((physicalData?.books || []) as unknown as CatalogBook[]).map((b) => ({ ...b, type: "physical" as const }));
     const digitalBooks = ((digitalData?.books || []) as unknown as CatalogBook[]).map((b) => ({ ...b, type: "digital" as const }));
 
-    let merged: CatalogBook[];
-    if (mode === "physical") merged = physicalBooks;
-    else if (mode === "digital") merged = digitalBooks;
-    else merged = [...physicalBooks, ...digitalBooks];
-
-    const start = (page - 1) * limit;
-    const end = start + limit;
-    setBooks(merged.slice(start, end));
-    setTotal(merged.length);
-    setTotalPages(Math.max(1, Math.ceil(merged.length / limit)));
-  }, [physicalData, digitalData, mode, page]);
+    if (mode === "physical") return physicalBooks;
+    if (mode === "digital") return digitalBooks;
+    return [...physicalBooks, ...digitalBooks];
+  }, [physicalData, digitalData, mode]);
 
   const booksLoading = physicalLoading || digitalLoading;
+  const total = mergedBooks.length;
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+  const pageToRender = Math.min(page, totalPages);
+  const start = (pageToRender - 1) * limit;
+  const books = mergedBooks.slice(start, start + limit);
 
   const handleCategoryChange = (categoryId: string | null) => { setSelectedCategory(categoryId); setPage(1); };
   const handleSearch = (query: string) => { setSearchQuery(query); setPage(1); };
   const handleSortChange = (sort: string) => { setSortBy(sort); setPage(1); };
 
-  const startIndex = (page - 1) * limit + 1;
-  const endIndex = Math.min(page * limit, total);
+  const startIndex = total === 0 ? 0 : (pageToRender - 1) * limit + 1;
+  const endIndex = Math.min(pageToRender * limit, total);
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col selection:bg-primary/10">
@@ -142,7 +136,7 @@ export default function BooksPage() {
               <input type="text" value={topics} onChange={(e) => { setTopics(e.target.value); setPage(1); }} placeholder="Topics (comma separated)" className="px-3 py-2 rounded-xl border border-border bg-white text-sm" />
             </div>
             <BookCardGrid books={books} loading={booksLoading} />
-            {totalPages > 1 && <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />}
+            {totalPages > 1 && <Pagination currentPage={pageToRender} totalPages={totalPages} onPageChange={setPage} />}
           </div>
         </div>
       </main>
