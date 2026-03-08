@@ -12,10 +12,10 @@ const router = Router();
 
 // ─── Public ───────────────────────────────────────────────────────────────────
 router.get('/', digitalBookController.getDigitalBooks);
-router.get('/:id', digitalBookController.getDigitalBook);
 
-// ─── Protected (any authenticated user) ──────────────────────────────────────
+// IMPORTANT: More specific routes must come before parameterized routes
 router.get('/:id/pdf', protect, digitalBookController.streamPdf);
+router.get('/:id', digitalBookController.getDigitalBook);
 
 // ─── Admin only ───────────────────────────────────────────────────────────────
 router.use(protect, restrictTo('ADMIN'));

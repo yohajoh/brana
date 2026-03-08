@@ -298,11 +298,81 @@ export default function BookDetailPage() {
     }
   };
 
-  const openDigital = (download = false) => {
-    if (!book || bookType !== "digital") return;
-    if (!user) return router.push("/auth/login");
-    const url = `${API_BASE_URL}/digital-books/${book.id}/pdf${download ? "?download=true" : ""}`;
-    window.open(url, "_blank", "noopener,noreferrer");
+  const openDigital = async (download = false) => {
+    if (!book || bookType !== "digital") {
+      console.error("Book or bookType invalid:", { book: !!book, bookType });
+      return;
+    }
+    
+    try {
+      setActionLoading(true);
+      
+      const currentUser = await fetchCurrentUser();
+      if (!currentUser) {
+        router.push("/auth/login");
+        return;
+      }
+      
+      const url = `${API_BASE_URL}/digital-books/${book.id}/pdf${download ? "?download=true" : ""}`;
+      console.log("Fetching PDF from:", url);
+      
+      const response = await fetch(url, {
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      
+      console.log("PDF Response status:", response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("PDF fetch error:", response.status, errorText);
+        try {
+          const errorData = JSON.parse(errorText);
+          throw new Error(errorData.message || `Failed to load PDF (${response.status})`);
+        } catch {
+          throw new Error(`Failed to load PDF (${response.status}): ${errorText}`);
+        }
+      }
+      
+      const contentType = response.headers.get("Content-Type");
+      console.log("PDF Content-Type:", contentType);
+      
+      const blob = await response.blob();
+      console.log("PDF blob size:", blob.size);
+      
+      if (blob.size === 0) {
+        throw new Error("PDF file is empty - the PDF may not have been uploaded correctly");
+      }
+      
+      const blobUrl = window.URL.createObjectURL(blob);
+      
+      const contentDisposition = response.headers.get("Content-Disposition");
+      const fileName = contentDisposition 
+        ? contentDisposition.split("filename=")[1]?.replace(/"/g, "") 
+        : `${book.title}.pdf`;
+      
+      if (download) {
+        const link = document.createElement("a");
+        link.href = blobUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else {
+        window.open(blobUrl, "_blank");
+      }
+      
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
+      console.log("PDF opened successfully");
+    } catch (err) {
+      console.error("Error opening PDF:", err);
+      const message = err instanceof Error ? err.message : "Failed to open PDF. Make sure you are logged in and the PDF was uploaded correctly.";
+      alert(message);
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const submitReview = async () => {
