@@ -402,15 +402,7 @@ export function useDeleteBook() {
 export function useUpdateBook() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({
-      id,
-      type,
-      data,
-    }: {
-      id: string;
-      type: "physical" | "digital";
-      data: FormData;
-    }) => {
+    mutationFn: async ({ id, type, data }: { id: string; type: "physical" | "digital"; data: FormData }) => {
       const endpoint = type === "physical" ? `/books/${id}` : `/digital-books/${id}`;
       return api.patchForm<{ data: { book: unknown } }>(endpoint, data);
     },
@@ -789,6 +781,7 @@ export function useProcessReturn() {
     onMutate: async (rentalId) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.rentals() });
       await queryClient.cancelQueries({ queryKey: queryKeys.myRentals() });
+      await queryClient.cancelQueries({ queryKey: ["books"] });
 
       const previousRentals = queryClient.getQueryData<RentalsResponse>(queryKeys.rentals());
       const previousMyRentals = queryClient.getQueryData<RentalsResponse>(queryKeys.myRentals());
@@ -822,6 +815,7 @@ export function useProcessReturn() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["rentals"] });
+      queryClient.invalidateQueries({ queryKey: ["books"] });
     },
   });
 }

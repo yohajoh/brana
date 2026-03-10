@@ -9,11 +9,11 @@
  *   - Dashboard endpoints for admin and students
  */
 
-import { prisma } from '../prisma.js';
-import { AppError } from '../middlewares/error.middleware.js';
-import { paginationMeta } from '../utils/apiFeatures.js';
-import { syncLowStockAlertForBook } from './inventoryAlert.service.js';
-import { uploadImageToCloudinary } from '../utils/cloudinary.js';
+import { prisma } from "../prisma.js";
+import { AppError } from "../middlewares/error.middleware.js";
+import { paginationMeta } from "../utils/apiFeatures.js";
+import { syncLowStockAlertForBook } from "./inventoryAlert.service.js";
+import { uploadImageToCloudinary } from "../utils/cloudinary.js";
 
 const RATING_CACHE_TTL_MS = 60 * 1000;
 const ratingCache = new Map();
@@ -63,7 +63,7 @@ const buildRatingSummaries = async (field, ids) => {
         _count: { rating: true },
       }),
       prisma.review.groupBy({
-        by: [field, 'rating'],
+        by: [field, "rating"],
         where,
         _count: { rating: true },
       }),
@@ -105,7 +105,7 @@ const BOOK_LIST_INCLUDE = {
   author: { select: { id: true, name: true, image: true } },
   category: { select: { id: true, name: true, slug: true } },
   images: {
-    orderBy: { sort_order: 'asc' },
+    orderBy: { sort_order: "asc" },
     take: 3,
     select: { id: true, image_url: true, sort_order: true },
   },
@@ -118,7 +118,7 @@ const BOOK_LIST_INCLUDE = {
 const BOOK_DETAIL_INCLUDE = {
   author: { select: { id: true, name: true, bio: true, image: true } },
   category: { select: { id: true, name: true, slug: true } },
-  images: { orderBy: { sort_order: 'asc' } },
+  images: { orderBy: { sort_order: "asc" } },
   _count: { select: { rentals: true, reviews: true, wishlists: true } },
 };
 
@@ -134,8 +134,8 @@ const RELATED_DIGITAL_SELECT = {
   cover_image_url: true,
 };
 
-const DEFAULT_COVER_IMAGE = 'https://placehold.co/400x600?text=Brana+Book';
-const ASYNC_BOOK_IMAGE_UPLOADS = process.env.ASYNC_BOOK_IMAGE_UPLOADS !== 'false';
+const DEFAULT_COVER_IMAGE = "https://placehold.co/400x600?text=Brana+Book";
+const ASYNC_BOOK_IMAGE_UPLOADS = process.env.ASYNC_BOOK_IMAGE_UPLOADS !== "false";
 
 const runAsyncTask = (label, task) => {
   setImmediate(() => {
@@ -149,14 +149,14 @@ const uploadBookImageAssets = async (coverFile, galleryFiles = []) => {
   const [coverUrl, galleryUrlsRaw] = await Promise.all([
     coverFile
       ? uploadImageToCloudinary(coverFile, {
-          folder: 'brana/physical-books/covers',
+          folder: "brana/physical-books/covers",
         })
       : Promise.resolve(null),
     galleryFiles.length > 0
       ? Promise.all(
           galleryFiles.map((file) =>
             uploadImageToCloudinary(file, {
-              folder: 'brana/physical-books/gallery',
+              folder: "brana/physical-books/gallery",
             }),
           ),
         )
@@ -183,7 +183,7 @@ const persistBookImages = async ({ bookId, coverUrl = null, galleryUrls = [], up
     await prisma.bookImage.create({
       data: {
         book_id: bookId,
-        book_type: 'PHYSICAL',
+        book_type: "PHYSICAL",
         image_url: coverUrl,
         sort_order: 1,
         physical_book_id: bookId,
@@ -192,8 +192,8 @@ const persistBookImages = async ({ bookId, coverUrl = null, galleryUrls = [], up
     nextSortOrder = 2;
   } else {
     const lastImage = await prisma.bookImage.findFirst({
-      where: { physical_book_id: bookId, book_type: 'PHYSICAL' },
-      orderBy: { sort_order: 'desc' },
+      where: { physical_book_id: bookId, book_type: "PHYSICAL" },
+      orderBy: { sort_order: "desc" },
       select: { sort_order: true },
     });
     nextSortOrder = (lastImage?.sort_order ?? 0) + 1;
@@ -203,7 +203,7 @@ const persistBookImages = async ({ bookId, coverUrl = null, galleryUrls = [], up
     await prisma.bookImage.createMany({
       data: galleryUrls.map((url, idx) => ({
         book_id: bookId,
-        book_type: 'PHYSICAL',
+        book_type: "PHYSICAL",
         image_url: url,
         sort_order: nextSortOrder + idx,
         physical_book_id: bookId,
@@ -215,7 +215,7 @@ const persistBookImages = async ({ bookId, coverUrl = null, galleryUrls = [], up
 const scheduleBookImageProcessing = (bookId, coverFile, galleryFiles = []) => {
   if (!coverFile && galleryFiles.length === 0) return;
 
-  runAsyncTask('create-book-images', async () => {
+  runAsyncTask("create-book-images", async () => {
     const { coverUrl, galleryUrls } = await uploadBookImageAssets(coverFile, galleryFiles);
     await persistBookImages({
       bookId,
@@ -227,7 +227,7 @@ const scheduleBookImageProcessing = (bookId, coverFile, galleryFiles = []) => {
 };
 
 const buildCopyCode = (bookId, sequence) => {
-  const seq = String(sequence).padStart(4, '0');
+  const seq = String(sequence).padStart(4, "0");
   return `BC-${bookId.slice(0, 8).toUpperCase()}-${seq}`;
 };
 
@@ -235,7 +235,7 @@ const parseList = (value) => {
   if (!value) return [];
   if (Array.isArray(value)) return value.map((v) => String(v).trim()).filter(Boolean);
   return String(value)
-    .split(',')
+    .split(",")
     .map((v) => v.trim())
     .filter(Boolean);
 };
@@ -243,14 +243,14 @@ const parseList = (value) => {
 const resolveAuthorId = async (data) => {
   if (data.author_id) {
     const author = await prisma.author.findUnique({ where: { id: data.author_id } });
-    if (!author) throw new AppError('Author not found', 404);
+    if (!author) throw new AppError("Author not found", 404);
     return data.author_id;
   }
 
   if (data.author_name?.trim()) {
     const normalizedName = data.author_name.trim();
     const existing = await prisma.author.findFirst({
-      where: { name: { equals: normalizedName, mode: 'insensitive' } },
+      where: { name: { equals: normalizedName, mode: "insensitive" } },
     });
     if (existing) return existing.id;
 
@@ -258,31 +258,31 @@ const resolveAuthorId = async (data) => {
       data: {
         name: normalizedName,
         bio: `Auto-created author profile for ${normalizedName}.`,
-        image: 'https://placehold.co/200x200?text=Author',
+        image: "https://placehold.co/200x200?text=Author",
       },
     });
     return created.id;
   }
 
-  throw new AppError('author_id or author_name is required', 400);
+  throw new AppError("author_id or author_name is required", 400);
 };
 
 const resolveCategoryId = async (data) => {
   if (data.category_id) {
     const category = await prisma.category.findUnique({ where: { id: data.category_id } });
-    if (!category) throw new AppError('Category not found', 404);
+    if (!category) throw new AppError("Category not found", 404);
     return data.category_id;
   }
 
   if (data.category_name?.trim()) {
     const normalizedName = data.category_name.trim();
-    const slug = normalizedName.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-');
+    const slug = normalizedName
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, "")
+      .replace(/\s+/g, "-");
     const existing = await prisma.category.findFirst({
       where: {
-        OR: [
-          { name: { equals: normalizedName, mode: 'insensitive' } },
-          { slug },
-        ],
+        OR: [{ name: { equals: normalizedName, mode: "insensitive" } }, { slug }],
       },
     });
     if (existing) return existing.id;
@@ -293,7 +293,7 @@ const resolveCategoryId = async (data) => {
     return created.id;
   }
 
-  throw new AppError('category_id or category_name is required', 400);
+  throw new AppError("category_id or category_name is required", 400);
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -330,8 +330,8 @@ export const getBooks = async (query) => {
   if (query.author_id) where.author_id = query.author_id;
 
   // Availability filter
-  if (query.available === 'true') where.available = { gt: 0 };
-  if (query.available === 'false') where.available = 0;
+  if (query.available === "true") where.available = { gt: 0 };
+  if (query.available === "false") where.available = 0;
 
   if (query.year) {
     const year = parseInt(query.year, 10);
@@ -356,20 +356,20 @@ export const getBooks = async (query) => {
   if (query.search) {
     const q = query.search.trim();
     where.OR = [
-      { title: { contains: q, mode: 'insensitive' } },
-      { description: { contains: q, mode: 'insensitive' } },
-      { author: { name: { contains: q, mode: 'insensitive' } } },
+      { title: { contains: q, mode: "insensitive" } },
+      { description: { contains: q, mode: "insensitive" } },
+      { author: { name: { contains: q, mode: "insensitive" } } },
     ];
   }
 
   // Sort – support -field for descending
-  const ALLOWED_SORT_FIELDS = ['title', 'available', 'pages'];
-  let orderBy = [{ title: 'asc' }];
+  const ALLOWED_SORT_FIELDS = ["title", "available", "pages"];
+  let orderBy = [{ title: "asc" }];
   if (query.sort) {
-    const desc = query.sort.startsWith('-');
+    const desc = query.sort.startsWith("-");
     const field = desc ? query.sort.slice(1) : query.sort;
     if (ALLOWED_SORT_FIELDS.includes(field)) {
-      orderBy = [{ [field]: desc ? 'desc' : 'asc' }];
+      orderBy = [{ [field]: desc ? "desc" : "asc" }];
     }
   }
 
@@ -388,18 +388,16 @@ export const getBooks = async (query) => {
     const min = parseFloat(query.min_rating);
     if (!Number.isNaN(min)) {
       const qualified = await prisma.review.groupBy({
-        by: ['physical_book_id'],
+        by: ["physical_book_id"],
         where: { physical_book_id: { not: null } },
         _avg: { rating: true },
       });
       const allowedIds = new Set(
-        qualified
-          .filter((row) => Number(row._avg.rating ?? 0) >= min)
-          .map((row) => row.physical_book_id),
+        qualified.filter((row) => Number(row._avg.rating ?? 0) >= min).map((row) => row.physical_book_id),
       );
       const filtered = books.filter((b) => allowedIds.has(b.id));
       const ratingSummaries = await buildRatingSummaries(
-        'physical_book_id',
+        "physical_book_id",
         filtered.map((book) => book.id),
       );
       const booksWithRatings = filtered.map((book) => ({
@@ -414,7 +412,7 @@ export const getBooks = async (query) => {
   }
 
   const ratingSummaries = await buildRatingSummaries(
-    'physical_book_id',
+    "physical_book_id",
     books.map((book) => book.id),
   );
   const booksWithRatings = books.map((book) => ({
@@ -447,13 +445,13 @@ export const getBookById = async (id, userId = null) => {
     include: {
       ...BOOK_DETAIL_INCLUDE,
       reviews: {
-        orderBy: { created_at: 'desc' },
+        orderBy: { created_at: "desc" },
         take: 5,
         include: { user: { select: { id: true, name: true } } },
       },
     },
   });
-  if (!book) throw new AppError('Book not found', 404);
+  if (!book) throw new AppError("Book not found", 404);
 
   console.log(`[DEBUG] Book ${id}: copies=${book.copies}, available=${book.available}`);
 
@@ -466,20 +464,20 @@ export const getBookById = async (id, userId = null) => {
     console.log(`[DEBUG] Fixed copies for book ${id}: copies=${book.copies}`);
   }
 
-  const rating = await buildRatingSummary('physical_book_id', id);
+  const rating = await buildRatingSummary("physical_book_id", id);
 
   console.log(`[DEBUG] Book ${id} has ${book.reviews?.length || 0} reviews`);
 
   // Get active reservation count for this book (QUEUED or NOTIFIED)
   const reservationCount = await prisma.reservation.count({
-    where: { book_id: id, status: { in: ['QUEUED', 'NOTIFIED'] } },
+    where: { book_id: id, status: { in: ["QUEUED", "NOTIFIED"] } },
   });
 
   // Check if current user has an active reservation
   let userReservation = null;
   if (userId) {
     userReservation = await prisma.reservation.findFirst({
-      where: { user_id: userId, book_id: id, status: { in: ['QUEUED', 'NOTIFIED'] } },
+      where: { user_id: userId, book_id: id, status: { in: ["QUEUED", "NOTIFIED"] } },
       select: { id: true },
     });
     console.log(`[DEBUG] User ${userId} reservation for book ${id}:`, userReservation);
@@ -488,10 +486,20 @@ export const getBookById = async (id, userId = null) => {
   // Per-user context
   let userContext = null;
   if (userId) {
-    const [activeRental, wishlistItem] = await Promise.all([
+    const [activeRental, returnedRental, wishlistItem] = await Promise.all([
       prisma.rental.findFirst({
-        where: { user_id: userId, book_id: id, status: { in: ['BORROWED', 'PENDING'] } },
-        select: { id: true, status: true, due_date: true, loan_date: true },
+        where: { user_id: userId, book_id: id, status: { in: ["BORROWED", "PENDING"] } },
+        select: {
+          id: true,
+          status: true,
+          due_date: true,
+          loan_date: true,
+          payment: { select: { status: true } },
+        },
+      }),
+      prisma.rental.findFirst({
+        where: { user_id: userId, book_id: id, status: { in: ["RETURNED", "COMPLETED"] } },
+        select: { id: true, status: true, return_date: true },
       }),
       prisma.wishlist.findFirst({
         where: { user_id: userId, physical_book_id: id },
@@ -499,12 +507,22 @@ export const getBookById = async (id, userId = null) => {
       }),
     ]);
     console.log(`[DEBUG] User ${userId} rental for book ${id}:`, activeRental);
+    const hasReturnedRental = !!returnedRental;
+    const canReview = hasReturnedRental && !activeRental;
+    const hasCompletedBorrowPayment = activeRental?.payment?.status === "SUCCESS";
     userContext = {
       hasActiveRental: !!activeRental,
       activeRental,
+      hasCompletedBorrowPayment,
       isInWishlist: !!wishlistItem,
       wishlistId: wishlistItem?.id || null,
       hasActiveReservation: !!userReservation,
+      hasReturnedRental,
+      reviewEligibility: {
+        hasActiveRental: !!activeRental,
+        hasReturnedRental,
+        canReview,
+      },
     };
   }
 
@@ -529,7 +547,7 @@ export const getBookPageData = async (id, userId = null) => {
       },
       select: RELATED_PHYSICAL_SELECT,
       take: 12,
-      orderBy: { title: 'asc' },
+      orderBy: { title: "asc" },
     }),
     prisma.digitalBook.findMany({
       where: {
@@ -538,15 +556,15 @@ export const getBookPageData = async (id, userId = null) => {
       },
       select: RELATED_DIGITAL_SELECT,
       take: 12,
-      orderBy: { title: 'asc' },
+      orderBy: { title: "asc" },
     }),
   ]);
 
   let related = [
-    ...physicalByAuthor.map((item) => ({ ...item, type: 'physical' })),
-    ...digitalByAuthor.map((item) => ({ ...item, type: 'digital' })),
+    ...physicalByAuthor.map((item) => ({ ...item, type: "physical" })),
+    ...digitalByAuthor.map((item) => ({ ...item, type: "digital" })),
   ].slice(0, 8);
-  let relatedSource = 'author';
+  let relatedSource = "author";
 
   if (related.length === 0) {
     const [physicalByCategory, digitalByCategory] = await Promise.all([
@@ -558,7 +576,7 @@ export const getBookPageData = async (id, userId = null) => {
         },
         select: RELATED_PHYSICAL_SELECT,
         take: 12,
-        orderBy: { title: 'asc' },
+        orderBy: { title: "asc" },
       }),
       prisma.digitalBook.findMany({
         where: {
@@ -567,14 +585,14 @@ export const getBookPageData = async (id, userId = null) => {
         },
         select: RELATED_DIGITAL_SELECT,
         take: 12,
-        orderBy: { title: 'asc' },
+        orderBy: { title: "asc" },
       }),
     ]);
     related = [
-      ...physicalByCategory.map((item) => ({ ...item, type: 'physical' })),
-      ...digitalByCategory.map((item) => ({ ...item, type: 'digital' })),
+      ...physicalByCategory.map((item) => ({ ...item, type: "physical" })),
+      ...digitalByCategory.map((item) => ({ ...item, type: "digital" })),
     ].slice(0, 8);
-    relatedSource = 'category';
+    relatedSource = "category";
   }
 
   return { book, myReview, related, relatedSource };
@@ -590,17 +608,14 @@ export const getBookPageData = async (id, userId = null) => {
  */
 export const createBook = async (data, imageFile = null, galleryFiles = []) => {
   const title = data.title?.trim();
-  if (!title) throw new AppError('title is required', 400);
+  if (!title) throw new AppError("title is required", 400);
 
-  const [author_id, category_id] = await Promise.all([
-    resolveAuthorId(data),
-    resolveCategoryId(data),
-  ]);
+  const [author_id, category_id] = await Promise.all([resolveAuthorId(data), resolveCategoryId(data)]);
 
   const copiesRaw = data.copies ?? data.total;
   const copiesInt = Math.max(1, parseInt(copiesRaw, 10) || 1);
   const pagesInt = Math.max(1, parseInt(data.pages, 10) || 100);
-  const description = data.description?.trim() || 'No description provided.';
+  const description = data.description?.trim() || "No description provided.";
   const tags = parseList(data.tags);
   const topics = parseList(data.topics);
   const hasImages = Boolean(imageFile) || galleryFiles.length > 0;
@@ -636,7 +651,7 @@ export const createBook = async (data, imageFile = null, galleryFiles = []) => {
       book_id: created.id,
       copy_code: buildCopyCode(created.id, idx + 1),
       is_available: true,
-      condition: 'GOOD',
+      condition: "GOOD",
     })),
   });
 
@@ -651,7 +666,7 @@ export const createBook = async (data, imageFile = null, galleryFiles = []) => {
     });
   }
 
-  runAsyncTask('sync-low-stock-after-create', async () => {
+  runAsyncTask("sync-low-stock-after-create", async () => {
     await syncLowStockAlertForBook(created.id);
   });
   return created;
@@ -667,7 +682,7 @@ export const createBook = async (data, imageFile = null, galleryFiles = []) => {
  */
 export const updateBook = async (id, data, imageFile = null, galleryFiles = []) => {
   const book = await prisma.book.findFirst({ where: { id, deleted_at: null } });
-  if (!book) throw new AppError('Book not found', 404);
+  if (!book) throw new AppError("Book not found", 404);
 
   const updateData = {};
 
@@ -683,7 +698,7 @@ export const updateBook = async (id, data, imageFile = null, galleryFiles = []) 
   let uploadedCover = null;
   if (imageFile) {
     uploadedCover = await uploadImageToCloudinary(imageFile, {
-      folder: 'brana/physical-books/covers',
+      folder: "brana/physical-books/covers",
     });
     updateData.cover_image_url = uploadedCover;
   }
@@ -702,7 +717,7 @@ export const updateBook = async (id, data, imageFile = null, galleryFiles = []) 
   const copyInput = data.copies ?? data.total;
   if (copyInput !== undefined) {
     const newCopies = parseInt(copyInput, 10);
-    if (newCopies < 0) throw new AppError('Copies cannot be negative', 400);
+    if (newCopies < 0) throw new AppError("Copies cannot be negative", 400);
     const borrowed = book.copies - book.available;
     const newAvailable = Math.max(0, newCopies - borrowed);
     updateData.copies = newCopies;
@@ -731,7 +746,7 @@ export const updateBook = async (id, data, imageFile = null, galleryFiles = []) 
           book_id: id,
           copy_code: buildCopyCode(id, allCopiesCount + idx + 1),
           is_available: true,
-          condition: 'GOOD',
+          condition: "GOOD",
         })),
       });
     } else if (targetCopies < activeCopiesCount) {
@@ -742,12 +757,12 @@ export const updateBook = async (id, data, imageFile = null, galleryFiles = []) 
           deleted_at: null,
           is_available: true,
         },
-        orderBy: { acquired_at: 'desc' },
+        orderBy: { acquired_at: "desc" },
         take: toArchive,
         select: { id: true },
       });
       if (removable.length < toArchive) {
-        throw new AppError('Cannot reduce copies below currently borrowed copy count', 400);
+        throw new AppError("Cannot reduce copies below currently borrowed copy count", 400);
       }
       await prisma.bookCopy.updateMany({
         where: { id: { in: removable.map((copy) => copy.id) } },
@@ -758,15 +773,15 @@ export const updateBook = async (id, data, imageFile = null, galleryFiles = []) 
 
   if (uploadedCover) {
     const lastImage = await prisma.bookImage.findFirst({
-      where: { physical_book_id: id, book_type: 'PHYSICAL' },
-      orderBy: { sort_order: 'desc' },
+      where: { physical_book_id: id, book_type: "PHYSICAL" },
+      orderBy: { sort_order: "desc" },
       select: { sort_order: true },
     });
 
     await prisma.bookImage.create({
       data: {
         book_id: id,
-        book_type: 'PHYSICAL',
+        book_type: "PHYSICAL",
         image_url: uploadedCover,
         sort_order: (lastImage?.sort_order ?? 0) + 1,
         physical_book_id: id,
@@ -778,21 +793,21 @@ export const updateBook = async (id, data, imageFile = null, galleryFiles = []) 
     const galleryUrls = await Promise.all(
       galleryFiles.map((file) =>
         uploadImageToCloudinary(file, {
-          folder: 'brana/physical-books/gallery',
+          folder: "brana/physical-books/gallery",
         }),
       ),
     );
 
     const lastImage = await prisma.bookImage.findFirst({
-      where: { physical_book_id: id, book_type: 'PHYSICAL' },
-      orderBy: { sort_order: 'desc' },
+      where: { physical_book_id: id, book_type: "PHYSICAL" },
+      orderBy: { sort_order: "desc" },
       select: { sort_order: true },
     });
 
     await prisma.bookImage.createMany({
       data: galleryUrls.map((url, idx) => ({
         book_id: id,
-        book_type: 'PHYSICAL',
+        book_type: "PHYSICAL",
         image_url: url,
         sort_order: (lastImage?.sort_order ?? 0) + idx + 1,
         physical_book_id: id,
@@ -814,16 +829,13 @@ export const updateBook = async (id, data, imageFile = null, galleryFiles = []) 
  */
 export const deleteBook = async (id) => {
   const book = await prisma.book.findFirst({ where: { id, deleted_at: null } });
-  if (!book) throw new AppError('Book not found', 404);
+  if (!book) throw new AppError("Book not found", 404);
 
   const activeRentals = await prisma.rental.count({
-    where: { book_id: id, status: { in: ['BORROWED', 'PENDING'] } },
+    where: { book_id: id, status: { in: ["BORROWED", "PENDING"] } },
   });
   if (activeRentals > 0) {
-    throw new AppError(
-      `Cannot delete: ${activeRentals} active rental(s) exist for this book`,
-      409
-    );
+    throw new AppError(`Cannot delete: ${activeRentals} active rental(s) exist for this book`, 409);
   }
 
   const result = await prisma.book.update({
@@ -854,10 +866,10 @@ export const getBookAvailability = async (id) => {
       _count: { select: { rentals: true } },
     },
   });
-  if (!book) throw new AppError('Book not found', 404);
+  if (!book) throw new AppError("Book not found", 404);
 
   const activeRentals = await prisma.rental.count({
-    where: { book_id: id, status: { in: ['BORROWED', 'PENDING'] } },
+    where: { book_id: id, status: { in: ["BORROWED", "PENDING"] } },
   });
 
   return {
@@ -873,7 +885,7 @@ export const getBookAvailability = async (id) => {
 export const getBookCopies = async (bookId) => {
   const copies = await prisma.bookCopy.findMany({
     where: { book_id: bookId, deleted_at: null },
-    orderBy: { copy_code: 'asc' },
+    orderBy: { copy_code: "asc" },
     select: {
       id: true,
       copy_code: true,
@@ -882,7 +894,7 @@ export const getBookCopies = async (bookId) => {
       last_condition_update: true,
       notes: true,
       rentals: {
-        where: { status: { in: ['BORROWED', 'PENDING'] } },
+        where: { status: { in: ["BORROWED", "PENDING"] } },
         select: { id: true, user: { select: { id: true, name: true, email: true } } },
         take: 1,
       },
@@ -892,15 +904,15 @@ export const getBookCopies = async (bookId) => {
 };
 
 export const updateBookCopyCondition = async (copyId, { condition, notes }, adminUserId) => {
-  const valid = ['NEW', 'GOOD', 'WORN', 'DAMAGED', 'LOST'];
-  const next = String(condition || '').toUpperCase();
-  if (!valid.includes(next)) throw new AppError('Invalid condition value', 400);
+  const valid = ["NEW", "GOOD", "WORN", "DAMAGED", "LOST"];
+  const next = String(condition || "").toUpperCase();
+  if (!valid.includes(next)) throw new AppError("Invalid condition value", 400);
 
   const copy = await prisma.bookCopy.findUnique({
     where: { id: copyId },
     select: { id: true, condition: true, notes: true },
   });
-  if (!copy) throw new AppError('Book copy not found', 404);
+  if (!copy) throw new AppError("Book copy not found", 404);
   if (copy.condition === next && (notes ?? copy.notes) === copy.notes) return copy;
 
   const updated = await prisma.$transaction(async (tx) => {
@@ -910,9 +922,7 @@ export const updateBookCopyCondition = async (copyId, { condition, notes }, admi
         condition: next,
         notes: notes ?? copy.notes,
         last_condition_update: new Date(),
-        ...(next === 'LOST'
-          ? { is_available: false }
-          : {}),
+        ...(next === "LOST" ? { is_available: false } : {}),
       },
       select: {
         id: true,
@@ -942,7 +952,7 @@ export const updateBookCopyCondition = async (copyId, { condition, notes }, admi
 export const getBookConditionHistory = async (copyId) => {
   return prisma.bookConditionHistory.findMany({
     where: { copy_id: copyId },
-    orderBy: { created_at: 'desc' },
+    orderBy: { created_at: "desc" },
     include: {
       updated_by_user: {
         select: { id: true, name: true, email: true },
@@ -965,25 +975,25 @@ export const getAdminBooks = async (query) => {
   const skip = (page - 1) * limit;
 
   const where = {};
-  if (query.include_deleted !== 'true') where.deleted_at = null;
+  if (query.include_deleted !== "true") where.deleted_at = null;
   if (query.category_id) where.category_id = query.category_id;
   if (query.author_id) where.author_id = query.author_id;
-  if (query.available === 'false') where.available = 0; // out of stock
+  if (query.available === "false") where.available = 0; // out of stock
 
   if (query.search) {
     const q = query.search.trim();
     where.OR = [
-      { title: { contains: q, mode: 'insensitive' } },
-      { author: { name: { contains: q, mode: 'insensitive' } } },
+      { title: { contains: q, mode: "insensitive" } },
+      { author: { name: { contains: q, mode: "insensitive" } } },
     ];
   }
 
-  const ALLOWED = ['title', 'available', 'copies'];
-  let orderBy = [{ title: 'asc' }];
+  const ALLOWED = ["title", "available", "copies"];
+  let orderBy = [{ title: "asc" }];
   if (query.sort) {
-    const desc = query.sort.startsWith('-');
+    const desc = query.sort.startsWith("-");
     const field = desc ? query.sort.slice(1) : query.sort;
-    if (ALLOWED.includes(field)) orderBy = [{ [field]: desc ? 'desc' : 'asc' }];
+    if (ALLOWED.includes(field)) orderBy = [{ [field]: desc ? "desc" : "asc" }];
   }
 
   const [books, total] = await Promise.all([

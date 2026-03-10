@@ -26,6 +26,26 @@ type RatingSummary = {
   distribution: { 1: number; 2: number; 3: number; 4: number; 5: number };
 };
 
+type PhysicalUserContext = {
+  hasActiveRental: boolean;
+  activeRental: unknown;
+  hasCompletedBorrowPayment?: boolean;
+  isInWishlist: boolean;
+  wishlistId: string | null;
+  hasActiveReservation?: boolean;
+  hasReturnedRental?: boolean;
+  reviewEligibility?: {
+    hasActiveRental: boolean;
+    hasReturnedRental: boolean;
+    canReview: boolean;
+  };
+};
+
+type DigitalUserContext = {
+  isInWishlist: boolean;
+  wishlistId: string | null;
+};
+
 type PhysicalBook = {
   id: string;
   title: string;
@@ -39,13 +59,9 @@ type PhysicalBook = {
   category: { id: string; name: string; slug: string };
   rating: RatingSummary;
   reviews: ReviewItem[];
+  reservationCount: number;
   images?: Array<{ id: string; image_url: string; sort_order: number }>;
-  userContext: {
-    hasActiveRental: boolean;
-    activeRental: unknown;
-    isInWishlist: boolean;
-    wishlistId: string | null;
-  } | null;
+  userContext: PhysicalUserContext | null;
   _count: { rentals: number; reviews: number; wishlists: number };
 };
 
@@ -63,10 +79,7 @@ type DigitalBook = {
   rating: RatingSummary;
   reviews: ReviewItem[];
   images?: Array<{ id: string; image_url: string; sort_order: number }>;
-  userContext: {
-    isInWishlist: boolean;
-    wishlistId: string | null;
-  } | null;
+  userContext: DigitalUserContext | null;
   _count: { reviews: number; wishlists: number };
 };
 
@@ -76,6 +89,69 @@ type RelatedBook = {
   cover_image_url: string;
   type: "physical" | "digital";
 };
+
+const buildRatingSummary = (reviews: ReviewItem[]): RatingSummary => {
+  const total = reviews.length;
+  const average = total > 0 ? reviews.reduce((sum, review) => sum + review.rating, 0) / total : 0;
+
+  return {
+    average: Number(average.toFixed(1)),
+    total,
+    distribution: {
+      1: reviews.filter((review) => review.rating === 1).length,
+      2: reviews.filter((review) => review.rating === 2).length,
+      3: reviews.filter((review) => review.rating === 3).length,
+      4: reviews.filter((review) => review.rating === 4).length,
+      5: reviews.filter((review) => review.rating === 5).length,
+    },
+  };
+};
+
+const defaultPhysicalUserContext = (): PhysicalUserContext => ({
+  hasActiveRental: false,
+  activeRental: null,
+  hasCompletedBorrowPayment: false,
+  isInWishlist: false,
+  wishlistId: null,
+  hasActiveReservation: false,
+  hasReturnedRental: false,
+  reviewEligibility: {
+    hasActiveRental: false,
+    hasReturnedRental: false,
+    canReview: false,
+  },
+});
+
+type PrimaryActionProps = {
+  label: string;
+  onClick?: () => void;
+  disabled?: boolean;
+  loading?: boolean;
+  loadingLabel?: string;
+  variant?: "solid" | "outline";
+};
+
+function PrimaryActionButton({
+  label,
+  onClick,
+  disabled = false,
+  loading = false,
+  loadingLabel = "Processing...",
+  variant = "solid",
+}: PrimaryActionProps) {
+  const base =
+    "w-full rounded-lg px-4 py-2 text-sm font-bold transition-all disabled:cursor-not-allowed disabled:opacity-50";
+  const style =
+    variant === "outline"
+      ? "border border-primary text-primary hover:bg-primary hover:text-background"
+      : "bg-primary text-background hover:bg-accent";
+
+  return (
+    <button onClick={onClick} disabled={disabled || loading} className={`${base} ${style}`}>
+      {loading ? loadingLabel : label}
+    </button>
+  );
+}
 
 export default function BookDetailPage() {
   const params = useParams<{ id: string }>();
@@ -94,7 +170,10 @@ export default function BookDetailPage() {
   const [user, setUser] = useState<User>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [actionLoading, setActionLoading] = useState(false);
+  const [borrowLoading, setBorrowLoading] = useState(false);
+  const [reserveLoading, setReserveLoading] = useState(false);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
+  const [digitalLoading, setDigitalLoading] = useState(false);
   const [myReview, setMyReview] = useState<{ id: string; rating: number; comment: string | null } | null>(null);
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState("");
@@ -189,23 +268,53 @@ export default function BookDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id, forcedType]);
 
+  const isAdmin = user?.role === "ADMIN";
+  const reviewEligibility = physicalBook?.userContext?.reviewEligibility;
+  const canManageReview =
+    !isAdmin &&
+    bookType === "physical" &&
+    Boolean(reviewEligibility?.hasReturnedRental) &&
+    !Boolean(reviewEligibility?.hasActiveRental);
+  const trimmedReviewComment = reviewComment.trim();
+  const isReviewTextValid = trimmedReviewComment.length > 0;
+
   const handleBorrow = async () => {
     if (!user) return router.push("/auth/login");
-    if (!physicalBook) return;
+    if (!physicalBook || borrowLoading) return;
+
+    const rentalId =
+      physicalBook.userContext?.hasActiveRental && !physicalBook.userContext?.hasCompletedBorrowPayment
+        ? ((physicalBook.userContext?.activeRental as { id?: string } | null)?.id ?? null)
+        : null;
 
     try {
-      setActionLoading(true);
-      const borrowRes = await fetchApi("/rentals/borrow", {
-        method: "POST",
-        body: JSON.stringify({ book_id: physicalBook.id }),
-      });
+      setBorrowLoading(true);
+      let targetRentalId = rentalId;
+      if (!targetRentalId) {
+        const borrowRes = await fetchApi("/rentals/borrow", {
+          method: "POST",
+          body: JSON.stringify({ book_id: physicalBook.id }),
+        });
+        targetRentalId = borrowRes?.data?.rental?.id;
+      }
 
-      const rentalId = borrowRes?.data?.rental?.id;
-      if (!rentalId) {
+      if (!targetRentalId) {
         throw new Error("Borrowed rental was not created");
       }
 
-      const payRes = await fetchApi(`/payments/rental/${rentalId}/initiate`, {
+      // Optimistically reflect inventory change right after borrow creation.
+      if (!rentalId) {
+        setPhysicalBook((prev) =>
+          prev
+            ? {
+                ...prev,
+                available: Math.max(0, prev.available - 1),
+              }
+            : prev,
+        );
+      }
+
+      const payRes = await fetchApi(`/payments/rental/${targetRentalId}/initiate`, {
         method: "POST",
         body: JSON.stringify({ method: "CHAPA", context: "BORROW" }),
       });
@@ -217,58 +326,76 @@ export default function BookDetailPage() {
       return;
     } catch (err) {
       const message = err instanceof Error ? err.message : "Borrow checkout failed";
+      if (!rentalId) {
+        setPhysicalBook((prev) =>
+          prev
+            ? {
+                ...prev,
+                available: Math.min(prev.copies, prev.available + 1),
+              }
+            : prev,
+        );
+      }
       toast.error(message);
     } finally {
-      setActionLoading(false);
+      setBorrowLoading(false);
     }
   };
 
   const handleReserve = async () => {
     if (!user) return router.push("/auth/login");
-    if (!physicalBook) return;
+    if (!physicalBook || reserveLoading) return;
 
     const previousPhysicalBook = physicalBook;
 
     try {
-      setActionLoading(true);
+      setReserveLoading(true);
       setPhysicalBook((prev) => {
         if (!prev) return prev;
+        const userContext = prev.userContext || defaultPhysicalUserContext();
         return {
           ...prev,
+          reservationCount: prev.reservationCount + 1,
           userContext: {
-            ...(prev.userContext || {
-              hasActiveRental: false,
-              activeRental: null,
-              isInWishlist: false,
-              wishlistId: null,
-            }),
+            ...userContext,
+            hasActiveReservation: true,
           },
         };
       });
 
-      await fetchApi("/reservations", {
+      const reservationRes = await fetchApi<{ data?: { reservation?: { queue_position?: number } } }>("/reservations", {
         method: "POST",
         body: JSON.stringify({ book_id: physicalBook.id }),
       });
+      const queuePosition = reservationRes?.data?.reservation?.queue_position;
+      if (typeof queuePosition === "number") {
+        setPhysicalBook((prev) =>
+          prev
+            ? {
+                ...prev,
+                reservationCount: Math.max(prev.reservationCount, queuePosition),
+              }
+            : prev,
+        );
+      }
       toast.success("Reservation placed successfully");
-      void loadData();
-    } catch {
+    } catch (err) {
       setPhysicalBook(previousPhysicalBook);
-      toast.error("Failed to place reservation");
+      toast.error(err instanceof Error ? err.message : "Failed to place reservation");
     } finally {
-      setActionLoading(false);
+      setReserveLoading(false);
     }
   };
 
   const handleWishlist = async () => {
     if (!user) return router.push("/auth/login");
-    if (!book) return;
+    if (!book || wishlistLoading) return;
 
     const previousPhysicalBook = physicalBook;
     const previousDigitalBook = digitalBook;
 
     try {
-      setActionLoading(true);
+      setWishlistLoading(true);
       const isInWishlist = book.userContext?.isInWishlist;
       const wishlistId = book.userContext?.wishlistId;
 
@@ -308,22 +435,44 @@ export default function BookDetailPage() {
         await fetchApi(`/wishlist/${wishlistId}`, { method: "DELETE" });
         toast.success("Removed from wishlist");
       } else {
-        await fetchApi("/wishlist", {
+        const wishlistRes = await fetchApi<{ data?: { item?: { id?: string } } }>("/wishlist", {
           method: "POST",
           body: JSON.stringify({
             bookType: bookType.toUpperCase(),
             bookId: book.id,
           }),
         });
+        const createdWishlistId = wishlistRes?.data?.item?.id || null;
+        updateCurrentBook((current) => {
+          if ("copies" in current) {
+            const userContext = current.userContext || defaultPhysicalUserContext();
+            return {
+              ...current,
+              userContext: {
+                ...userContext,
+                isInWishlist: true,
+                wishlistId: createdWishlistId,
+              },
+            };
+          }
+
+          return {
+            ...current,
+            userContext: {
+              ...(current.userContext || { isInWishlist: false, wishlistId: null }),
+              isInWishlist: true,
+              wishlistId: createdWishlistId,
+            },
+          };
+        });
         toast.success("Added to wishlist");
       }
-      void loadData();
     } catch {
       setPhysicalBook(previousPhysicalBook);
       setDigitalBook(previousDigitalBook);
       toast.error("Failed to update wishlist");
     } finally {
-      setActionLoading(false);
+      setWishlistLoading(false);
     }
   };
 
@@ -333,7 +482,7 @@ export default function BookDetailPage() {
     }
 
     try {
-      setActionLoading(true);
+      setDigitalLoading(true);
 
       const currentUser = user ?? (await fetchCurrentUser());
       if (!currentUser) {
@@ -391,13 +540,13 @@ export default function BookDetailPage() {
           : "Failed to open PDF. Make sure you are logged in and the PDF was uploaded correctly.";
       toast.error(message);
     } finally {
-      setActionLoading(false);
+      setDigitalLoading(false);
     }
   };
 
   const submitReview = async () => {
     if (!user) return router.push("/auth/login");
-    if (!book || reviewRating < 1) return;
+    if (!book || reviewRating < 1 || !canManageReview || !isReviewTextValid) return;
 
     const previousPhysicalBook = physicalBook;
     const previousDigitalBook = digitalBook;
@@ -406,7 +555,7 @@ export default function BookDetailPage() {
     const optimisticReview = {
       id: myReview?.id || `temp-${Date.now()}`,
       rating: reviewRating,
-      comment: reviewComment,
+      comment: trimmedReviewComment,
       created_at: new Date().toISOString(),
       user: { id: user.id, name: user.name },
     };
@@ -414,50 +563,45 @@ export default function BookDetailPage() {
     const nextReviews = myReview
       ? (book.reviews || []).map((r) => (r.id === myReview.id ? optimisticReview : r))
       : [optimisticReview, ...(book.reviews || [])];
+    const optimisticRatingSummary = buildRatingSummary(nextReviews);
 
-    const total = nextReviews.length;
-    const average = total > 0 ? nextReviews.reduce((sum, r) => sum + r.rating, 0) / total : 0;
-    const distribution = {
-      1: nextReviews.filter((r) => r.rating === 1).length,
-      2: nextReviews.filter((r) => r.rating === 2).length,
-      3: nextReviews.filter((r) => r.rating === 3).length,
-      4: nextReviews.filter((r) => r.rating === 4).length,
-      5: nextReviews.filter((r) => r.rating === 5).length,
-    } as const;
-
-    setMyReview({ id: optimisticReview.id, rating: reviewRating, comment: reviewComment || null });
+    setMyReview({ id: optimisticReview.id, rating: reviewRating, comment: trimmedReviewComment || null });
     updateCurrentBook((current) => ({
       ...current,
       reviews: nextReviews,
-      rating: {
-        ...current.rating,
-        average: Number(average.toFixed(1)),
-        total,
-        distribution: {
-          1: distribution[1],
-          2: distribution[2],
-          3: distribution[3],
-          4: distribution[4],
-          5: distribution[5],
-        },
-      },
+      rating: optimisticRatingSummary,
     }));
 
     try {
       setReviewBusy(true);
+      let response: { data?: { review?: ReviewItem; ratingSummary?: RatingSummary } } | undefined;
       if (myReview) {
-        await fetchApi(`/reviews/${myReview.id}`, {
+        response = await fetchApi(`/reviews/${myReview.id}`, {
           method: "PATCH",
-          body: JSON.stringify({ rating: reviewRating, comment: reviewComment }),
+          body: JSON.stringify({ rating: reviewRating, comment: trimmedReviewComment }),
         });
       } else {
-        await fetchApi(`/reviews/${bookType}/${book.id}`, {
+        response = await fetchApi(`/reviews/${bookType}/${book.id}`, {
           method: "POST",
-          body: JSON.stringify({ rating: reviewRating, comment: reviewComment }),
+          body: JSON.stringify({ rating: reviewRating, comment: trimmedReviewComment }),
         });
       }
+
+      const savedReview = response?.data?.review || optimisticReview;
+      const savedRatingSummary = response?.data?.ratingSummary || optimisticRatingSummary;
+      setMyReview({
+        id: savedReview.id,
+        rating: savedReview.rating,
+        comment: savedReview.comment || null,
+      });
+      updateCurrentBook((current) => ({
+        ...current,
+        reviews: current.reviews.map((review) =>
+          review.id === optimisticReview.id || (myReview && review.id === myReview.id) ? savedReview : review,
+        ),
+        rating: savedRatingSummary,
+      }));
       toast.success("Review saved");
-      void loadData();
     } catch {
       setPhysicalBook(previousPhysicalBook);
       setDigitalBook(previousDigitalBook);
@@ -480,23 +624,10 @@ export default function BookDetailPage() {
     setReviewComment("");
     updateCurrentBook((current) => {
       const nextReviews = (current.reviews || []).filter((r) => r.id !== previousMyReview.id);
-      const total = nextReviews.length;
-      const average = total > 0 ? nextReviews.reduce((sum, r) => sum + r.rating, 0) / total : 0;
       return {
         ...current,
         reviews: nextReviews,
-        rating: {
-          ...current.rating,
-          average: Number(average.toFixed(1)),
-          total,
-          distribution: {
-            1: nextReviews.filter((r) => r.rating === 1).length,
-            2: nextReviews.filter((r) => r.rating === 2).length,
-            3: nextReviews.filter((r) => r.rating === 3).length,
-            4: nextReviews.filter((r) => r.rating === 4).length,
-            5: nextReviews.filter((r) => r.rating === 5).length,
-          },
-        },
+        rating: buildRatingSummary(nextReviews),
       };
     });
 
@@ -504,7 +635,6 @@ export default function BookDetailPage() {
       setReviewBusy(true);
       await fetchApi(`/reviews/${myReview.id}`, { method: "DELETE" });
       toast.success("Review removed");
-      void loadData();
     } catch {
       setPhysicalBook(previousPhysicalBook);
       setDigitalBook(previousDigitalBook);
@@ -519,7 +649,18 @@ export default function BookDetailPage() {
 
   const canBorrow =
     bookType === "physical" && physicalBook && physicalBook.available > 0 && !physicalBook.userContext?.hasActiveRental;
-  const canReserve = bookType === "physical" && physicalBook && physicalBook.available <= 0;
+  const hasFullyBorrowed =
+    bookType === "physical" &&
+    physicalBook &&
+    physicalBook.userContext?.hasActiveRental &&
+    physicalBook.userContext?.hasCompletedBorrowPayment;
+  const hasPendingBorrowPayment =
+    bookType === "physical" &&
+    physicalBook &&
+    physicalBook.userContext?.hasActiveRental &&
+    !physicalBook.userContext?.hasCompletedBorrowPayment;
+  const shouldShowReserve = bookType === "physical" && physicalBook && physicalBook.available === 0;
+  const reserveCount = physicalBook?.reservationCount || 0;
 
   const breadcrumbType = bookType === "digital" ? "Digital" : "Physical";
 
@@ -546,10 +687,10 @@ export default function BookDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col selection:bg-primary/10">
+    <div className="min-h-screen overflow-x-clip bg-background text-foreground flex flex-col selection:bg-primary/10">
       <Navbar />
 
-      <main className="grow mx-auto max-w-7xl w-full px-6 py-8 lg:py-12">
+      <main className="grow mx-auto max-w-7xl w-full px-4 py-8 sm:px-6 lg:py-12">
         <nav className="flex items-center gap-2 text-xs font-bold text-secondary/60 mb-8 overflow-x-auto whitespace-nowrap pb-2">
           <Link href={booksHref} className="hover:text-primary transition-colors">
             Books
@@ -557,13 +698,13 @@ export default function BookDetailPage() {
           <ChevronRight size={14} />
           <span className="text-secondary">{breadcrumbType}</span>
           <ChevronRight size={14} />
-          <span className="text-secondary">{book?.title || "Book Details"}</span>
+          <span className="max-w-[60vw] truncate text-secondary sm:max-w-none">{book?.title || "Book Details"}</span>
         </nav>
 
         {loading || !book ? (
           <div className="space-y-10">
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr] gap-12">
-              <div className="aspect-[3/4] rounded-2xl bg-muted/40 border border-border/50" />
+              <div className="aspect-3/4 rounded-2xl bg-muted/40 border border-border/50" />
               <div className="space-y-4">
                 <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-primary">Book Details</h1>
                 <p className="text-secondary">Loading book information...</p>
@@ -584,9 +725,9 @@ export default function BookDetailPage() {
             </section>
           </div>
         ) : (
-          <div className="flex flex-col lg:flex-row gap-12 lg:gap-20">
+          <div className="flex flex-col gap-8 lg:flex-row lg:gap-20">
             <div className="lg:w-1/3 xl:w-1/4">
-              <div className="relative aspect-[3/4] w-full rounded-2xl overflow-hidden shadow-2xl border-4 border-white transform -rotate-1 hover:rotate-0 transition-transform duration-500">
+              <div className="relative aspect-3/4 w-full rounded-2xl overflow-hidden shadow-2xl border-4 border-white transform -rotate-1 hover:rotate-0 transition-transform duration-500">
                 <Image
                   src={activeImage || book.cover_image_url || "/auth/image.png"}
                   alt={book.title}
@@ -603,7 +744,7 @@ export default function BookDetailPage() {
                       ? "Read Only"
                       : "Download"
                     : (book as PhysicalBook).available > 0
-                      ? `${(book as PhysicalBook).available} Available`
+                      ? `Available on Shelf: ${(book as PhysicalBook).available}`
                       : "Unavailable"}
                 </div>
               </div>
@@ -613,6 +754,8 @@ export default function BookDetailPage() {
                     <button
                       key={`${img}-${idx}`}
                       onClick={() => setActiveImage(img)}
+                      title={`View cover image ${idx + 1}`}
+                      aria-label={`View cover image ${idx + 1}`}
                       className={`relative aspect-square rounded-lg overflow-hidden border-2 ${activeImage === img ? "border-primary" : "border-border/50"}`}
                     >
                       <Image src={img} alt={`${book.title} ${idx + 1}`} fill className="object-cover" />
@@ -622,69 +765,92 @@ export default function BookDetailPage() {
               )}
             </div>
 
-            <div className="flex-1 space-y-10">
-              <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
-                <div className="space-y-3">
-                  <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-primary leading-tight">
+            <div className="min-w-0 flex-1 space-y-10">
+              <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+                <div className="min-w-0 space-y-3 md:max-w-3xl">
+                  <h1 className="wrap-break-word text-4xl font-serif font-extrabold leading-tight text-primary lg:text-5xl">
                     {book.title}
                   </h1>
-                  <p className="text-lg text-secondary font-medium">
+                  <p className="wrap-break-word text-lg text-secondary font-medium">
                     by <span className="text-primary font-bold">{book.author.name}</span>
                   </p>
                 </div>
-                <div className="flex flex-col gap-3">
+                <div className="flex w-full flex-col gap-2 md:w-auto md:min-w-[16rem] md:max-w-xs">
                   {bookType === "physical" ? (
-                    <>
-                      <button
-                        onClick={handleBorrow}
-                        disabled={!canBorrow || actionLoading}
-                        className={`w-full md:w-auto rounded-full px-10 py-4 text-base font-bold shadow-xl transition-all active:scale-95 ${canBorrow ? "bg-primary text-background hover:bg-accent" : "bg-muted text-secondary/50 cursor-not-allowed"}`}
-                      >
-                        {actionLoading ? "Working..." : canBorrow ? "Borrow Book" : "Unavailable"}
-                      </button>
-                      {canReserve && (
-                        <button
-                          onClick={handleReserve}
-                          disabled={actionLoading}
-                          className="w-full md:w-auto rounded-full px-10 py-4 text-base font-bold border-2 border-primary text-primary hover:bg-primary hover:text-background transition-all active:scale-95"
-                        >
-                          Reserve Book
-                        </button>
-                      )}
-                    </>
+                    !isAdmin ? (
+                      <>
+                        {hasFullyBorrowed ? (
+                          <PrimaryActionButton label="Currently Borrowed" disabled variant="outline" />
+                        ) : hasPendingBorrowPayment ? (
+                          <PrimaryActionButton
+                            label="Complete Borrow Payment"
+                            loading={borrowLoading}
+                            loadingLabel="Processing..."
+                            onClick={handleBorrow}
+                          />
+                        ) : canBorrow ? (
+                          <PrimaryActionButton
+                            label="Borrow"
+                            loading={borrowLoading}
+                            loadingLabel="Processing..."
+                            onClick={handleBorrow}
+                          />
+                        ) : shouldShowReserve ? (
+                          <>
+                            <PrimaryActionButton
+                              label={physicalBook?.userContext?.hasActiveReservation ? "Already Reserved" : "Reserve"}
+                              loading={reserveLoading}
+                              loadingLabel="Reserving..."
+                              disabled={Boolean(physicalBook?.userContext?.hasActiveReservation)}
+                              onClick={handleReserve}
+                              variant="outline"
+                            />
+                            <p className="text-xs text-secondary">{reserveCount} students currently in queue</p>
+                          </>
+                        ) : (
+                          <PrimaryActionButton label="Unavailable" disabled variant="outline" />
+                        )}
+                      </>
+                    ) : null
                   ) : (
                     <>
                       <button
                         onClick={() => openDigital(false)}
-                        disabled={actionLoading}
-                        className="w-full md:w-auto rounded-full px-10 py-4 text-base font-bold shadow-xl transition-all active:scale-95 bg-primary text-background hover:bg-accent"
+                        disabled={digitalLoading}
+                        className="w-full rounded-lg px-4 py-2 text-sm font-bold shadow-xl transition-all bg-primary text-background hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
                       >
-                        Read Now
+                        {digitalLoading ? "Opening PDF..." : "Read Now"}
                       </button>
                       {(book as DigitalBook).pdf_access !== "RESTRICTED" && (
                         <button
                           onClick={() => openDigital(true)}
-                          disabled={actionLoading}
-                          className="w-full md:w-auto rounded-full px-10 py-4 text-base font-bold border-2 border-primary text-primary hover:bg-primary hover:text-background transition-all active:scale-95"
+                          disabled={digitalLoading}
+                          className="w-full rounded-lg px-4 py-2 text-sm font-bold border border-primary text-primary hover:bg-primary hover:text-background transition-all disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                          Download PDF
+                          {digitalLoading ? "Preparing Download..." : "Download PDF"}
                         </button>
                       )}
                     </>
                   )}
 
-                  <button
-                    onClick={handleWishlist}
-                    disabled={actionLoading}
-                    className="w-full md:w-auto rounded-full px-10 py-4 text-base font-bold border-2 border-primary text-primary hover:bg-primary hover:text-background transition-all active:scale-95 flex items-center justify-center gap-2"
-                  >
-                    <Heart size={18} fill={book.userContext?.isInWishlist ? "currentColor" : "none"} />
-                    {book.userContext?.isInWishlist ? "In Wishlist" : "Add to Wishlist"}
-                  </button>
+                  {!isAdmin && (
+                    <button
+                      onClick={handleWishlist}
+                      disabled={wishlistLoading}
+                      className="flex w-full items-center justify-center gap-2 rounded-lg border border-primary px-4 py-2 text-sm font-bold text-primary transition-all hover:bg-primary hover:text-background disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <Heart size={18} fill={book.userContext?.isInWishlist ? "currentColor" : "none"} />
+                      {wishlistLoading
+                        ? "Updating Wishlist..."
+                        : book.userContext?.isInWishlist
+                          ? "In Wishlist"
+                          : "Add to Wishlist"}
+                    </button>
+                  )}
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <div className="bg-card rounded-2xl p-4 border border-border/50 text-center space-y-1">
                   <p className="text-[10px] uppercase tracking-widest text-secondary font-bold">Rating</p>
                   <div className="flex items-center justify-center gap-1 text-[#E58A00]">
@@ -703,14 +869,14 @@ export default function BookDetailPage() {
                 </div>
                 <div className="bg-card rounded-2xl p-4 border border-border/50 text-center space-y-1">
                   <p className="text-[10px] uppercase tracking-widest text-secondary font-bold">
-                    {bookType === "digital" ? "Access" : "Pages"}
+                    {bookType === "digital" ? "Access" : "Available on Shelf"}
                   </p>
                   <p className="text-sm font-bold text-primary">
                     {bookType === "digital"
                       ? (book as DigitalBook).pdf_access === "RESTRICTED"
                         ? "Read Only"
                         : "Read + Download"
-                      : book.pages}
+                      : `${(book as PhysicalBook).available} copy${(book as PhysicalBook).available === 1 ? "" : "ies"}`}
                   </p>
                 </div>
               </div>
@@ -721,7 +887,7 @@ export default function BookDetailPage() {
                     <Info size={24} className="text-secondary" />
                     About This Book
                   </h2>
-                  <div className="prose prose-stone max-w-none text-secondary leading-relaxed font-medium">
+                  <div className="prose prose-stone max-w-none wrap-break-word text-secondary leading-relaxed font-medium">
                     <p>{book.description}</p>
                   </div>
                 </section>
@@ -730,10 +896,10 @@ export default function BookDetailPage() {
                   <section className="space-y-4">
                     <h2 className="text-2xl font-serif font-bold text-primary">About the Author</h2>
                     <div className="bg-card rounded-2xl p-5 border border-border/50">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="space-y-1">
-                          <p className="text-primary font-bold text-lg">{book.author.name}</p>
-                          <p className="text-secondary leading-relaxed font-medium">
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0 space-y-1">
+                          <p className="wrap-break-word text-lg font-bold text-primary">{book.author.name}</p>
+                          <p className="wrap-break-word text-secondary leading-relaxed font-medium">
                             {book.author.bio || "No biography has been added for this author yet."}
                           </p>
                         </div>
@@ -750,43 +916,53 @@ export default function BookDetailPage() {
                   </section>
                 )}
 
-                <section className="space-y-4">
-                  <h2 className="text-2xl font-serif font-bold text-primary">Your Review</h2>
-                  <div className="bg-card rounded-xl p-4 border border-border/50 space-y-3">
-                    <div className="flex items-center gap-1">
-                      {[1, 2, 3, 4, 5].map((n) => (
-                        <button key={n} type="button" onClick={() => setReviewRating(n)} className="text-[#E58A00]">
-                          <Star size={18} fill={reviewRating >= n ? "currentColor" : "none"} />
-                        </button>
-                      ))}
-                    </div>
-                    <textarea
-                      value={reviewComment}
-                      onChange={(e) => setReviewComment(e.target.value)}
-                      placeholder="Write your review"
-                      className="w-full rounded-xl border border-border/60 bg-background px-3 py-2.5 text-sm text-primary focus:outline-none"
-                      rows={3}
-                    />
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={submitReview}
-                        disabled={reviewBusy || reviewRating < 1}
-                        className="px-4 py-2 rounded-lg bg-primary text-background text-sm font-bold disabled:opacity-40"
-                      >
-                        {reviewBusy ? "Saving..." : myReview ? "Update Review" : "Submit Review"}
-                      </button>
-                      {myReview && (
+                {!isAdmin && canManageReview && (
+                  <section className="space-y-4">
+                    <h2 className="text-2xl font-serif font-bold text-primary">Write a Review</h2>
+                    <div className="bg-card rounded-xl p-4 border border-border/50 space-y-3">
+                      <div className="flex flex-wrap items-center gap-1">
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <button
+                            key={n}
+                            type="button"
+                            onClick={() => setReviewRating(n)}
+                            title={`Rate ${n} star${n === 1 ? "" : "s"}`}
+                            aria-label={`Rate ${n} star${n === 1 ? "" : "s"}`}
+                            className="text-[#E58A00]"
+                          >
+                            <Star size={18} fill={reviewRating >= n ? "currentColor" : "none"} />
+                          </button>
+                        ))}
+                      </div>
+                      <textarea
+                        value={reviewComment}
+                        onChange={(e) => setReviewComment(e.target.value)}
+                        placeholder="Write your review"
+                        required
+                        className="w-full rounded-xl border border-border/60 bg-background px-3 py-2.5 text-sm text-primary focus:outline-none"
+                        rows={4}
+                      />
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                         <button
-                          onClick={removeReview}
-                          disabled={reviewBusy}
-                          className="px-4 py-2 rounded-lg border border-border text-sm font-bold text-primary"
+                          onClick={submitReview}
+                          disabled={reviewBusy || reviewRating < 1 || !isReviewTextValid}
+                          className="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-background disabled:cursor-not-allowed disabled:opacity-40"
                         >
-                          Remove
+                          {reviewBusy ? "Submitting Review..." : myReview ? "Update Review" : "Submit Review"}
                         </button>
-                      )}
+                        {myReview && (
+                          <button
+                            onClick={removeReview}
+                            disabled={reviewBusy}
+                            className="rounded-lg border border-border px-4 py-2 text-sm font-bold text-primary disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            {reviewBusy ? "Removing Review..." : "Remove"}
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </section>
+                  </section>
+                )}
 
                 {book.reviews.length > 0 && (
                   <section className="space-y-4">
@@ -794,8 +970,8 @@ export default function BookDetailPage() {
                     <div className="space-y-4">
                       {book.reviews.map((review) => (
                         <div key={review.id} className="bg-card rounded-xl p-4 border border-border/50">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="font-bold text-primary">{review.user.name}</span>
+                          <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                            <span className="wrap-break-word font-bold text-primary">{review.user.name}</span>
                             <div className="flex items-center gap-1">
                               {[1, 2, 3, 4, 5].map((i) => (
                                 <Star
@@ -807,7 +983,7 @@ export default function BookDetailPage() {
                               ))}
                             </div>
                           </div>
-                          {review.comment && <p className="text-sm text-secondary">{review.comment}</p>}
+                          {review.comment && <p className="wrap-break-word text-sm text-secondary">{review.comment}</p>}
                         </div>
                       ))}
                     </div>
@@ -831,7 +1007,7 @@ export default function BookDetailPage() {
                           href={item.type === "digital" ? `/books/${item.id}?type=digital` : `/books/${item.id}`}
                           className="bg-card rounded-xl border border-border/50 p-3 hover:shadow-md transition-all"
                         >
-                          <div className="relative aspect-[3/4] rounded-lg overflow-hidden mb-3">
+                          <div className="relative aspect-3/4 rounded-lg overflow-hidden mb-3">
                             <Image
                               src={item.cover_image_url || "/auth/image.png"}
                               alt={item.title}
