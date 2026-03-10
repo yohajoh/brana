@@ -8,21 +8,20 @@ export const MostBorrowed = () => {
   const { data: trendingData, isLoading } = useTrendingBooks();
 
   const books =
-    ((trendingData?.data as unknown as {
-      trending?: Array<{
-        book: { title: string; cover_image_url?: string; author?: { name?: string } };
-        rentalCount?: number;
-      }>;
-    })?.trending || []);
+    (
+      trendingData?.data as unknown as {
+        trending?: Array<{
+          book: { title: string; cover_image_url?: string; author?: { name?: string } };
+          rentalCount?: number;
+        }>;
+      }
+    )?.trending || [];
 
   if (isLoading) {
     return (
       <section className="w-full py-20 bg-card/30">
         <div className="mx-auto max-w-7xl px-6">
-          <SectionHeader
-            title="Most Borrowed This Month"
-            viewAllHref="/books"
-          />
+          <SectionHeader title="Most Borrowed This Month" viewAllHref="/books" />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
             {[1, 2, 3].map((i) => (
               <div key={i} className="animate-pulse">
@@ -44,7 +43,7 @@ export const MostBorrowed = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
           {books.map((book, idx) => (
-            <div key={book.id} className="group relative flex flex-col items-center">
+            <div key={`${book.book.title}-${idx}`} className="group relative flex flex-col items-center">
               <div className="absolute top-0 text-[180px] font-serif text-border/40 select-none z-0">
                 {idx === 0 ? "ሀ" : idx === 1 ? "ለ" : "ሐ"}
               </div>
@@ -66,7 +65,7 @@ export const MostBorrowed = () => {
                       {book.book.title}
                     </h3>
                     <p className="text-sm font-medium text-secondary/70">
-                      by: {book.book.author.name}
+                      by: {book.book.author?.name || "Unknown Author"}
                     </p>
                   </div>
                   <div>Borrowed: {book.rentalCount} times</div>
