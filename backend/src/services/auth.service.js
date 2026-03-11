@@ -33,9 +33,129 @@ const isDelegatedIdentitySchemaMissing = (error) => {
   return (
     error?.code === "P2021" ||
     error?.code === "P2022" ||
+    error?.code === "P2023" ||
+    /is_super_admin/i.test(message) ||
     /StudentProfile|UserRoleAssignment|student_profile|role_assignments/i.test(message) ||
-    /Unknown arg|does not exist|Invalid .* invocation/i.test(message)
+    /Unknown arg|Unknown field|does not exist|Invalid .* invocation|invalid input value for enum|not found in enum/i.test(
+      message,
+    )
   );
+};
+
+const isAdminRole = (role) => role === "ADMIN" || role === "SUPER_ADMIN";
+
+const getCurrentSuperAdminId = async () => {
+  try {
+    const roleBased = await prisma.user.findFirst({
+      where: { role: "SUPER_ADMIN" },
+      select: { id: true },
+    });
+
+    if (roleBased?.id) {
+      return roleBased.id;
+    }
+  } catch (error) {
+    if (!isDelegatedIdentitySchemaMissing(error)) {
+      throw error;
+    }
+  }
+
+  try {
+    const explicit = await prisma.user.findFirst({
+      where: { is_super_admin: true },
+      select: { id: true },
+    });
+
+    if (explicit?.id) {
+      return explicit.id;
+    }
+  } catch (error) {
+    if (!isDelegatedIdentitySchemaMissing(error)) {
+      throw error;
+    }
+  }
+
+  // Bootstrap fallback when the column is not initialized yet: oldest admin acts as super admin.
+  const fallback = await prisma.user.findFirst({
+    where: { role: "ADMIN" },
+    orderBy: { created_at: "asc" },
+    select: { id: true },
+  });
+
+  return fallback?.id || null;
+};
+
+const canManageUser = ({ actorRole, actorIsSuperAdmin, targetRole, targetIsSuperAdmin }) => {
+  if (!isAdminRole(actorRole)) {
+    return false;
+  }
+
+  if (actorIsSuperAdmin) {
+    return !targetIsSuperAdmin;
+  }
+
+  return targetRole === "STUDENT";
+};
+
+const getActorAndTargetForManagement = async ({ actorUserId, targetUserId, allowSelf = false }) => {
+  const [actor, target, superAdminId] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: actorUserId },
+      select: { id: true, role: true },
+    }),
+    prisma.user.findUnique({
+      where: { id: targetUserId },
+      include: {
+        _count: {
+          select: {
+            rentals: true,
+            reservations: true,
+            notifications: true,
+            reviews: true,
+            wishlists: true,
+            system_config_updates: true,
+            admin_activity_logs: true,
+            resolved_stock_alerts: true,
+          },
+        },
+      },
+    }),
+    getCurrentSuperAdminId(),
+  ]);
+
+  if (!actor) {
+    throw new AppError("Acting user not found", 404);
+  }
+
+  if (!target) {
+    throw new AppError("User not found", 404);
+  }
+
+  if (!allowSelf && actor.id === target.id) {
+    throw new AppError("You cannot perform this action on your own account", 400);
+  }
+
+  const actorIsSuperAdmin = superAdminId === actor.id;
+  const targetIsSuperAdmin = superAdminId === target.id;
+
+  if (
+    !canManageUser({
+      actorRole: actor.role,
+      actorIsSuperAdmin,
+      targetRole: target.role,
+      targetIsSuperAdmin,
+    })
+  ) {
+    throw new AppError("You do not have permission to manage this user", 403);
+  }
+
+  return {
+    actor,
+    target,
+    actorIsSuperAdmin,
+    targetIsSuperAdmin,
+    superAdminId,
+  };
 };
 
 const hasPrismaModel = (modelName) => {
@@ -86,6 +206,7 @@ export const resolveUserSessionContext = async (userId, preferredPersona) => {
         department: true,
         student_id: true,
         role: true,
+        is_super_admin: true,
         is_confirmed: true,
         is_blocked: true,
         created_at: true,
@@ -141,6 +262,16 @@ export const resolveUserSessionContext = async (userId, preferredPersona) => {
   }
 
   const dedupedRoles = Array.from(new Set(roles));
+  const superAdminId = await getCurrentSuperAdminId();
+  const isSuperAdmin = superAdminId === user.id || user.role === "SUPER_ADMIN";
+
+  if (isAdminRole(user.role) && !dedupedRoles.includes("ADMIN")) {
+    dedupedRoles.push("ADMIN");
+  }
+
+  if (isSuperAdmin) {
+    dedupedRoles.push("SUPER_ADMIN");
+  }
 
   const canActAsStudent = dedupedRoles.includes("STUDENT");
   let studentProfileId = null;
@@ -182,6 +313,7 @@ export const resolveUserSessionContext = async (userId, preferredPersona) => {
       student_id: user.student_id,
       role: user.role,
       roles: dedupedRoles,
+      is_super_admin: isSuperAdmin,
       studentProfileId,
       activePersona,
       is_confirmed: user.is_confirmed,
@@ -423,27 +555,63 @@ export const updatePassword = async (userId, currentPassword, newPassword) => {
 };
 
 export const getMe = async (userId) => {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      phone: true,
-      year: true,
-      department: true,
-      role: true,
-      student_id: true,
-      is_confirmed: true,
-      created_at: true,
-    },
-  });
+  const superAdminId = await getCurrentSuperAdminId();
+  let user;
+
+  try {
+    user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        year: true,
+        department: true,
+        role: true,
+        is_super_admin: true,
+        student_id: true,
+        is_confirmed: true,
+        created_at: true,
+      },
+    });
+  } catch (error) {
+    if (!isDelegatedIdentitySchemaMissing(error)) {
+      throw error;
+    }
+
+    const legacyUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        year: true,
+        department: true,
+        role: true,
+        student_id: true,
+        is_confirmed: true,
+        created_at: true,
+      },
+    });
+
+    user = legacyUser
+      ? {
+          ...legacyUser,
+          is_super_admin: false,
+        }
+      : null;
+  }
 
   if (!user) {
     throw new AppError("User not found", 404);
   }
 
-  return user;
+  return {
+    ...user,
+    is_super_admin: superAdminId === user.id,
+  };
 };
 
 export const updateMe = async (userId, updateData) => {
@@ -540,6 +708,15 @@ export const blockUser = async (userId) => {
   });
 };
 
+export const blockUserByActor = async (userId, actorUserId) => {
+  await getActorAndTargetForManagement({ actorUserId, targetUserId: userId, allowSelf: false });
+
+  return await prisma.user.update({
+    where: { id: userId },
+    data: { is_blocked: true },
+  });
+};
+
 export const unblockUser = async (userId) => {
   return await prisma.user.update({
     where: { id: userId },
@@ -547,51 +724,94 @@ export const unblockUser = async (userId) => {
   });
 };
 
-export const getAllUsers = async () => {
-  return await prisma.user.findMany({
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      student_id: true,
-      phone: true,
-      year: true,
-      department: true,
-      role: true,
-      is_confirmed: true,
-      is_blocked: true,
-      created_at: true,
-    },
-    orderBy: { created_at: "desc" },
+export const unblockUserByActor = async (userId, actorUserId) => {
+  await getActorAndTargetForManagement({ actorUserId, targetUserId: userId, allowSelf: false });
+
+  return await prisma.user.update({
+    where: { id: userId },
+    data: { is_blocked: false },
   });
 };
 
-export const deleteUser = async (userId, currentAdminId) => {
-  if (userId === currentAdminId) {
-    throw new AppError("You cannot delete your own account", 400);
+export const getAllUsers = async (actorUserId) => {
+  const [actor, superAdminId] = await Promise.all([
+    prisma.user.findUnique({ where: { id: actorUserId }, select: { id: true, role: true } }),
+    getCurrentSuperAdminId(),
+  ]);
+
+  if (!actor) {
+    throw new AppError("Acting user not found", 404);
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    include: {
-      _count: {
-        select: {
-          rentals: true,
-          reservations: true,
-          notifications: true,
-          reviews: true,
-          wishlists: true,
-          system_config_updates: true,
-          admin_activity_logs: true,
-          resolved_stock_alerts: true,
-        },
+  if (!isAdminRole(actor.role)) {
+    throw new AppError("You do not have permission to perform this action", 403);
+  }
+
+  const isActorSuperAdmin = superAdminId === actor.id;
+  const where = isActorSuperAdmin ? {} : { role: "STUDENT" };
+
+  let users;
+  try {
+    users = await prisma.user.findMany({
+      where,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        student_id: true,
+        phone: true,
+        year: true,
+        department: true,
+        role: true,
+        is_super_admin: true,
+        is_confirmed: true,
+        is_blocked: true,
+        created_at: true,
       },
-    },
+      orderBy: { created_at: "desc" },
+    });
+  } catch (error) {
+    if (!isDelegatedIdentitySchemaMissing(error)) {
+      throw error;
+    }
+
+    users = await prisma.user.findMany({
+      where,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        student_id: true,
+        phone: true,
+        year: true,
+        department: true,
+        role: true,
+        is_confirmed: true,
+        is_blocked: true,
+        created_at: true,
+      },
+      orderBy: { created_at: "desc" },
+    });
+  }
+
+  return users.map((user) => ({
+    ...user,
+    is_super_admin: user.id === superAdminId,
+  }));
+};
+
+export const deleteUser = async (userId, currentAdminId) => {
+  const { target: user, targetIsSuperAdmin } = await getActorAndTargetForManagement({
+    actorUserId: currentAdminId,
+    targetUserId: userId,
+    allowSelf: false,
   });
 
-  if (!user) throw new AppError("User not found", 404);
+  if (targetIsSuperAdmin) {
+    throw new AppError("Transfer super admin role before deleting this account", 409);
+  }
 
-  if (user.role === "ADMIN") {
+  if (isAdminRole(user.role)) {
     const admins = await prisma.user.count({ where: { role: "ADMIN" } });
     if (admins <= 1) {
       throw new AppError("Cannot delete the last admin account", 409);
@@ -609,4 +829,98 @@ export const deleteUser = async (userId, currentAdminId) => {
     prisma.pendingSignup.deleteMany({ where: { email: user.email } }),
     prisma.user.delete({ where: { id: userId } }),
   ]);
+};
+
+export const promoteStudentToAdmin = async (targetUserId, actorUserId) => {
+  const [target, superAdminId] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: targetUserId },
+      select: { id: true, role: true, is_blocked: true },
+    }),
+    getCurrentSuperAdminId(),
+  ]);
+
+  if (superAdminId !== actorUserId) {
+    throw new AppError("Only super admin can promote students to admin", 403);
+  }
+
+  if (!target) {
+    throw new AppError("User not found", 404);
+  }
+
+  if (target.role !== "STUDENT") {
+    throw new AppError("Only students can be promoted to admin", 400);
+  }
+
+  if (target.is_blocked) {
+    throw new AppError("Cannot promote a blocked user", 409);
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.user.update({
+      where: { id: targetUserId },
+      data: { role: "ADMIN" },
+    });
+
+    if (hasPrismaModel("userRoleAssignment")) {
+      await tx.userRoleAssignment.createMany({
+        data: [
+          { user_id: targetUserId, role: "ADMIN" },
+          { user_id: targetUserId, role: "STUDENT" },
+        ],
+        skipDuplicates: true,
+      });
+    }
+  });
+
+  return { id: targetUserId, role: "ADMIN" };
+};
+
+export const transferSuperAdminRole = async (targetUserId, actorUserId) => {
+  const [target, currentSuperAdminId] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: targetUserId },
+      select: { id: true, role: true, is_blocked: true },
+    }),
+    getCurrentSuperAdminId(),
+  ]);
+
+  if (currentSuperAdminId !== actorUserId) {
+    throw new AppError("Only super admin can transfer super admin role", 403);
+  }
+
+  if (!target) {
+    throw new AppError("User not found", 404);
+  }
+
+  if (target.is_blocked) {
+    throw new AppError("Cannot assign super admin to a blocked user", 409);
+  }
+
+  await prisma.$transaction(async (tx) => {
+    if (!isAdminRole(target.role)) {
+      await tx.user.update({
+        where: { id: target.id },
+        data: { role: "ADMIN" },
+      });
+    }
+
+    if (hasPrismaModel("userRoleAssignment")) {
+      await tx.userRoleAssignment.createMany({
+        data: [
+          { user_id: target.id, role: "ADMIN" },
+          { user_id: target.id, role: "STUDENT" },
+        ],
+        skipDuplicates: true,
+      });
+    }
+
+    await tx.user.updateMany({ data: { is_super_admin: false } });
+    await tx.user.update({
+      where: { id: target.id },
+      data: { is_super_admin: true },
+    });
+  });
+
+  return { id: target.id, is_super_admin: true };
 };

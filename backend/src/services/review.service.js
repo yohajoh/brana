@@ -283,7 +283,7 @@ export const updateReview = async (id, userId, { rating, comment }) => {
 export const deleteReview = async (id, user) => {
   const review = await prisma.review.findUnique({ where: { id } });
   if (!review) throw new AppError("Review not found", 404);
-  if (user.role !== "ADMIN" && review.user_id !== user.id) {
+  if (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN" && review.user_id !== user.id) {
     throw new AppError("You do not have permission to delete this review", 403);
   }
   return prisma.review.delete({ where: { id } });

@@ -28,6 +28,7 @@ model User {
   phone                 String?
   password_hash         String
   role                  Role                   @default(STUDENT)
+  is_super_admin        Boolean                @default(false)
   is_confirmed          Boolean                @default(false)
   is_blocked            Boolean                @default(false)
   confirmation_token    String?
@@ -410,6 +411,7 @@ model AdminActivityLog {
 }
 
 enum Role {
+  SUPER_ADMIN
   ADMIN
   STUDENT
 }

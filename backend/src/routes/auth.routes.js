@@ -115,5 +115,7 @@ router.get("/users", authController.getAllUsers);
 router.delete("/users/:id", authController.deleteUser);
 router.patch("/users/:id/block", authController.blockUser);
 router.patch("/users/:id/unblock", authController.unblockUser);
+router.patch("/users/:id/promote-admin", authController.promoteStudentToAdmin);
+router.patch("/users/:id/transfer-super-admin", authController.transferSuperAdmin);
 
 export default router;

@@ -3,16 +3,27 @@
 import { useState } from "react";
 import { Trash2, Search, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { toast } from "sonner";
-import { useUsers, useUserInsights, useDeleteUser, useBlockUser, useUnblockUser } from "@/lib/hooks/useQueries";
+import {
+  useUsers,
+  useUserInsights,
+  useDeleteUser,
+  useBlockUser,
+  useUnblockUser,
+  usePromoteStudentToAdmin,
+  useTransferSuperAdmin,
+} from "@/lib/hooks/useQueries";
+import { usePersona } from "@/components/providers/PersonaProvider";
 
 interface User {
   id: string;
   name: string;
   email: string;
+  role: string;
   student_id?: string;
   year?: number | string;
   phone?: string;
   is_blocked?: boolean;
+  is_super_admin?: boolean;
 }
 
 interface UserInsights {
@@ -44,23 +55,35 @@ const ITEMS_PER_PAGE = 8;
 
 export default function AdminUsersPage() {
   const [search, setSearch] = useState("");
+  const [activeTab, setActiveTab] = useState<"STUDENTS" | "ADMINS">("STUDENTS");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const { user: currentUser } = usePersona();
 
   const { data: usersData, isLoading } = useUsers();
   const { data: insightsData } = useUserInsights(selectedUser?.id || "");
   const deleteUser = useDeleteUser();
   const blockUser = useBlockUser();
   const unblockUser = useUnblockUser();
+  const promoteUser = usePromoteStudentToAdmin();
+  const transferSuperAdmin = useTransferSuperAdmin();
 
   const users: User[] = usersData?.data?.users || [];
+  const isSuperAdminViewer = Boolean(currentUser?.is_super_admin);
+
+  const scopeFiltered = users.filter((u) => {
+    if (!isSuperAdminViewer) {
+      return u.role === "STUDENT";
+    }
+    return activeTab === "ADMINS" ? u.role === "ADMIN" || u.role === "SUPER_ADMIN" : u.role === "STUDENT";
+  });
 
   const insights = insightsData?.data as UserInsights | null;
 
   const getErrorMessage = (error: unknown, fallback: string) =>
     error instanceof Error && error.message ? error.message : fallback;
 
-  const filtered = users.filter((u) => {
+  const filtered = scopeFiltered.filter((u) => {
     const q = search.toLowerCase();
     return (
       u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q) || u.student_id?.toLowerCase().includes(q)
@@ -94,12 +117,65 @@ export default function AdminUsersPage() {
     }
   };
 
+  const handlePromote = async (user: User) => {
+    if (!confirm(`Promote ${user.name} to Admin?`)) return;
+    try {
+      await promoteUser.mutateAsync(user.id);
+      toast.success("Student promoted to admin successfully");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Failed to promote user"));
+    }
+  };
+
+  const handleTransferSuperAdmin = async (user: User) => {
+    if (!confirm(`Transfer Super Admin role to ${user.name}?`)) return;
+    try {
+      await transferSuperAdmin.mutateAsync(user.id);
+      toast.success("Super admin role transferred successfully");
+      window.location.reload();
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Failed to transfer super admin role"));
+    }
+  };
+
   return (
     <div className="p-6 lg:p-12 space-y-8">
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-1">
           <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-[#2B1A10]">Manage Users</h1>
-          <p className="text-[#AE9E85] font-medium">Filter, sort, and access detailed user profiles</p>
+          <p className="text-[#AE9E85] font-medium">
+            {isSuperAdminViewer
+              ? "Super Admin can manage both admins and students"
+              : "Admin can manage students only"}
+          </p>
+          {isSuperAdminViewer ? (
+            <div className="mt-4 inline-flex rounded-xl border border-[#E1D2BD] bg-white p-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab("STUDENTS");
+                  setCurrentPage(1);
+                }}
+                className={`px-4 py-2 text-xs font-bold rounded-lg ${
+                  activeTab === "STUDENTS" ? "bg-[#2B1A10] text-white" : "text-[#8B6B4A]"
+                }`}
+              >
+                Students
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab("ADMINS");
+                  setCurrentPage(1);
+                }}
+                className={`px-4 py-2 text-xs font-bold rounded-lg ${
+                  activeTab === "ADMINS" ? "bg-[#2B1A10] text-white" : "text-[#8B6B4A]"
+                }`}
+              >
+                Admins
+              </button>
+            </div>
+          ) : null}
         </div>
         <div className="relative mt-2">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#AE9E85]" />
@@ -123,15 +199,14 @@ export default function AdminUsersPage() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-[2fr_2fr_1.5fr_0.8fr_1.2fr_1fr_auto_auto] gap-4 px-6 py-3 border-b border-[#E1D2BD]/50 bg-[#FDFAF6]">
+            <div className="grid grid-cols-[2fr_2fr_1.5fr_0.8fr_1.2fr_1fr_2fr] gap-4 px-6 py-3 border-b border-[#E1D2BD]/50 bg-[#FDFAF6]">
               <span className="text-[11px] font-bold text-[#AE9E85] uppercase">Name</span>
               <span className="text-[11px] font-bold text-[#AE9E85] uppercase">Email</span>
               <span className="text-[11px] font-bold text-[#AE9E85] uppercase">ID No</span>
               <span className="text-[11px] font-bold text-[#AE9E85] uppercase">Year</span>
               <span className="text-[11px] font-bold text-[#AE9E85] uppercase">Phone No</span>
               <span className="text-[11px] font-bold text-[#AE9E85] uppercase">Status</span>
-              <span className="w-8"></span>
-              <span className="w-28"></span>
+              <span className="text-[11px] font-bold text-[#AE9E85] uppercase">Actions</span>
             </div>
             {paginated.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-[#AE9E85]">
@@ -143,12 +218,18 @@ export default function AdminUsersPage() {
                 const isToggling =
                   (blockUser.isPending && blockUser.variables === user.id) ||
                   (unblockUser.isPending && unblockUser.variables === user.id);
+                const isPromoting = promoteUser.isPending && promoteUser.variables === user.id;
+                const isTransferring = transferSuperAdmin.isPending && transferSuperAdmin.variables === user.id;
+
+                const canManageUser = isSuperAdminViewer
+                  ? !user.is_super_admin && user.id !== currentUser?.id
+                  : user.role === "STUDENT";
 
                 return (
                   <div
                     key={user.id}
                     onClick={() => setSelectedUser(user)}
-                    className="grid grid-cols-[2fr_2fr_1.5fr_0.8fr_1.2fr_1fr_auto_auto] gap-4 items-center px-6 py-4 border-b border-[#E1D2BD]/30 hover:bg-[#FDFAF6] transition-colors cursor-pointer"
+                    className="grid grid-cols-[2fr_2fr_1.5fr_0.8fr_1.2fr_1fr_2fr] gap-4 items-center px-6 py-4 border-b border-[#E1D2BD]/30 hover:bg-[#FDFAF6] transition-colors cursor-pointer"
                   >
                     <span className="text-sm font-bold text-[#2B1A10] truncate">{user.name}</span>
                     <span className="text-sm text-[#8B6B4A] truncate">{user.email}</span>
@@ -158,29 +239,55 @@ export default function AdminUsersPage() {
                     <span
                       className={`text-xs font-bold px-2.5 py-1 rounded-lg w-fit ${user.is_blocked ? "bg-red-50 text-red-700" : "bg-green-50 text-green-700"}`}
                     >
-                      {user.is_blocked ? "Blocked" : "Active"}
+                      {user.is_super_admin ? "Super Admin" : user.is_blocked ? "Blocked" : "Active"}
                     </span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(user.id);
-                      }}
-                      disabled={isDeleting}
-                      className="w-8 h-8 flex items-center justify-center rounded-lg text-[#AE9E85] hover:text-red-500 hover:bg-red-50 disabled:opacity-40"
-                      title="Delete user"
-                    >
-                      <Trash2 size={16} strokeWidth={1.5} />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleToggleBlock(user);
-                      }}
-                      disabled={isToggling}
-                      className="w-28 px-3 py-1.5 text-xs font-bold text-[#2B1A10] border border-[#C2B199] rounded-lg hover:bg-[#C2B199]/20 disabled:opacity-40"
-                    >
-                      {isToggling ? "Updating..." : user.is_blocked ? "Unblock" : "Block"}
-                    </button>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(user.id);
+                        }}
+                        disabled={isDeleting || !canManageUser}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg text-[#AE9E85] hover:text-red-500 hover:bg-red-50 disabled:opacity-40"
+                        title="Delete user"
+                      >
+                        <Trash2 size={16} strokeWidth={1.5} />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleBlock(user);
+                        }}
+                        disabled={isToggling || !canManageUser}
+                        className="w-24 px-3 py-1.5 text-xs font-bold text-[#2B1A10] border border-[#C2B199] rounded-lg hover:bg-[#C2B199]/20 disabled:opacity-40"
+                      >
+                        {isToggling ? "Updating..." : user.is_blocked ? "Unblock" : "Block"}
+                      </button>
+                      {isSuperAdminViewer && activeTab === "STUDENTS" ? (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePromote(user);
+                          }}
+                          disabled={isPromoting || user.is_blocked}
+                          className="w-24 px-3 py-1.5 text-xs font-bold text-[#2B1A10] border border-[#2B1A10] rounded-lg hover:bg-[#2B1A10] hover:text-white disabled:opacity-40"
+                        >
+                          {isPromoting ? "Promoting..." : "Promote"}
+                        </button>
+                      ) : null}
+                      {isSuperAdminViewer && activeTab === "ADMINS" && !user.is_super_admin ? (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleTransferSuperAdmin(user);
+                          }}
+                          disabled={isTransferring || user.is_blocked}
+                          className="w-36 px-3 py-1.5 text-xs font-bold border border-amber-600 text-amber-700 rounded-lg hover:bg-amber-50 disabled:opacity-40"
+                        >
+                          {isTransferring ? "Transferring..." : "Make Super Admin"}
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
                 );
               })
@@ -266,7 +373,7 @@ export default function AdminUsersPage() {
                   <div className="px-4 py-3 border-b border-[#E1D2BD]/40">
                     <h3 className="text-sm font-bold text-[#2B1A10]">Borrowing History</h3>
                   </div>
-                  <div className="max-h-[380px] overflow-y-auto">
+                  <div className="max-h-95 overflow-y-auto">
                     {insights.history.length === 0 ? (
                       <p className="p-4 text-xs text-[#AE9E85]">No history</p>
                     ) : (

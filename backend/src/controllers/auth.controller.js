@@ -97,6 +97,7 @@ export const getMe = async (req, res, next) => {
       roles,
       activePersona,
       studentProfileId,
+      is_super_admin: roles.includes("SUPER_ADMIN") || Boolean(req.user?.is_super_admin),
     };
 
     res.status(200).json({
@@ -185,7 +186,7 @@ export const updatePassword = async (req, res, next) => {
 
 export const getAllUsers = async (req, res, next) => {
   try {
-    const users = await authService.getAllUsers();
+    const users = await authService.getAllUsers(req.user.id);
     res.status(200).json({
       status: "success",
       results: users.length,
@@ -198,7 +199,7 @@ export const getAllUsers = async (req, res, next) => {
 
 export const blockUser = async (req, res, next) => {
   try {
-    await authService.blockUser(req.params.id);
+    await authService.blockUserByActor(req.params.id, req.user.id);
     invalidateAuthUserCache(req.params.id);
     authService.invalidateSessionContextCache(req.params.id);
     await logAdminActivity({
@@ -220,7 +221,7 @@ export const blockUser = async (req, res, next) => {
 
 export const unblockUser = async (req, res, next) => {
   try {
-    await authService.unblockUser(req.params.id);
+    await authService.unblockUserByActor(req.params.id, req.user.id);
     invalidateAuthUserCache(req.params.id);
     authService.invalidateSessionContextCache(req.params.id);
     await logAdminActivity({
@@ -256,6 +257,56 @@ export const deleteUser = async (req, res, next) => {
     res.status(200).json({
       status: "success",
       message: "User deleted successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const promoteStudentToAdmin = async (req, res, next) => {
+  try {
+    await authService.promoteStudentToAdmin(req.params.id, req.user.id);
+    invalidateAuthUserCache(req.params.id);
+    authService.invalidateSessionContextCache(req.params.id);
+
+    await logAdminActivity({
+      adminUserId: req.user.id,
+      action: "PROMOTE",
+      entityType: "USER",
+      entityId: req.params.id,
+      description: `Promoted student ${req.params.id} to admin`,
+      req,
+    });
+
+    res.status(200).json({
+      status: "success",
+      message: "Student promoted to admin successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const transferSuperAdmin = async (req, res, next) => {
+  try {
+    await authService.transferSuperAdminRole(req.params.id, req.user.id);
+    invalidateAuthUserCache(req.params.id);
+    invalidateAuthUserCache(req.user.id);
+    authService.invalidateSessionContextCache(req.params.id);
+    authService.invalidateSessionContextCache(req.user.id);
+
+    await logAdminActivity({
+      adminUserId: req.user.id,
+      action: "TRANSFER_SUPER_ADMIN",
+      entityType: "USER",
+      entityId: req.params.id,
+      description: `Transferred super admin role to ${req.params.id}`,
+      req,
+    });
+
+    res.status(200).json({
+      status: "success",
+      message: "Super admin role transferred successfully",
     });
   } catch (error) {
     next(error);

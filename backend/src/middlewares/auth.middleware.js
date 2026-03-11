@@ -11,6 +11,7 @@ const AUTH_USER_SELECT = {
   department: true,
   student_id: true,
   role: true,
+  is_super_admin: true,
   is_confirmed: true,
   is_blocked: true,
   created_at: true,
@@ -44,7 +45,10 @@ const isJwtError = (error) => {
 
 const isSchemaDriftError = (error) => {
   const message = String(error?.message || "");
-  return error?.code === "P2022" || /does not exist|Unknown arg|Invalid .* invocation/i.test(message);
+  return (
+    error?.code === "P2022" ||
+    /does not exist|Unknown arg|Unknown field|Invalid .* invocation|is_super_admin/i.test(message)
+  );
 };
 
 const clearAuthCookie = (res) => {
@@ -64,6 +68,27 @@ const getTokenFromRequest = (req) => {
     return req.headers.authorization.split(" ")[1];
   }
   return null;
+};
+
+const deriveEffectiveRoles = (decodedRoles, currentUser) => {
+  const delegatedStudentRoles = Array.isArray(decodedRoles)
+    ? decodedRoles.filter((role) => role === "STUDENT")
+    : [];
+
+  const roles = Array.from(new Set([currentUser.role, ...delegatedStudentRoles]));
+
+  if (currentUser.role === "SUPER_ADMIN" && !roles.includes("ADMIN")) {
+    roles.push("ADMIN");
+  }
+
+  if (
+    currentUser.role === "SUPER_ADMIN" ||
+    ((currentUser.role === "ADMIN" || roles.includes("ADMIN")) && currentUser.is_super_admin)
+  ) {
+    roles.push("SUPER_ADMIN");
+  }
+
+  return Array.from(new Set(roles));
 };
 
 const getCachedAuthUser = async (userId) => {
@@ -96,6 +121,7 @@ const getCachedAuthUser = async (userId) => {
           ...legacyUser,
           year: null,
           department: null,
+          is_super_admin: false,
         }
       : null;
   }
@@ -153,13 +179,15 @@ export const protect = async (req, res, next) => {
       return next(new AppError("Your account is blocked.", 403));
     }
 
+    const roles = deriveEffectiveRoles(decoded.roles, currentUser);
+
     req.user = currentUser;
     req.authContext = {
-      roles: Array.isArray(decoded.roles) ? decoded.roles : [currentUser.role],
+      roles,
       activePersona:
         typeof decoded.activePersona === "string"
           ? decoded.activePersona
-          : Array.isArray(decoded.roles) && decoded.roles.includes("ADMIN")
+          : roles.includes("ADMIN")
             ? "ADMIN"
             : currentUser.role,
       studentProfileId: decoded.studentProfileId || null,
@@ -201,14 +229,16 @@ export const optionalProtect = async (req, res, next) => {
       return next();
     }
 
+    const roles = deriveEffectiveRoles(decoded.roles, currentUser);
+
     req.user = currentUser;
 
     req.authContext = {
-      roles: Array.isArray(decoded.roles) ? decoded.roles : [currentUser.role],
+      roles,
       activePersona:
         typeof decoded.activePersona === "string"
           ? decoded.activePersona
-          : Array.isArray(decoded.roles) && decoded.roles.includes("ADMIN")
+          : roles.includes("ADMIN")
             ? "ADMIN"
             : currentUser.role,
       studentProfileId: decoded.studentProfileId || null,

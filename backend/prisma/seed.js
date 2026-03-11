@@ -49,6 +49,7 @@ async function main() {
         department: isAdmin ? "Library" : ["Engineering", "CS", "Business", "Theology"][i % 4],
         password_hash: hashedPassword,
         role: isAdmin ? "ADMIN" : "STUDENT",
+        is_super_admin: i === 0,
         is_confirmed: true,
         is_blocked: i === 9,
       },

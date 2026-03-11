@@ -6,6 +6,7 @@ type CurrentUser = {
   name: string;
   email: string;
   role: string;
+  is_super_admin?: boolean;
   roles?: string[];
   activePersona?: "ADMIN" | "STUDENT";
   studentProfileId?: string | null;

@@ -12,6 +12,7 @@ type SessionUser = {
   name: string;
   email: string;
   role: string;
+  is_super_admin?: boolean;
   roles?: string[];
   activePersona?: Persona;
   studentProfileId?: string | null;

@@ -307,7 +307,7 @@ export const getRentalById = async (id, user) => {
   if (!rental) throw new AppError("Rental not found", 404);
 
   // Students can only see their own
-  if (user.role !== "ADMIN" && rental.user_id !== user.id) {
+  if (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN" && rental.user_id !== user.id) {
     throw new AppError("Forbidden", 403);
   }
 

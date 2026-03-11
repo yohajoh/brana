@@ -46,6 +46,11 @@ export type User = {
   name: string;
   email: string;
   role: string;
+  student_id?: string | null;
+  phone?: string | null;
+  year?: string | null;
+  department?: string | null;
+  is_super_admin?: boolean;
   is_blocked?: boolean;
   created_at?: string;
 };
@@ -715,6 +720,27 @@ export function useUnblockUser() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.users });
+    },
+  });
+}
+
+export function usePromoteStudentToAdmin() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.patch<{ data: unknown }>(`/auth/users/${id}/promote-admin`),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.users });
+    },
+  });
+}
+
+export function useTransferSuperAdmin() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.patch<{ data: unknown }>(`/auth/users/${id}/transfer-super-admin`),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.users });
+      queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
     },
   });
 }
