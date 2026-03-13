@@ -25,6 +25,7 @@ import {
 import { API_BASE_URL, invalidateCurrentUserCache } from "@/lib/api";
 import { toast } from "sonner";
 import { usePersona } from "@/components/providers/PersonaProvider";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 interface DashboardSidebarProps {
   variant?: "default" | "admin";
@@ -33,6 +34,7 @@ interface DashboardSidebarProps {
 export const DashboardSidebar = ({ variant = "default" }: DashboardSidebarProps) => {
   const pathname = usePathname();
   const router = useRouter();
+  const { t } = useLanguage();
   const { user, activePersona, isLoading: loading, clearSession } = usePersona();
 
   const isAdminVariant = variant === "admin";
@@ -43,42 +45,42 @@ export const DashboardSidebar = ({ variant = "default" }: DashboardSidebarProps)
 
   const studentNavItems = [
     {
-      name: "Dashboard",
+      name: t("sidebar.dashboard"),
       href: baseRoute,
       icon: <LayoutDashboard size={20} />,
     },
     {
-      name: "Borrowing History",
+      name: t("sidebar.history"),
       href: `${baseRoute}/history`,
       icon: <History size={20} />,
     },
     {
-      name: "Wish List",
+      name: t("sidebar.wishlist"),
       href: `${baseRoute}/wishlist`,
       icon: <Heart size={20} />,
     },
     {
-      name: "Reservations",
+      name: t("sidebar.reservations"),
       href: `${baseRoute}/reservations`,
       icon: <CalendarClock size={20} />,
     },
     {
-      name: "Digital Library",
+      name: t("sidebar.digital"),
       href: `${baseRoute}/digital`,
       icon: <Library size={20} />,
     },
     {
-      name: "Payments",
+      name: t("sidebar.payments"),
       href: `${baseRoute}/payments`,
       icon: <Wallet size={20} />,
     },
     {
-      name: "Notifications",
+      name: t("sidebar.notifications"),
       href: `${baseRoute}/notifications`,
       icon: <Bell size={20} />,
     },
     {
-      name: "Account Settings",
+      name: t("sidebar.account_settings"),
       href: `${baseRoute}/settings`,
       icon: <Settings size={20} />,
     },
@@ -86,62 +88,62 @@ export const DashboardSidebar = ({ variant = "default" }: DashboardSidebarProps)
 
   const adminNavItems = [
     {
-      name: "Dashboard",
+      name: t("sidebar.dashboard"),
       href: "/dashboard/admin",
       icon: <LayoutDashboard size={20} />,
     },
     {
-      name: "Users",
+      name: t("sidebar.users"),
       href: "/dashboard/admin/users",
       icon: <Users size={20} />,
     },
     {
-      name: "Books",
+      name: t("sidebar.books"),
       href: "/dashboard/admin/books",
       icon: <BookOpen size={20} />,
     },
     {
-      name: "Categories",
+      name: t("sidebar.categories"),
       href: "/dashboard/admin/categories",
       icon: <Layers size={20} />,
     },
     {
-      name: "Authors",
+      name: t("sidebar.authors"),
       href: "/dashboard/admin/authors",
       icon: <PenTool size={20} />,
     },
     {
-      name: "Borrowings",
+      name: t("sidebar.borrowings"),
       href: "/dashboard/admin/borrowings",
       icon: <ArrowLeftRight size={20} />,
     },
     {
-      name: "Reservations",
+      name: t("sidebar.reservations"),
       href: "/dashboard/admin/reservations",
       icon: <CalendarCheck2 size={20} />,
     },
     {
-      name: "Overdue",
+      name: t("sidebar.overdue"),
       href: "/dashboard/admin/overdue",
       icon: <TriangleAlert size={20} />,
     },
     {
-      name: "Alerts",
+      name: t("sidebar.alerts"),
       href: "/dashboard/admin/alerts",
       icon: <TriangleAlert size={20} />,
     },
     {
-      name: "Activity Logs",
+      name: t("sidebar.activity_logs"),
       href: "/dashboard/admin/activity-logs",
       icon: <ClipboardList size={20} />,
     },
     {
-      name: "Reports",
+      name: t("sidebar.reports"),
       href: "/dashboard/admin/reports",
       icon: <FileSpreadsheet size={20} />,
     },
     {
-      name: "Settings",
+      name: t("sidebar.settings"),
       href: "/dashboard/admin/settings",
       icon: <Settings size={20} />,
     },
@@ -174,13 +176,13 @@ export const DashboardSidebar = ({ variant = "default" }: DashboardSidebarProps)
       });
       invalidateCurrentUserCache();
       clearSession();
-      toast.success("Logged out successfully");
+      toast.success(t("sidebar.logout_success") || "Logged out successfully");
       router.push("/auth/login");
     } catch (error) {
       console.error("Logout error:", error);
       invalidateCurrentUserCache();
       clearSession();
-      toast.error("Logout failed. Redirecting to login.");
+      toast.error(t("sidebar.logout_failed") || "Logout failed. Redirecting to login.");
       router.push("/auth/login");
     }
   };
@@ -234,7 +236,7 @@ export const DashboardSidebar = ({ variant = "default" }: DashboardSidebarProps)
           className={`flex w-full cursor-pointer items-center gap-4 rounded-xl px-4 py-3 transition-all group ${isAdminVariant ? "text-[#2B1A10]/60 hover:text-red-500 hover:bg-red-50" : "text-secondary hover:text-red-500 hover:bg-red-50"}`}
         >
           <LogOut size={20} className="group-hover:text-red-500" />
-          <span className="text-sm font-medium">Logout</span>
+          <span className="text-sm font-medium">{t("sidebar.logout")}</span>
         </button>
       </div>
     </aside>

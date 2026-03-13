@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import { Bell, ChevronRight } from "lucide-react";
 import { useNotifications, useMarkAsRead, Notification } from "@/lib/hooks/useNotifications";
 import { LoadingCard } from "@/components/ui/Loading";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 function NotificationDropdownContent() {
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -62,6 +64,7 @@ function NotificationDropdownContent() {
           setIsOpen(!isOpen);
           if (!isOpen) refetch();
         }}
+        aria-label={t("student_notifications.title")}
         className="relative flex items-center justify-center w-10 h-10 rounded-full border border-border bg-card/50 hover:bg-card transition-colors"
       >
         <Bell size={20} className="text-secondary" />
@@ -75,8 +78,8 @@ function NotificationDropdownContent() {
       {isOpen && (
         <div className="absolute right-0 top-12 w-80 sm:w-96 max-h-[500px] rounded-2xl overflow-hidden bg-white border border-border shadow-xl z-50">
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-            <h3 className="font-bold text-primary">Notifications</h3>
-            {displayUnreadCount > 0 && <span className="text-xs text-secondary">{displayUnreadCount} unread</span>}
+            <h3 className="font-bold text-primary">{t("student_notifications.title")}</h3>
+            {displayUnreadCount > 0 && <span className="text-xs text-secondary">{t("student_notifications.unread_count", { count: displayUnreadCount })}</span>}
           </div>
 
           <div className="max-h-96 overflow-y-auto">
@@ -121,7 +124,7 @@ function NotificationDropdownContent() {
                 </button>
               ))
             ) : (
-              <div className="p-8 text-center text-secondary text-sm">No unread notifications</div>
+              <div className="p-8 text-center text-secondary text-sm">{t("student_notifications.no_unread")}</div>
             )}
           </div>
 
@@ -130,7 +133,7 @@ function NotificationDropdownContent() {
               onClick={handleViewAll}
               className="w-full flex items-center justify-center gap-2 py-2 text-sm font-medium text-primary hover:text-accent transition-colors"
             >
-              View All Notifications
+              {t("student_notifications.view_all")}
               <ChevronRight size={16} />
             </button>
           </div>

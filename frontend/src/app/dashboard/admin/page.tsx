@@ -3,6 +3,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useStatsOverview, useStatsTargets, useUpdateTargets } from "@/lib/hooks/useQueries";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 type WeeklyPoint = { week_start: string; count: number };
 
@@ -61,6 +62,7 @@ function ProgressRow({ label, item }: { label: string; item: GoalProgress }) {
 }
 
 function LineChart({ points }: { points: WeeklyPoint[] }) {
+  const { t } = useLanguage();
   const width = 680;
   const height = 220;
   const pad = 24;
@@ -77,7 +79,7 @@ function LineChart({ points }: { points: WeeklyPoint[] }) {
 
   return (
     <div className="bg-white rounded-2xl border border-[#E1D2BD]/50 p-4">
-      <h3 className="text-sm font-bold text-[#2B1A10] mb-3">Rentals Per Week</h3>
+      <h3 className="text-sm font-bold text-[#2B1A10] mb-3">{t("dashboard.rentals_per_week")}</h3>
       <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-52">
         <rect x="0" y="0" width={width} height={height} fill="#fff" />
         {Array.from({ length: 5 }).map((_, i) => {
@@ -91,7 +93,7 @@ function LineChart({ points }: { points: WeeklyPoint[] }) {
       </svg>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[11px] text-[#8B6B4A] mt-2">
         {mapped.map((p, i) => (
-          <div key={i} className="truncate">{p.label || "Week"}: {p.value}</div>
+          <div key={i} className="truncate">{p.label || t("sidebar.history").split(" ")[0]}: {p.value}</div>
         ))}
       </div>
     </div>
@@ -99,6 +101,7 @@ function LineChart({ points }: { points: WeeklyPoint[] }) {
 }
 
 export default function DashboardPage() {
+  const { t } = useLanguage();
   const [form, setForm] = useState({
     target_rentals: "",
     target_active_readers: "",
@@ -141,14 +144,14 @@ export default function DashboardPage() {
 
   const summary = useMemo(
     () => [
-      { label: "Students", value: overview.users.total },
-      { label: "Books", value: overview.books.total },
-      { label: "Active Rentals", value: overview.rentals.active },
-      { label: "Overdue", value: overview.rentals.overdue },
-      { label: "Reservations", value: overview.rentals.reservations },
-      { label: "Revenue (Month)", value: `${overview.revenue.thisMonth} ETB` },
+      { label: t("dashboard.stats.students"), value: overview.users.total },
+      { label: t("dashboard.stats.books"), value: overview.books.total },
+      { label: t("dashboard.stats.active_rentals"), value: overview.rentals.active },
+      { label: t("dashboard.stats.overdue"), value: overview.rentals.overdue },
+      { label: t("dashboard.stats.reservations"), value: overview.rentals.reservations },
+      { label: t("dashboard.stats.revenue"), value: `${overview.revenue.thisMonth} ETB` },
     ],
-    [overview],
+    [overview, t],
   );
 
   const saveTargets = async (e: React.FormEvent) => {
@@ -169,12 +172,12 @@ export default function DashboardPage() {
   return (
     <div className="p-6 lg:p-12 space-y-8">
       <div>
-        <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-[#2B1A10]">Analytics Dashboard</h1>
-        <p className="text-[#AE9E85] font-medium">Goals, trends, and live library KPIs.</p>
+        <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-[#2B1A10]">{t("dashboard.analytics_title")}</h1>
+        <p className="text-[#AE9E85] font-medium">{t("dashboard.analytics_subtitle")}</p>
       </div>
 
       {loading ? (
-        <div className="py-16 text-center text-[#AE9E85]">Loading analytics...</div>
+        <div className="py-16 text-center text-[#AE9E85]">{t("dashboard.loading")}</div>
       ) : (
         <>
           <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
@@ -191,24 +194,24 @@ export default function DashboardPage() {
               <LineChart points={overview.trends?.rentalsPerWeek || []} />
             </div>
             <div className="bg-white rounded-2xl border border-[#E1D2BD]/50 p-4 space-y-3">
-              <h3 className="text-sm font-bold text-[#2B1A10]">Monthly Goal Progress</h3>
-              <ProgressRow label="Rentals" item={overview.monthlyTargets.progress.rentals} />
-              <ProgressRow label="Active Readers" item={overview.monthlyTargets.progress.activeReaders} />
-              <ProgressRow label="On-Time Returns" item={overview.monthlyTargets.progress.onTimeReturns} />
-              <ProgressRow label="New Books" item={overview.monthlyTargets.progress.newBooks} />
+              <h3 className="text-sm font-bold text-[#2B1A10]">{t("dashboard.goal_progress")}</h3>
+              <ProgressRow label={t("dashboard.targets.rentals")} item={overview.monthlyTargets.progress.rentals} />
+              <ProgressRow label={t("dashboard.targets.active_readers")} item={overview.monthlyTargets.progress.activeReaders} />
+              <ProgressRow label={t("dashboard.targets.on_time_returns")} item={overview.monthlyTargets.progress.onTimeReturns} />
+              <ProgressRow label={t("dashboard.targets.new_books")} item={overview.monthlyTargets.progress.newBooks} />
             </div>
           </div>
 
           <form onSubmit={saveTargets} className="bg-white rounded-2xl border border-[#E1D2BD]/50 p-5 space-y-4">
-            <h3 className="text-sm font-bold text-[#2B1A10]">Set Monthly Targets</h3>
+            <h3 className="text-sm font-bold text-[#2B1A10]">{t("dashboard.targets.title")}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-              <Field label="Rentals" value={form.target_rentals} onChange={(v) => setForm((p) => ({ ...p, target_rentals: v }))} />
-              <Field label="Active Readers" value={form.target_active_readers} onChange={(v) => setForm((p) => ({ ...p, target_active_readers: v }))} />
-              <Field label="On-Time Returns" value={form.target_on_time_returns} onChange={(v) => setForm((p) => ({ ...p, target_on_time_returns: v }))} />
-              <Field label="New Books" value={form.target_new_books} onChange={(v) => setForm((p) => ({ ...p, target_new_books: v }))} />
+              <Field label={t("dashboard.targets.rentals")} value={form.target_rentals} onChange={(v) => setForm((p) => ({ ...p, target_rentals: v }))} />
+              <Field label={t("dashboard.targets.active_readers")} value={form.target_active_readers} onChange={(v) => setForm((p) => ({ ...p, target_active_readers: v }))} />
+              <Field label={t("dashboard.targets.on_time_returns")} item={null} value={form.target_on_time_returns} onChange={(v) => setForm((p) => ({ ...p, target_on_time_returns: v }))} />
+              <Field label={t("dashboard.targets.new_books")} value={form.target_new_books} onChange={(v) => setForm((p) => ({ ...p, target_new_books: v }))} />
             </div>
             <button type="submit" disabled={updateTargets.isPending} className="px-4 py-2.5 rounded-xl bg-[#2B1A10] text-white text-sm font-bold disabled:opacity-50">
-              {updateTargets.isPending ? "Saving..." : "Save Targets"}
+              {updateTargets.isPending ? t("dashboard.targets.saving") : t("dashboard.targets.save")}
             </button>
           </form>
         </>

@@ -2,42 +2,44 @@
 
 import React from "react";
 import { UserPlus, Search, Truck, RotateCcw } from "lucide-react";
-
-const steps = [
-  {
-    id: 1,
-    title: "Create Account",
-    description: "Register your journey, beat a bookshelf's limit.",
-    icon: <UserPlus size={24} />,
-  },
-  {
-    id: 2,
-    title: "Choose a Book",
-    description: "Explore our vast library, find your next read.",
-    icon: <Search size={24} />,
-  },
-  {
-    id: 3,
-    title: "Dorm Delivery",
-    description: "Your book delivered to your dorm, stress-free.",
-    icon: <Truck size={24} />,
-  },
-  {
-    id: 4,
-    title: "Return & Pay",
-    description:
-      "Use your book share, pay for the next time, and keep the cycle going.",
-    icon: <RotateCcw size={24} />,
-  },
-];
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 export const HowItWorks = () => {
+  const { t } = useLanguage();
+
+  const steps = [
+    {
+      id: 1,
+      title: t("how_it_works.steps.create_account.title"),
+      description: t("how_it_works.steps.create_account.description"),
+      icon: <UserPlus size={24} />,
+    },
+    {
+      id: 2,
+      title: t("how_it_works.steps.choose_book.title"),
+      description: t("how_it_works.steps.choose_book.description"),
+      icon: <Search size={24} />,
+    },
+    {
+      id: 3,
+      title: t("how_it_works.steps.dorm_delivery.title"),
+      description: t("how_it_works.steps.dorm_delivery.description"),
+      icon: <Truck size={24} />,
+    },
+    {
+      id: 4,
+      title: t("how_it_works.steps.return_pay.title"),
+      description: t("how_it_works.steps.return_pay.description"),
+      icon: <RotateCcw size={24} />,
+    },
+  ];
+
   return (
     <section className="w-full py-24 bg-background mb-10">
       <div className="mx-auto max-w-7xl px-6">
         <div className="text-center mb-16">
           <h2 className="text-4xl font-serif font-extrabold text-primary mb-4">
-            How It Works
+            {t("how_it_works.title")}
           </h2>
           <div className="h-1.5 w-24 bg-secondary/30 mx-auto rounded-full" />
         </div>

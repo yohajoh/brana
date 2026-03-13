@@ -14,6 +14,7 @@ import {
   useTransferSuperAdmin,
 } from "@/lib/hooks/useQueries";
 import { usePersona } from "@/components/providers/PersonaProvider";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 interface User {
   id: string;
@@ -71,6 +72,7 @@ export default function AdminUsersPage() {
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>(null);
   const [isConfirming, setIsConfirming] = useState(false);
   const { user: currentUser } = usePersona();
+  const { t } = useLanguage();
 
   const { data: usersData, isLoading } = useUsers();
   const { data: insightsData } = useUserInsights(selectedUser?.id || "");
@@ -122,10 +124,10 @@ export default function AdminUsersPage() {
   const handleDelete = async (id: string) => {
     try {
       await deleteUser.mutateAsync(id);
-      toast.success("User deleted successfully");
+      toast.success(t("admin_users.messages.delete_success"));
       setSelectedUser((current) => (current?.id === id ? null : current));
     } catch (error) {
-      toast.error(getErrorMessage(error, "Failed to delete user"));
+      toast.error(getErrorMessage(error, t("admin_users.messages.status_update_failed")));
       throw error;
     }
   };
@@ -134,13 +136,13 @@ export default function AdminUsersPage() {
     try {
       if (user.is_blocked) {
         await unblockUser.mutateAsync(user.id);
-        toast.success("User unblocked successfully");
+        toast.success(t("admin_users.messages.unblock_success"));
       } else {
         await blockUser.mutateAsync(user.id);
-        toast.success("User blocked successfully");
+        toast.success(t("admin_users.messages.block_success"));
       }
     } catch (error) {
-      toast.error(getErrorMessage(error, "Failed to update user status"));
+      toast.error(getErrorMessage(error, t("admin_users.messages.status_update_failed")));
       throw error;
     }
   };
@@ -148,9 +150,9 @@ export default function AdminUsersPage() {
   const handlePromote = async (user: User) => {
     try {
       await promoteUser.mutateAsync(user.id);
-      toast.success("Student promoted to admin successfully");
+      toast.success(t("admin_users.messages.promote_success"));
     } catch (error) {
-      toast.error(getErrorMessage(error, "Failed to promote user"));
+      toast.error(getErrorMessage(error, t("admin_users.messages.status_update_failed")));
       throw error;
     }
   };
@@ -158,12 +160,12 @@ export default function AdminUsersPage() {
   const handleConvertToStudent = async (user: User) => {
     try {
       await convertAdmin.mutateAsync(user.id);
-      toast.success("Admin converted to student successfully");
+      toast.success(t("admin_users.messages.to_student_success"));
       setSelectedUser((current) =>
         current?.id === user.id ? { ...current, role: "STUDENT", is_super_admin: false } : current,
       );
     } catch (error) {
-      toast.error(getErrorMessage(error, "Failed to convert admin to student"));
+      toast.error(getErrorMessage(error, t("admin_users.messages.status_update_failed")));
       throw error;
     }
   };
@@ -171,10 +173,10 @@ export default function AdminUsersPage() {
   const handleTransferSuperAdmin = async (user: User) => {
     try {
       await transferSuperAdmin.mutateAsync(user.id);
-      toast.success("Super admin role transferred successfully");
+      toast.success(t("admin_users.messages.transfer_success"));
       window.location.reload();
     } catch (error) {
-      toast.error(getErrorMessage(error, "Failed to transfer super admin role"));
+      toast.error(getErrorMessage(error, t("admin_users.messages.status_update_failed")));
       throw error;
     }
   };
@@ -191,10 +193,10 @@ export default function AdminUsersPage() {
   };
 
   const getRoleLabel = (user: User) => {
-    if (user.is_blocked) return "Blocked";
-    if (user.is_super_admin || user.role === "SUPER_ADMIN") return "Super Admin";
-    if (user.role === "ADMIN") return "Admin";
-    return "Student";
+    if (user.is_blocked) return t("admin_users.roles.blocked");
+    if (user.is_super_admin || user.role === "SUPER_ADMIN") return t("admin_users.roles.super_admin");
+    if (user.role === "ADMIN") return t("admin_users.roles.admin");
+    return t("admin_users.roles.student");
   };
 
   const getRoleBadgeClassName = (user: User) => {
@@ -223,15 +225,13 @@ export default function AdminUsersPage() {
 
     actions.push({
       key: user.is_blocked ? "unblock" : "block",
-      label: user.is_blocked ? "Unblock" : "Block",
+      label: user.is_blocked ? t("admin_users.actions.unblock") : t("admin_users.actions.block"),
       tone: "default",
       onClick: () =>
         openConfirmDialog({
-          title: `${user.is_blocked ? "Unblock" : "Block"} ${user.name}?`,
-          description: user.is_blocked
-            ? "This will restore account access immediately."
-            : "This user will not be able to access the system until you unblock them.",
-          confirmLabel: user.is_blocked ? "Unblock User" : "Block User",
+          title: t(`admin_users.confirm.${user.is_blocked ? "unblock" : "block"}_title`, { name: user.name }),
+          description: t(`admin_users.confirm.${user.is_blocked ? "unblock" : "block"}_desc`),
+          confirmLabel: user.is_blocked ? t("admin_users.actions.unblock") : t("admin_users.actions.block"),
           tone: "amber",
           action: () => handleToggleBlock(user),
         }),
@@ -239,13 +239,13 @@ export default function AdminUsersPage() {
 
     actions.push({
       key: "delete",
-      label: "Delete",
+      label: t("admin_users.actions.delete"),
       tone: "danger",
       onClick: () =>
         openConfirmDialog({
-          title: `Delete ${user.name}?`,
-          description: "This removes the user account permanently if no protected related records exist.",
-          confirmLabel: "Delete User",
+          title: t("admin_users.confirm.delete_title", { name: user.name }),
+          description: t("admin_users.confirm.delete_desc"),
+          confirmLabel: t("admin_users.actions.delete"),
           tone: "danger",
           action: () => handleDelete(user.id),
         }),
@@ -254,14 +254,14 @@ export default function AdminUsersPage() {
     if (isSuperAdminViewer && user.role === "STUDENT") {
       actions.unshift({
         key: "promote",
-        label: "Promote",
+        label: t("admin_users.actions.promote"),
         tone: "default",
         disabled: Boolean(user.is_blocked),
         onClick: () =>
           openConfirmDialog({
-            title: `Promote ${user.name} to admin?`,
-            description: "The user will gain admin permissions and keep student persona access.",
-            confirmLabel: "Promote to Admin",
+            title: t("admin_users.confirm.promote_title", { name: user.name }),
+            description: t("admin_users.confirm.promote_desc"),
+            confirmLabel: t("admin_users.actions.promote"),
             tone: "primary",
             action: () => handlePromote(user),
           }),
@@ -271,14 +271,14 @@ export default function AdminUsersPage() {
     if (isSuperAdminViewer && user.role === "ADMIN") {
       actions.unshift({
         key: "to-student",
-        label: "Make Student",
+        label: t("admin_users.actions.make_student"),
         tone: "default",
         disabled: Boolean(user.is_blocked),
         onClick: () =>
           openConfirmDialog({
-            title: `Convert ${user.name} to student?`,
-            description: "This removes admin privileges and keeps the account as a student user.",
-            confirmLabel: "Convert to Student",
+            title: t("admin_users.confirm.to_student_title", { name: user.name }),
+            description: t("admin_users.confirm.to_student_desc"),
+            confirmLabel: t("admin_users.actions.make_student"),
             tone: "primary",
             action: () => handleConvertToStudent(user),
           }),
@@ -286,15 +286,14 @@ export default function AdminUsersPage() {
 
       actions.unshift({
         key: "transfer-super-admin",
-        label: "Make Super Admin",
+        label: t("admin_users.actions.make_super_admin"),
         tone: "amber",
         disabled: Boolean(user.is_blocked),
         onClick: () =>
           openConfirmDialog({
-            title: `Transfer super admin to ${user.name}?`,
-            description:
-              "This admin will become the only super admin. Your account will automatically become a normal admin.",
-            confirmLabel: "Transfer Role",
+            title: t("admin_users.confirm.transfer_super_title", { name: user.name }),
+            description: t("admin_users.confirm.transfer_super_desc"),
+            confirmLabel: t("admin_users.actions.make_super_admin"),
             tone: "amber",
             action: () => handleTransferSuperAdmin(user),
           }),
@@ -308,9 +307,9 @@ export default function AdminUsersPage() {
     <div className="p-6 lg:p-12 space-y-8">
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-[#2B1A10]">Manage Users</h1>
+          <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-[#2B1A10]">{t("admin_users.title")}</h1>
           <p className="text-[#AE9E85] font-medium">
-            {isSuperAdminViewer ? "Super Admin can manage both admins and students" : "Admin can manage students only"}
+            {isSuperAdminViewer ? t("admin_users.subtitle_super") : t("admin_users.subtitle_admin")}
           </p>
           {isSuperAdminViewer ? (
             <div className="mt-4 inline-flex rounded-xl border border-[#E1D2BD] bg-white p-1">
@@ -324,7 +323,7 @@ export default function AdminUsersPage() {
                   activeTab === "STUDENTS" ? "bg-[#2B1A10] text-white" : "text-[#8B6B4A]"
                 }`}
               >
-                Students
+                {t("admin_users.tabs.students")}
               </button>
               <button
                 type="button"
@@ -336,7 +335,7 @@ export default function AdminUsersPage() {
                   activeTab === "ADMINS" ? "bg-[#2B1A10] text-white" : "text-[#8B6B4A]"
                 }`}
               >
-                Admins
+                {t("admin_users.tabs.admins")}
               </button>
             </div>
           ) : null}
@@ -345,7 +344,7 @@ export default function AdminUsersPage() {
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#AE9E85]" />
           <input
             type="text"
-            placeholder="Search user"
+            placeholder={t("admin_users.search_placeholder")}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -364,17 +363,17 @@ export default function AdminUsersPage() {
         ) : (
           <>
             <div className="grid grid-cols-[2fr_2fr_1.5fr_0.8fr_1.2fr_1fr_2fr] gap-4 px-6 py-3 border-b border-[#E1D2BD]/50 bg-[#FDFAF6]">
-              <span className="text-[11px] font-bold text-[#AE9E85] uppercase">Name</span>
-              <span className="text-[11px] font-bold text-[#AE9E85] uppercase">Email</span>
-              <span className="text-[11px] font-bold text-[#AE9E85] uppercase">ID No</span>
-              <span className="text-[11px] font-bold text-[#AE9E85] uppercase">Year</span>
-              <span className="text-[11px] font-bold text-[#AE9E85] uppercase">Phone No</span>
-              <span className="text-[11px] font-bold text-[#AE9E85] uppercase">Status</span>
-              <span className="text-[11px] font-bold text-[#AE9E85] uppercase">Actions</span>
+              <span className="text-[11px] font-bold text-[#AE9E85] uppercase">{t("admin_users.table.name")}</span>
+              <span className="text-[11px] font-bold text-[#AE9E85] uppercase">{t("admin_users.table.email")}</span>
+              <span className="text-[11px] font-bold text-[#AE9E85] uppercase">{t("admin_users.table.id_no")}</span>
+              <span className="text-[11px] font-bold text-[#AE9E85] uppercase">{t("admin_users.table.year")}</span>
+              <span className="text-[11px] font-bold text-[#AE9E85] uppercase">{t("admin_users.table.phone_no")}</span>
+              <span className="text-[11px] font-bold text-[#AE9E85] uppercase">{t("admin_users.table.status")}</span>
+              <span className="text-[11px] font-bold text-[#AE9E85] uppercase">{t("admin_users.table.actions")}</span>
             </div>
             {paginated.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-[#AE9E85]">
-                <p className="text-sm font-medium">No users found</p>
+                <p className="text-sm font-medium">{t("admin_users.table.no_users")}</p>
               </div>
             ) : (
               paginated.map((user) => {
@@ -444,7 +443,7 @@ export default function AdminUsersPage() {
             className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-[#2B1A10]/60 disabled:opacity-30"
           >
             <ChevronLeft size={16} />
-            Previous
+            {t("common.previous")}
           </button>
           <div className="flex items-center gap-1.5">
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
@@ -462,7 +461,7 @@ export default function AdminUsersPage() {
             disabled={currentPage === totalPages}
             className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-[#2B1A10]/60 disabled:opacity-30"
           >
-            Next
+            {t("common.next")}
             <ChevronRight size={16} />
           </button>
         </div>
@@ -491,15 +490,15 @@ export default function AdminUsersPage() {
             {insights ? (
               <div className="space-y-5">
                 <div className="grid grid-cols-2 gap-3">
-                  <Card label="Total Rentals" value={String(insights.stats.totalRentals)} />
-                  <Card label="On-Time Rate" value={`${insights.stats.onTimeRate}%`} />
-                  <Card label="Active Overdue" value={String(insights.stats.activeOverdue)} />
-                  <Card label="Wishlist" value={String(insights.stats.wishlistCount)} />
+                  <Card label={t("admin_users.insights.total_rentals")} value={String(insights.stats.totalRentals)} />
+                  <Card label={t("admin_users.insights.on_time_rate")} value={`${insights.stats.onTimeRate}%`} />
+                  <Card label={t("admin_users.insights.active_overdue")} value={String(insights.stats.activeOverdue)} />
+                  <Card label={t("admin_users.insights.wishlist")} value={String(insights.stats.wishlistCount)} />
                 </div>
                 <div className="bg-white rounded-2xl border border-[#E1D2BD]/50 p-4">
-                  <h3 className="text-sm font-bold text-[#2B1A10] mb-3">Favorite Categories</h3>
+                  <h3 className="text-sm font-bold text-[#2B1A10] mb-3">{t("admin_users.insights.favorite_categories")}</h3>
                   {insights.favoriteCategories.length === 0 ? (
-                    <p className="text-xs text-[#AE9E85]">No category data yet</p>
+                    <p className="text-xs text-[#AE9E85]">{t("admin_users.insights.no_category_data")}</p>
                   ) : (
                     insights.favoriteCategories.map((cat) => (
                       <div key={cat.name} className="flex items-center justify-between py-1.5 text-sm">
@@ -511,20 +510,22 @@ export default function AdminUsersPage() {
                 </div>
                 <div className="bg-white rounded-2xl border border-[#E1D2BD]/50 overflow-hidden">
                   <div className="px-4 py-3 border-b border-[#E1D2BD]/40">
-                    <h3 className="text-sm font-bold text-[#2B1A10]">Borrowing History</h3>
+                    <h3 className="text-sm font-bold text-[#2B1A10]">{t("admin_users.insights.borrowing_history")}</h3>
                   </div>
                   <div className="max-h-95 overflow-y-auto">
                     {insights.history.length === 0 ? (
-                      <p className="p-4 text-xs text-[#AE9E85]">No history</p>
+                      <p className="p-4 text-xs text-[#AE9E85]">{t("admin_users.insights.history_empty")}</p>
                     ) : (
                       insights.history.map((item) => (
                         <div key={item.id} className="p-4 border-b border-[#E1D2BD]/30 last:border-0">
                           <p className="text-sm font-bold text-[#2B1A10]">{item.bookTitle}</p>
                           <p className="text-xs text-[#AE9E85]">
-                            Due {new Date(item.dueDate).toLocaleDateString()} • {item.status}
+                            {t("admin_users.insights.due", { date: new Date(item.dueDate).toLocaleDateString() })} • {item.status}
                           </p>
                           <p className={`text-xs mt-1 ${item.isLate ? "text-red-700" : "text-green-700"}`}>
-                            {item.isLate ? `Late by ${item.daysLate} day(s)` : "Returned on time"}
+                            {item.isLate 
+                              ? t("admin_users.insights.late", { count: item.daysLate }) 
+                              : t("admin_users.insights.on_time")}
                           </p>
                         </div>
                       ))
@@ -533,7 +534,7 @@ export default function AdminUsersPage() {
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-[#AE9E85]">Loading user progress...</p>
+              <p className="text-sm text-[#AE9E85]">{t("admin_users.insights.loading")}</p>
             )}
           </aside>
         </div>
@@ -559,7 +560,7 @@ export default function AdminUsersPage() {
                 disabled={isConfirming}
                 className="px-4 py-2.5 rounded-xl border border-[#D9C8B3] text-sm font-bold text-[#6C5236] disabled:opacity-40"
               >
-                Cancel
+                {t("common.cancel")}
               </button>
               <button
                 type="button"
@@ -573,7 +574,7 @@ export default function AdminUsersPage() {
                       : "bg-[#2B1A10]"
                 }`}
               >
-                {isConfirming ? "Processing..." : confirmDialog.confirmLabel}
+                {isConfirming ? t("admin_users.actions.processing") : confirmDialog.confirmLabel}
               </button>
             </div>
           </div>

@@ -7,10 +7,15 @@ import { AdminNotificationDropdown } from "@/components/notifications/AdminNotif
 import Image from "next/image";
 import { PersonaSwitcher } from "@/components/PersonaSwitcher";
 import { usePersona } from "@/components/providers/PersonaProvider";
+import { useLanguage } from "@/components/providers/LanguageProvider";
+import { Globe } from "lucide-react";
+import { useState } from "react";
 
 export const Navbar = () => {
   const pathname = usePathname();
   const { user } = usePersona();
+  const { language, setLanguage, t } = useLanguage();
+  const [isLangOpen, setIsLangOpen] = useState(false);
   const isStudentDashboard = pathname.startsWith("/dashboard/student");
   const isAdminDashboard = pathname.startsWith("/dashboard/admin");
 
@@ -20,6 +25,12 @@ export const Navbar = () => {
     }
     return pathname.startsWith(path);
   };
+
+  const languages = [
+    { code: "en", name: "English" },
+    { code: "am", name: "አማርኛ" },
+    { code: "or", name: "Oromiffa" },
+  ];
 
   return (
     <header className="sticky top-0 z-50 w-full pt-4 pb-2 bg-background/80 backdrop-blur-md">
@@ -48,7 +59,7 @@ export const Navbar = () => {
                   : "hover:text-primary"
               }`}
             >
-              Home
+              {t("navbar.home")}
             </Link>
             <Link
               href="/books"
@@ -58,7 +69,7 @@ export const Navbar = () => {
                   : "hover:text-primary"
               }`}
             >
-              Books
+              {t("navbar.books")}
             </Link>
             <Link
               href="/about"
@@ -68,11 +79,43 @@ export const Navbar = () => {
                   : "hover:text-primary"
               }`}
             >
-              About Us
+              {t("navbar.about")}
             </Link>
           </nav>
 
           <div className="flex items-center gap-3">
+            {/* Language Switcher */}
+            <div className="relative">
+              <button
+                onClick={() => setIsLangOpen(!isLangOpen)}
+                className="flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-semibold text-secondary hover:text-primary hover:border-primary transition-all active:scale-95"
+              >
+                <Globe size={14} />
+                <span className="uppercase">{language}</span>
+              </button>
+
+              {isLangOpen && (
+                <div className="absolute right-0 mt-2 w-32 rounded-2xl border border-border bg-card p-2 shadow-xl animate-in fade-in zoom-in duration-200">
+                  {languages.map((lang) => (
+                    <button
+                      key={lang.code}
+                      onClick={() => {
+                        setLanguage(lang.code as any);
+                        setIsLangOpen(false);
+                      }}
+                      className={`w-full rounded-xl px-3 py-2 text-left text-xs font-medium transition-colors ${
+                        language === lang.code
+                          ? "bg-primary/10 text-primary"
+                          : "text-secondary hover:bg-muted"
+                      }`}
+                    >
+                      {lang.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {isStudentDashboard && <NotificationDropdown />}
             {isAdminDashboard && <AdminNotificationDropdown />}
             {user ? (
@@ -84,13 +127,13 @@ export const Navbar = () => {
                   className="rounded-full bg-primary px-6 py-2 text-sm font-bold text-background shadow-md hover:bg-background
                    hover:text-primary border border-primary transition-all active:scale-95"
                 >
-                  Log in
+                  {t("navbar.login")}
                 </Link>
                 <Link
                   href="/auth/create-account"
                   className="rounded-full px-6 py-2 text-sm font-bold border border-accent text-accent shadow-md hover:bg-accent hover:text-background transition-all active:scale-95"
                 >
-                  Sign up
+                  {t("navbar.signup")}
                 </Link>
               </>
             )}

@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 type Props = {
   currentPage: number;
@@ -9,6 +10,7 @@ type Props = {
 };
 
 export const Pagination = ({ currentPage, totalPages, onPageChange }: Props) => {
+  const { t } = useLanguage();
   if (totalPages <= 1) return null;
 
   const getPageNumbers = () => {
@@ -55,6 +57,8 @@ export const Pagination = ({ currentPage, totalPages, onPageChange }: Props) => 
         onClick={() => onPageChange(Math.max(1, currentPage - 1))}
         disabled={currentPage === 1}
         className="h-10 w-10 flex items-center justify-center rounded-full bg-primary text-background shadow-md hover:bg-accent transition-all active:scale-90 disabled:opacity-50 disabled:cursor-not-allowed"
+        aria-label={t("common.pagination.previous")}
+        title={t("common.pagination.previous")}
       >
         <ChevronLeft size={20} />
       </button>
@@ -95,6 +99,8 @@ export const Pagination = ({ currentPage, totalPages, onPageChange }: Props) => 
         onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
         disabled={currentPage === totalPages}
         className="h-10 w-10 flex items-center justify-center rounded-full bg-primary text-background shadow-md hover:bg-accent transition-all active:scale-90 disabled:opacity-50 disabled:cursor-not-allowed"
+        aria-label={t("common.pagination.next")}
+        title={t("common.pagination.next")}
       >
         <ChevronRight size={20} />
       </button>

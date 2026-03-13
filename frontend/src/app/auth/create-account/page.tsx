@@ -7,9 +7,11 @@ import { AuthLayout } from "../AuthLayout";
 import { fetchApi } from "@/lib/api";
 import { useAuthListener } from "@/lib/auth";
 import { AuthModal } from "@/components/ui/AuthModal";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 export default function CreateAccountPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
@@ -38,7 +40,7 @@ export default function CreateAccountPage() {
     const confirmPassword = formData.get("confirmPassword") as string;
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      setError(t("auth.signup.messages.password_mismatch"));
       setIsLoading(false);
       return;
     }
@@ -58,7 +60,7 @@ export default function CreateAccountPage() {
       });
       setShowModal(true);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to create account");
+      setError(err instanceof Error ? err.message : t("auth.signup.messages.signup_failed"));
     } finally {
       setIsLoading(false);
     }
@@ -67,13 +69,13 @@ export default function CreateAccountPage() {
   return (
     <>
       <AuthLayout
-        title="Create an account"
-        subtitle="Already have an account? Log in"
+        title={t("auth.signup.title")}
+        subtitle={t("auth.signup.subtitle")}
         showBackLink
         backHref="/auth/login"
-        backLabel="Already have an account? Sign in"
+        backLabel={t("auth.signup.back_label")}
         imageSrc="/auth/image copy.png"
-        imageAlt="Colorful stack of spiritual books"
+        imageAlt={t("auth.signup.image_alt") || "Colorful stack of spiritual books"}
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
@@ -87,20 +89,20 @@ export default function CreateAccountPage() {
               htmlFor="fullName"
               className="text-xs font-medium text-[#3B2718]"
             >
-              Full Name
+              {t("auth.signup.full_name_label")}
             </label>
             <input
               id="fullName"
               name="fullName"
               required
               className="w-full rounded-xl border border-[#D2BFA3] bg-white px-3 py-2.5 text-sm text-[#3B2718] placeholder:text-[#B09776] outline-none focus:border-[#7A4A1D] focus:ring-2 focus:ring-[#E1C6A1] transition"
-              placeholder="Enter your full name"
+              placeholder={t("auth.signup.full_name_placeholder")}
             />
           </div>
 
           <div className="space-y-1.5">
             <label htmlFor="year" className="text-xs font-medium text-[#3B2718]">
-              Year
+              {t("auth.signup.year_label")}
             </label>
             <input
               id="year"
@@ -108,13 +110,13 @@ export default function CreateAccountPage() {
               type="text"
               required
               className="w-full rounded-xl border border-[#D2BFA3] bg-white px-3 py-2.5 text-sm text-[#3B2718] placeholder:text-[#B09776] outline-none focus:border-[#7A4A1D] focus:ring-2 focus:ring-[#E1C6A1] transition"
-              placeholder="e.g. 3rd year"
+              placeholder={t("auth.signup.year_placeholder")}
             />
           </div>
 
           <div className="space-y-1.5">
             <label htmlFor="department" className="text-xs font-medium text-[#3B2718]">
-              Department
+              {t("auth.signup.department_label")}
             </label>
             <input
               id="department"
@@ -122,7 +124,7 @@ export default function CreateAccountPage() {
               type="text"
               required
               className="w-full rounded-xl border border-[#D2BFA3] bg-white px-3 py-2.5 text-sm text-[#3B2718] placeholder:text-[#B09776] outline-none focus:border-[#7A4A1D] focus:ring-2 focus:ring-[#E1C6A1] transition"
-              placeholder="e.g. Computer Science"
+              placeholder={t("auth.signup.department_placeholder")}
             />
           </div>
 
@@ -131,7 +133,7 @@ export default function CreateAccountPage() {
               htmlFor="studentId"
               className="text-xs font-medium text-[#3B2718]"
             >
-              Id no.
+              {t("auth.signup.id_label")}
             </label>
             <input
               id="studentId"
@@ -139,13 +141,13 @@ export default function CreateAccountPage() {
               type="text"
               required
               className="w-full rounded-xl border border-[#D2BFA3] bg-white px-3 py-2.5 text-sm text-[#3B2718] placeholder:text-[#B09776] outline-none focus:border-[#7A4A1D] focus:ring-2 focus:ring-[#E1C6A1] transition"
-              placeholder="Enter your ID"
+              placeholder={t("auth.signup.id_placeholder")}
             />
           </div>
 
           <div className="space-y-1.5">
             <label htmlFor="phone" className="text-xs font-medium text-[#3B2718]">
-              Phone Number
+              {t("auth.signup.phone_label")}
             </label>
             <input
               id="phone"
@@ -153,13 +155,13 @@ export default function CreateAccountPage() {
               type="tel"
               required
               className="w-full rounded-xl border border-[#D2BFA3] bg-white px-3 py-2.5 text-sm text-[#3B2718] placeholder:text-[#B09776] outline-none focus:border-[#7A4A1D] focus:ring-2 focus:ring-[#E1C6A1] transition"
-              placeholder="+2519XXXXXXXX"
+              placeholder={t("auth.signup.phone_placeholder")}
             />
           </div>
 
           <div className="space-y-1.5">
             <label htmlFor="email" className="text-xs font-medium text-[#3B2718]">
-              Email
+              {t("auth.signup.email_label")}
             </label>
             <input
               id="email"
@@ -167,7 +169,7 @@ export default function CreateAccountPage() {
               type="email"
               required
               className="w-full rounded-xl border border-[#D2BFA3] bg-white px-3 py-2.5 text-sm text-[#3B2718] placeholder:text-[#B09776] outline-none focus:border-[#7A4A1D] focus:ring-2 focus:ring-[#E1C6A1] transition"
-              placeholder="you@astu.edu.et"
+              placeholder={t("auth.signup.email_placeholder")}
             />
           </div>
 
@@ -176,7 +178,7 @@ export default function CreateAccountPage() {
               htmlFor="password"
               className="text-xs font-medium text-[#3B2718]"
             >
-              Enter Your Password
+              {t("auth.signup.password_label")}
             </label>
             <input
               id="password"
@@ -184,7 +186,7 @@ export default function CreateAccountPage() {
               type="password"
               required
               className="w-full rounded-xl border border-[#D2BFA3] bg-white px-3 py-2.5 text-sm text-[#3B2718] placeholder:text-[#B09776] outline-none focus:border-[#7A4A1D] focus:ring-2 focus:ring-[#E1C6A1] transition"
-              placeholder="Create a strong password"
+              placeholder={t("auth.signup.password_placeholder")}
             />
           </div>
 
@@ -193,7 +195,7 @@ export default function CreateAccountPage() {
               htmlFor="confirmPassword"
               className="text-xs font-medium text-[#3B2718]"
             >
-              Confirm Your Password
+              {t("auth.signup.confirm_password_label")}
             </label>
             <input
               id="confirmPassword"
@@ -201,7 +203,7 @@ export default function CreateAccountPage() {
               type="password"
               required
               className="w-full rounded-xl border border-[#D2BFA3] bg-white px-3 py-2.5 text-sm text-[#3B2718] placeholder:text-[#B09776] outline-none focus:border-[#7A4A1D] focus:ring-2 focus:ring-[#E1C6A1] transition"
-              placeholder="Confirm your password"
+              placeholder={t("auth.signup.confirm_password_placeholder")}
             />
           </div>
 
@@ -217,15 +219,10 @@ export default function CreateAccountPage() {
               htmlFor="terms"
               className="text-xs text-[#8B6B4A] leading-snug cursor-pointer"
             >
-              I agree to the{" "}
-              <span className="text-[#4A2B0B] hover:text-[#754019]">
-                terms of use
-              </span>{" "}
-              and{" "}
-              <span className="text-[#4A2B0B] hover:text-[#754019]">
-                privacy policy
-              </span>
-              .
+              {t("auth.signup.terms_agree", {
+                terms: `<span class="text-[#4A2B0B] hover:text-[#754019]">${t("auth.signup.terms_label")}</span>`,
+                privacy: `<span class="text-[#4A2B0B] hover:text-[#754019]">${t("auth.signup.privacy_label")}</span>`,
+              })}
             </label>
           </div>
 
@@ -234,17 +231,17 @@ export default function CreateAccountPage() {
             disabled={isLoading}
             className="mt-2 inline-flex w-full items-center justify-center rounded-xl bg-[#4A2B0B] px-4 py-2.5 text-sm font-medium text-white shadow-[0_14px_40px_rgba(74,43,11,0.35)] hover:bg-[#5B3410] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C79E6C] focus-visible:ring-offset-2 focus-visible:ring-offset-white transition disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            {isLoading ? "Creating account..." : "Create account"}
+            {isLoading ? t("auth.signup.submitting") : t("auth.signup.submit")}
           </button>
         </form>
 
         <p className="pt-4 text-center text-xs text-[#8B6B4A]">
-          Already registered?{" "}
+          {t("auth.signup.already_registered")}{" "}
           <Link
             href="/auth/login"
             className="font-medium text-[#4A2B0B] hover:text-[#754019] transition-colors"
           >
-            Sign in
+            {t("auth.signup.signin_link")}
           </Link>
         </p>
       </AuthLayout>
@@ -252,8 +249,8 @@ export default function CreateAccountPage() {
       <AuthModal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
-        title="Check your email"
-        message="We've sent a confirmation link to your email address. Please follow the link to activate your account. This tab will automatically redirect once confirmed."
+        title={t("auth.signup.modal.title")}
+        message={t("auth.signup.modal.message")}
       />
     </>
   );

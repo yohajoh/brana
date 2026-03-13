@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ChangePasswordModal } from "./ChangePasswordModal";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 type UserData = {
   email: string;
@@ -13,13 +14,14 @@ type Props = {
 };
 
 export const SecuritySettings = ({ user, loading }: Props) => {
+  const { t } = useLanguage();
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
 
   if (loading) {
     return (
       <div className="space-y-8">
         <h3 className="text-xl font-serif font-extrabold text-primary">
-          Account Security
+          {t("student_settings.security_title")}
         </h3>
         <div className="space-y-6 max-w-3xl animate-pulse">
           <div className="h-16 bg-muted/50 rounded-xl" />
@@ -32,7 +34,7 @@ export const SecuritySettings = ({ user, loading }: Props) => {
   return (
     <div className="space-y-8">
       <h3 className="text-xl font-serif font-extrabold text-primary">
-        Account Security
+        {t("student_settings.security_title")}
       </h3>
 
       <div className="space-y-6 max-w-3xl">
@@ -40,7 +42,7 @@ export const SecuritySettings = ({ user, loading }: Props) => {
         <div className="flex flex-col md:flex-row md:items-end gap-4">
           <div className="flex-1 space-y-2">
             <label className="text-xs font-bold text-secondary uppercase tracking-widest px-1">
-              Email
+              {t("student_settings.labels.email")}
             </label>
             <input
               type="email"
@@ -53,7 +55,7 @@ export const SecuritySettings = ({ user, loading }: Props) => {
             disabled
             className="px-6 py-3.5 rounded-xl bg-muted text-secondary text-xs font-extrabold transition-all cursor-not-allowed opacity-50"
           >
-            Email Cannot Be Changed
+            {t("student_settings.messages.email_readonly_btn")}
           </button>
         </div>
 
@@ -61,7 +63,7 @@ export const SecuritySettings = ({ user, loading }: Props) => {
         <div className="flex flex-col md:flex-row md:items-end gap-4">
           <div className="flex-1 space-y-2">
             <label className="text-xs font-bold text-secondary uppercase tracking-widest px-1">
-              Password
+              {t("student_settings.labels.password")}
             </label>
             <input
               type="password"
@@ -74,7 +76,7 @@ export const SecuritySettings = ({ user, loading }: Props) => {
             onClick={() => setIsPasswordModalOpen(true)}
             className="px-6 py-3.5 rounded-xl bg-accent text-background text-xs font-extrabold hover:bg-primary transition-all active:scale-95 whitespace-nowrap shadow-md"
           >
-            Change Password
+            {t("student_settings.actions.change_password")}
           </button>
         </div>
       </div>

@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, RefreshCcw, Search } from "lucide-react";
 import { toast } from "sonner";
 import { useRentals, useProcessReturn } from "@/lib/hooks/useQueries";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 type Rental = {
   id: string;
@@ -25,6 +26,7 @@ function BorrowingsContent() {
   const searchParams = useSearchParams();
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const { t } = useLanguage();
   
   const statusFilter = searchParams.get("status") || "";
   const queryParams = new URLSearchParams();
@@ -54,9 +56,9 @@ function BorrowingsContent() {
   const handleProcessReturn = async (id: string) => {
     try {
       await processReturn.mutateAsync(id);
-      toast.success("Return processed successfully");
+      toast.success(t("admin_borrowings.messages.return_success"));
     } catch (error) {
-      toast.error(getErrorMessage(error, "Failed to process return"));
+      toast.error(getErrorMessage(error, t("admin_borrowings.messages.return_failed") || "Failed to process return"));
     }
   };
 
@@ -64,16 +66,16 @@ function BorrowingsContent() {
     <div className="p-6 lg:p-12 space-y-8">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="space-y-1">
-          <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-[#2B1A10]">Borrowings</h1>
-          <p className="text-[#AE9E85] font-medium">Track active rentals, returns, and overdue items.</p>
+          <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-[#2B1A10]">{t("admin_borrowings.title")}</h1>
+          <p className="text-[#AE9E85] font-medium">{t("admin_borrowings.subtitle")}</p>
         </div>
         <div className="flex items-center gap-3 mt-2">
           <div className="relative">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#AE9E85]" />
-            <input type="text" placeholder="Search borrowing" value={search} onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }} className="pl-9 pr-4 py-2.5 text-sm bg-white border border-[#E1D2BD] rounded-xl text-[#2B1A10] placeholder:text-[#C4B49E] w-56" />
+            <input type="text" placeholder={t("admin_borrowings.search_placeholder")} value={search} onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }} className="pl-9 pr-4 py-2.5 text-sm bg-white border border-[#E1D2BD] rounded-xl text-[#2B1A10] placeholder:text-[#C4B49E] w-56" />
           </div>
           <button onClick={() => refetch()} className="flex items-center gap-2 px-4 py-2.5 bg-[#2B1A10] text-white text-sm font-bold rounded-xl">
-            <RefreshCcw size={15} />Refresh
+            <RefreshCcw size={15} />{t("common.refresh") || "Refresh"}
           </button>
         </div>
       </div>
@@ -84,16 +86,16 @@ function BorrowingsContent() {
         ) : (
           <>
             <div className="grid grid-cols-[1.6fr_2fr_1fr_1fr_1fr_0.8fr_1fr] gap-4 px-6 py-3 border-b border-[#E1D2BD]/50 bg-[#FDFAF6]">
-              <span className="text-[11px] font-bold text-[#AE9E85] uppercase">Student</span>
-              <span className="text-[11px] font-bold text-[#AE9E85] uppercase">Book</span>
-              <span className="text-[11px] font-bold text-[#AE9E85] uppercase">Loan Date</span>
-              <span className="text-[11px] font-bold text-[#AE9E85] uppercase">Due Date</span>
-              <span className="text-[11px] font-bold text-[#AE9E85] uppercase">Status</span>
-              <span className="text-[11px] font-bold text-[#AE9E85] uppercase">Fine</span>
-              <span className="text-[11px] font-bold text-[#AE9E85] uppercase">Action</span>
+              <span className="text-[11px] font-bold text-[#AE9E85] uppercase">{t("admin_borrowings.table.student")}</span>
+              <span className="text-[11px] font-bold text-[#AE9E85] uppercase">{t("admin_borrowings.table.book")}</span>
+              <span className="text-[11px] font-bold text-[#AE9E85] uppercase">{t("admin_borrowings.table.loan_date")}</span>
+              <span className="text-[11px] font-bold text-[#AE9E85] uppercase">{t("admin_borrowings.table.due_date")}</span>
+              <span className="text-[11px] font-bold text-[#AE9E85] uppercase">{t("admin_borrowings.table.status")}</span>
+              <span className="text-[11px] font-bold text-[#AE9E85] uppercase">{t("admin_borrowings.table.fine")}</span>
+              <span className="text-[11px] font-bold text-[#AE9E85] uppercase">{t("admin_borrowings.table.action")}</span>
             </div>
             {paginated.length === 0 ? (
-              <div className="py-16 text-center text-sm text-[#AE9E85]">No borrowings found</div>
+              <div className="py-16 text-center text-sm text-[#AE9E85]">{t("admin_borrowings.table.no_borrowings")}</div>
             ) : (
               paginated.map((rental) => (
                 <div key={rental.id} className="grid grid-cols-[1.6fr_2fr_1fr_1fr_1fr_0.8fr_1fr] gap-4 items-center px-6 py-4 border-b border-[#E1D2BD]/30 hover:bg-[#FDFAF6]">
@@ -104,7 +106,7 @@ function BorrowingsContent() {
                   <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-[#F3EFE6] text-[#2B1A10] w-fit">{rental.status}</span>
                   <span className="text-sm text-[#2B1A10]/70">{Number(rental.fine || 0).toFixed(2)}</span>
                   <button onClick={() => handleProcessReturn(rental.id)} disabled={processingReturnId === rental.id || rental.status === "RETURNED" || rental.status === "COMPLETED"} className="px-3 py-1.5 text-xs font-bold text-[#2B1A10] border border-[#C2B199] rounded-lg hover:bg-[#C2B199]/20 disabled:opacity-40">
-                    {processingReturnId === rental.id ? "Working..." : "Return"}
+                    {processingReturnId === rental.id ? t("admin_borrowings.actions.processing") : t("admin_borrowings.actions.return")}
                   </button>
                 </div>
               ))
@@ -115,13 +117,13 @@ function BorrowingsContent() {
 
       {!isLoading && totalPages > 1 && (
         <div className="flex items-center justify-between">
-          <button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1} className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-[#2B1A10]/60 disabled:opacity-30"><ChevronLeft size={16} />Previous</button>
+          <button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1} className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-[#2B1A10]/60 disabled:opacity-30"><ChevronLeft size={16} />{t("common.previous")}</button>
           <div className="flex items-center gap-1.5">
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
               <button key={page} onClick={() => setCurrentPage(page)} className={`w-8 h-8 rounded-lg text-sm font-bold ${page === currentPage ? "bg-[#2B1A10] text-white" : "text-[#2B1A10]/60 hover:bg-[#F3EFE6]"}`}>{page}</button>
             ))}
           </div>
-          <button onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-[#2B1A10]/60 disabled:opacity-30">Next<ChevronRight size={16} /></button>
+          <button onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-[#2B1A10]/60 disabled:opacity-30">{t("common.next")}<ChevronRight size={16} /></button>
         </div>
       )}
     </div>

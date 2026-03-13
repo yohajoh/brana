@@ -4,7 +4,11 @@ import Image from "next/image";
 import { MoveRight } from "lucide-react";
 import Link from "next/link";
 
+import { useLanguage } from "@/components/providers/LanguageProvider";
+
 export const CTA = () => {
+  const { t } = useLanguage();
+
   return (
     <section className="w-full py-8 px-6 lg:px-16 relative translate-y-18 z-1">
       <div className="mx-auto max-w-7xl">
@@ -12,11 +16,10 @@ export const CTA = () => {
           <div className="space-y-8 max-w-xl">
             <div>
               <h2 className="text-4xl lg:text-5xl font-serif font-extrabold text-primary leading-tight mb-3">
-                Ready to dive into your next great read?
+                {t("cta_section.title")}
               </h2>
               <p className="text-lg text-secondary font-medium leading-relaxed">
-                Experience the simplest way to borrow books within our gibi
-                gubae. Built for students who love reading—without the hassle.
+                {t("cta_section.description")}
               </p>
             </div>
 
@@ -24,7 +27,7 @@ export const CTA = () => {
               href="/books"
               className="flex items-center w-fit gap-3 rounded-full bg-primary px-8 py-3 text-base font-bold text-background shadow-xl hover:bg-accent transition-all group active:scale-95 cursor-pointer"
             >
-              Explore Collections
+              {t("cta_section.button")}
               <MoveRight
                 size={20}
                 className="group-hover:translate-x-1 transition-transform"

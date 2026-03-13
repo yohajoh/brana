@@ -1,6 +1,7 @@
 "use client";
 
 import { BookMarked, CheckCircle2, Clock } from "lucide-react";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 type WishlistItem = {
   id: string;
@@ -14,6 +15,7 @@ type Props = {
 };
 
 export const WishlistSummary = ({ wishlist, loading }: Props) => {
+  const { t } = useLanguage();
   if (loading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -36,22 +38,22 @@ export const WishlistSummary = ({ wishlist, loading }: Props) => {
 
   const stats = [
     {
-      label: "Books On Wishlist",
+      label: t("student_wishlist.summary.total"),
       value: totalBooks.toString(),
       icon: <BookMarked className="text-secondary" size={24} />,
     },
     {
-      label: "Available Now",
+      label: t("student_wishlist.summary.available"),
       value: availableNow.toString(),
       icon: <CheckCircle2 className="text-secondary" size={24} />,
     },
     {
-      label: "Currently Unavailable",
+      label: t("student_wishlist.summary.currently_unavailable"),
       value: unavailable.toString(),
       icon: <Clock className="text-secondary" size={24} />,
     },
     {
-      label: "No Longer Available",
+      label: t("student_wishlist.summary.no_longer_available"),
       value: deleted.toString(),
       icon: <Clock className="text-secondary" size={24} />,
     },

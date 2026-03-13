@@ -6,7 +6,11 @@ import { RiTiktokLine } from "react-icons/ri";
 import Image from "next/image";
 import { LiaTelegram } from "react-icons/lia";
 
+import { useLanguage } from "@/components/providers/LanguageProvider";
+
 export const Footer = () => {
+  const { t } = useLanguage();
+
   return (
     <footer className="w-full bg-secondary/5 pt-10 pb-8 relative z-0">
       <div className="mx-auto max-w-7xl px-6">
@@ -25,8 +29,7 @@ export const Footer = () => {
               </span>
             </Link>
             <p className="text-sm text-secondary leading-relaxed max-w-2xs">
-              We are here to make your reading life easier through a modern
-              digital book rental system.
+              {t("footer.description")}
             </p>
             <div className="flex items-center gap-4">
               <a
@@ -65,26 +68,26 @@ export const Footer = () => {
           {/* Quick Links */}
           <div className="space-y-6">
             <h3 className="text-lg font-bold uppercase tracking-widest text-primary">
-              Links
+              {t("footer.links_title")}
             </h3>
             <nav className="flex flex-col gap-3">
               <Link
                 href="/"
                 className="text-sm text-secondary hover:text-primary transition-colors"
               >
-                Home
+                {t("navbar.home")}
               </Link>
               <Link
                 href="/books"
                 className="text-sm text-secondary hover:text-primary transition-colors"
               >
-                Books
+                {t("navbar.books")}
               </Link>
               <Link
                 href="/about"
                 className="text-sm text-secondary hover:text-primary transition-colors"
               >
-                About Us
+                {t("navbar.about")}
               </Link>
             </nav>
           </div>
@@ -92,7 +95,7 @@ export const Footer = () => {
           {/* Contact Info */}
           <div className="space-y-6">
             <h3 className="text-lg font-bold uppercase tracking-widest text-primary">
-              Contact
+              {t("footer.contact_title")}
             </h3>
             <div className="flex flex-col gap-4">
               <div className="flex items-center gap-3 text-sm text-secondary">
@@ -110,20 +113,20 @@ export const Footer = () => {
         {/* Bottom bar */}
         <div className="pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-xs text-secondary/70">
-            &copy; {new Date().getFullYear()} Birana. All rights reserved.
+            &copy; {new Date().getFullYear()} Birana. {t("footer.rights")}
           </p>
           <div className="flex gap-6">
             <a
               href="#"
               className="text-xs text-secondary/70 hover:text-primary transition-colors"
             >
-              Privacy Policy
+              {t("footer.privacy")}
             </a>
             <a
               href="#"
               className="text-xs text-secondary/70 hover:text-primary transition-colors"
             >
-              Terms of Service
+              {t("footer.terms")}
             </a>
           </div>
         </div>

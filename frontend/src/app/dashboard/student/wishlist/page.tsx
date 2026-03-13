@@ -6,6 +6,7 @@ import { useWishlist, useRemoveFromWishlist } from "@/lib/hooks/useQueries";
 import { WishlistSummary } from "@/components/WishlistSummary";
 import { WishlistGrid } from "@/components/WishlistGrid";
 import { Pagination } from "@/components/Pagination";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 export type WishlistItem = {
   id: string;
@@ -18,6 +19,7 @@ export type WishlistItem = {
 };
 
 export default function WishlistPage() {
+  const { t } = useLanguage();
   const [page, setPage] = useState(1);
   const [filter, setFilter] = useState<"all" | "physical" | "digital">("all");
   const limit = 12;
@@ -34,21 +36,21 @@ export default function WishlistPage() {
   const handleRemove = async (itemId: string) => {
     try {
       await removeFromWishlist.mutateAsync(itemId);
-      toast.success("Removed from wishlist");
+      toast.success(t("student_wishlist.removed"));
     } catch {
-      toast.error("Failed to remove from wishlist");
+      toast.error(t("student_wishlist.failed_remove"));
     }
   };
 
   return (
     <div className="p-6 lg:p-12 space-y-12">
       <div className="space-y-2">
-        <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-primary">My Wishlist</h1>
-        <p className="text-secondary font-medium">Books you want to read. We&apos;ll notify you when they&apos;re available.</p>
+        <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-primary">{t("student_wishlist.title")}</h1>
+        <p className="text-secondary font-medium">{t("student_wishlist.subtitle")}</p>
       </div>
 
       {error && (
-        <div className="rounded-xl bg-red-50 p-4 text-sm text-red-600 border border-red-100">{error instanceof Error ? error.message : "Failed to load wishlist"}</div>
+        <div className="rounded-xl bg-red-50 p-4 text-sm text-red-600 border border-red-100">{error instanceof Error ? error.message : t("common.error_occurred")}</div>
       )}
 
       <WishlistSummary wishlist={wishlist} loading={isLoading} />

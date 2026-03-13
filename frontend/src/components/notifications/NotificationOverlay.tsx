@@ -3,6 +3,7 @@
 import { X, Calendar, Check } from "lucide-react";
 import { Notification, useMarkAsRead } from "@/lib/hooks/useNotifications";
 import { toast } from "sonner";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 interface NotificationOverlayProps {
   notification: Notification | null;
@@ -12,6 +13,7 @@ interface NotificationOverlayProps {
 }
 
 export function NotificationOverlay({ notification, isOpen, onClose, refetch }: NotificationOverlayProps) {
+  const { t } = useLanguage();
   const markAsReadMutation = useMarkAsRead();
 
   // If the overlay shouldn't be open, we render nothing.
@@ -21,10 +23,10 @@ export function NotificationOverlay({ notification, isOpen, onClose, refetch }: 
   const handleMarkAsRead = async () => {
     try {
       await markAsReadMutation.mutateAsync(notification.id);
-      toast.success("Notification marked as read");
+      toast.success(t("student_notifications.mark_as_read_success"));
       if (refetch) refetch();
     } catch {
-      toast.error("Failed to mark as read");
+      toast.error(t("student_notifications.mark_as_read_error"));
     }
   };
 
@@ -40,7 +42,7 @@ export function NotificationOverlay({ notification, isOpen, onClose, refetch }: 
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-[#FDFAF6]">
-          <h2 className="text-lg font-bold text-[#2B1A10]">Notification Details</h2>
+          <h2 className="text-lg font-bold text-[#2B1A10]">{t("student_notifications.detail_title")}</h2>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-[#F3EFE6] transition-colors">
             <X size={24} className="text-[#AE9E85]" />
           </button>
@@ -68,12 +70,12 @@ export function NotificationOverlay({ notification, isOpen, onClose, refetch }: 
               disabled={markAsReadMutation.isPending}
               className="w-full py-3 bg-[#2B1A10] text-white font-bold rounded-xl hover:opacity-90 disabled:opacity-50 transition-all"
             >
-              {markAsReadMutation.isPending ? "Marking..." : "Mark as Read"}
+              {markAsReadMutation.isPending ? t("student_notifications.marking") : t("student_notifications.mark_as_read")}
             </button>
           ) : (
             <div className="flex items-center justify-center gap-2 text-green-600 py-2">
               <Check size={18} />
-              <span className="font-medium text-sm">Notification Read</span>
+              <span className="font-medium text-sm">{t("student_notifications.read_status")}</span>
             </div>
           )}
         </div>

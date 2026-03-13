@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useQuery } from "@tanstack/react-query";
 import { API_BASE_URL, fetchApi } from "@/lib/api";
 import { LoadingCard } from "@/components/ui/Loading";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 import { toast } from "sonner";
 
 type DigitalBook = {
@@ -44,6 +45,7 @@ async function fetchDigitalBooksPage(page: number): Promise<DigitalBooksApiRespo
 }
 
 function DigitalLibraryContent() {
+  const { t } = useLanguage();
   const [page, setPage] = useState(1);
   const [openingId, setOpeningId] = useState<string | null>(null);
 
@@ -111,14 +113,14 @@ function DigitalLibraryContent() {
   return (
     <div className="p-6 lg:p-12 space-y-8">
       <div className="space-y-2">
-        <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-primary">Digital Library</h1>
-        <p className="text-secondary font-medium">Read digital books online and download when allowed.</p>
+        <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-primary">{t("digital_library.title")}</h1>
+        <p className="text-secondary font-medium">{t("digital_library.subtitle")}</p>
       </div>
 
       {isLoading ? (
-        <div className="py-16 text-center text-secondary text-sm">Loading digital books...</div>
+        <div className="py-16 text-center text-secondary text-sm">{t("digital_library.loading")}</div>
       ) : books.length === 0 ? (
-        <div className="py-16 text-center text-secondary text-sm">No digital books available.</div>
+        <div className="py-16 text-center text-secondary text-sm">{t("digital_library.none")}</div>
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
@@ -136,32 +138,32 @@ function DigitalLibraryContent() {
                     href={`/books/${toSlug(book.title)}?type=digital`}
                     className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-primary/70 text-background font-bold text-sm flex items-center justify-center"
                   >
-                    View Details
+                    {t("digital_library.view_details")}
                   </Link>
                 </div>
                 <div>
                   <p className="text-sm font-bold text-primary line-clamp-1">{book.title}</p>
                   <p className="text-xs text-secondary">
-                    {book.author?.name || "Unknown Author"} • {book.category?.name || "Uncategorized"}
+                    {book.author?.name || t("sidebar.authors")} • {book.category?.name || "Uncategorized"}
                   </p>
                 </div>
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-muted text-primary">
-                    {book.pdf_access === "RESTRICTED" ? "Read Only" : "Download Allowed"}
+                    {book.pdf_access === "RESTRICTED" ? t("book_details.status.read_only") : t("digital_library.download_allowed")}
                   </span>
                   <div className="flex gap-2">
                     <Link
                       href={`/books/${toSlug(book.title)}?type=digital`}
                       className="px-3 py-1.5 text-xs font-bold text-primary border border-border rounded-lg"
                     >
-                      Details
+                      {t("digital_library.details")}
                     </Link>
                     <button
                       onClick={() => openReader(book, false)}
                       disabled={openingId === book.id}
                       className="px-3 py-1.5 text-xs font-bold text-primary border border-border rounded-lg disabled:opacity-50"
                     >
-                      {openingId === book.id ? "Opening..." : "Read"}
+                      {openingId === book.id ? t("digital_library.opening") : t("digital_library.read")}
                     </button>
                     {book.pdf_access !== "RESTRICTED" && (
                       <button
@@ -169,7 +171,7 @@ function DigitalLibraryContent() {
                         disabled={openingId === book.id}
                         className="px-3 py-1.5 text-xs font-bold bg-primary text-background rounded-lg disabled:opacity-50"
                       >
-                        {openingId === book.id ? "Preparing..." : "Download"}
+                        {openingId === book.id ? t("digital_library.preparing") : t("digital_library.download")}
                       </button>
                     )}
                   </div>
@@ -180,7 +182,7 @@ function DigitalLibraryContent() {
 
           <div className="pt-3 flex items-center justify-between">
             <p className="text-xs text-secondary">
-              Page {page} of {totalPages} {isFetching ? "• Updating..." : ""}
+              {t("digital_library.page_info", { page, total: totalPages })} {isFetching ? `• ${t("digital_library.updating")}` : ""}
             </p>
             <div className="flex items-center gap-2">
               <button
@@ -188,14 +190,14 @@ function DigitalLibraryContent() {
                 disabled={!hasPrev || isFetching}
                 className="px-3 py-1.5 text-xs font-bold border border-border rounded-lg text-primary disabled:opacity-50"
               >
-                Previous
+                {t("digital_library.previous")}
               </button>
               <button
                 onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
                 disabled={!hasNext || isFetching}
                 className="px-3 py-1.5 text-xs font-bold bg-primary text-background rounded-lg disabled:opacity-50"
               >
-                Next
+                {t("digital_library.next")}
               </button>
             </div>
           </div>

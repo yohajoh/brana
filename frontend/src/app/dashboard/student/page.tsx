@@ -5,6 +5,8 @@ import { useMyRentals, useSystemConfig, useStudentOverview, useRecommendations, 
 import { CurrentlyBorrowed } from "@/components/CurrentlyBorrowed";
 import { AmountOwed } from "@/components/AmountOwed";
 import { BorrowingHistoryTable } from "@/components/BorrowingHistoryTable";
+import { useLanguage } from "@/components/providers/LanguageProvider";
+import { usePersona } from "@/components/providers/PersonaProvider";
 
 export type RentalItem = {
   id: string;
@@ -21,7 +23,8 @@ export type RentalItem = {
 };
 
 export default function DashboardPage() {
-  const [user] = useState<{ name: string; email: string; role: string } | null>(null);
+  const { t } = useLanguage();
+  const { user } = usePersona();
   const [error] = useState<string | null>(null);
 
   const { data: rentalsData, isLoading: rentalsLoading } = useMyRentals();
@@ -81,9 +84,9 @@ export default function DashboardPage() {
     <div className="p-6 lg:p-12 space-y-12">
       <div className="space-y-2">
         <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-primary">
-          Welcome back, {loading ? "..." : (user?.name ?? "Guest")}
+          {t("student_dashboard.welcome", { name: loading ? "..." : (user?.name ?? "Guest") })}
         </h1>
-        <p className="text-secondary font-medium">Here&apos;s what&apos;s happening with your books.</p>
+        <p className="text-secondary font-medium">{t("student_dashboard.subtitle")}</p>
       </div>
 
       {error && <div className="rounded-xl bg-red-50 p-4 text-sm text-red-600 border border-red-100">{error}</div>}
@@ -91,7 +94,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-10">
         <div className="xl:col-span-2 space-y-8">
           <div className="space-y-6">
-            <h2 className="text-xl font-serif font-bold text-primary">Currently Borrowed Book</h2>
+            <h2 className="text-xl font-serif font-bold text-primary">{t("student_dashboard.currently_borrowed")}</h2>
             <CurrentlyBorrowed rental={currentBook} dailyFine={config?.daily_fine ? Number(config.daily_fine) : undefined} loading={loading} />
           </div>
         </div>
@@ -103,38 +106,42 @@ export default function DashboardPage() {
       <BorrowingHistoryTable rentals={returnedOrCompleted.slice(0, 5)} loading={loading} />
 
       <section className="space-y-4">
-        <h2 className="text-xl font-serif font-bold text-primary">Your Reading Snapshot</h2>
+        <h2 className="text-xl font-serif font-bold text-primary">{t("student_dashboard.snapshot.title")}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           <div className="bg-white border border-border/50 rounded-2xl p-4">
-            <p className="text-xs uppercase tracking-wider font-bold text-secondary">Due Soon</p>
+            <p className="text-xs uppercase tracking-wider font-bold text-secondary">{t("student_dashboard.snapshot.due_soon")}</p>
             <p className="text-2xl font-black text-primary">{overviewStats.dueSoon}</p>
           </div>
           <div className="bg-white border border-border/50 rounded-2xl p-4">
-            <p className="text-xs uppercase tracking-wider font-bold text-secondary">On-Time Rate</p>
+            <p className="text-xs uppercase tracking-wider font-bold text-secondary">{t("student_dashboard.snapshot.on_time_rate")}</p>
             <p className="text-2xl font-black text-primary">{overviewStats.onTimeRate}%</p>
           </div>
           <div className="bg-white border border-border/50 rounded-2xl p-4">
-            <p className="text-xs uppercase tracking-wider font-bold text-secondary">Reservations</p>
+            <p className="text-xs uppercase tracking-wider font-bold text-secondary">{t("student_dashboard.snapshot.reservations")}</p>
             <p className="text-2xl font-black text-primary">{overviewStats.reservationCount}</p>
           </div>
           <div className="bg-white border border-border/50 rounded-2xl p-4">
-            <p className="text-xs uppercase tracking-wider font-bold text-secondary">Unread Alerts</p>
+            <p className="text-xs uppercase tracking-wider font-bold text-secondary">{t("student_dashboard.snapshot.unread_alerts")}</p>
             <p className="text-2xl font-black text-primary">{overviewStats.unreadNotifications}</p>
           </div>
         </div>
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-xl font-serif font-bold text-primary">Recommended For You</h2>
+        <h2 className="text-xl font-serif font-bold text-primary">{t("student_dashboard.recommendations.title")}</h2>
         {recommendations.length === 0 ? (
-          <div className="text-sm text-secondary">No recommendations yet.</div>
+          <div className="text-sm text-secondary">{t("student_dashboard.recommendations.none")}</div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {recommendations.map((book) => (
               <div key={book.id} className="bg-white border border-border/50 rounded-2xl p-4">
                 <p className="text-sm font-bold text-primary line-clamp-1">{book.title}</p>
-                <p className="text-xs text-secondary">{book.author?.name ?? "Author"}</p>
-                <p className="text-xs mt-2 font-semibold text-primary/80">{book.available > 0 ? `${book.available} copies available` : "Currently unavailable"}</p>
+                <p className="text-xs text-secondary">{book.author?.name ?? t("sidebar.authors")}</p>
+                <p className="text-xs mt-2 font-semibold text-primary/80">
+                  {book.available > 0 
+                    ? t("student_dashboard.recommendations.available", { count: book.available }) 
+                    : t("student_dashboard.recommendations.unavailable")}
+                </p>
               </div>
             ))}
           </div>
@@ -142,9 +149,9 @@ export default function DashboardPage() {
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-xl font-serif font-bold text-primary">Favorite Categories</h2>
+        <h2 className="text-xl font-serif font-bold text-primary">{t("student_dashboard.categories.title")}</h2>
         {overviewStats.topCategories.length === 0 ? (
-          <div className="text-sm text-secondary">No category insights yet.</div>
+          <div className="text-sm text-secondary">{t("student_dashboard.categories.none")}</div>
         ) : (
           <div className="flex flex-wrap gap-2">
             {overviewStats.topCategories.map((cat) => (
@@ -156,29 +163,29 @@ export default function DashboardPage() {
 
       <section className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <div className="space-y-3">
-          <h2 className="text-xl font-serif font-bold text-primary">Trending Books</h2>
+          <h2 className="text-xl font-serif font-bold text-primary">{t("student_dashboard.trending.title")}</h2>
           <div className="space-y-2">
             {popularity.trending.length === 0 ? (
-              <div className="text-sm text-secondary">No trending data yet.</div>
+              <div className="text-sm text-secondary">{t("student_dashboard.trending.none")}</div>
             ) : (
               popularity.trending.map((item) => (
                 <div key={item.book.id} className="bg-white border border-border/50 rounded-xl p-3 flex items-center justify-between">
-                  <div><p className="text-sm font-bold text-primary">{item.book.title}</p><p className="text-xs text-secondary">{item.book.author?.name ?? "Author"}</p></div>
-                  <span className="text-xs font-bold text-primary">{item.rentalCount} rentals</span>
+                  <div><p className="text-sm font-bold text-primary">{item.book.title}</p><p className="text-xs text-secondary">{item.book.author?.name ?? t("sidebar.authors")}</p></div>
+                  <span className="text-xs font-bold text-primary">{t("student_dashboard.trending.rentals", { count: item.rentalCount })}</span>
                 </div>
               ))
             )}
           </div>
         </div>
         <div className="space-y-3">
-          <h2 className="text-xl font-serif font-bold text-primary">Top Rated Books</h2>
+          <h2 className="text-xl font-serif font-bold text-primary">{t("student_dashboard.top_rated.title")}</h2>
           <div className="space-y-2">
             {popularity.topRated.length === 0 ? (
-              <div className="text-sm text-secondary">No rating data yet.</div>
+              <div className="text-sm text-secondary">{t("student_dashboard.top_rated.none")}</div>
             ) : (
               popularity.topRated.map((item) => (
                 <div key={item.book.id} className="bg-white border border-border/50 rounded-xl p-3 flex items-center justify-between">
-                  <div><p className="text-sm font-bold text-primary">{item.book.title}</p><p className="text-xs text-secondary">{item.book.author?.name ?? "Author"}</p></div>
+                  <div><p className="text-sm font-bold text-primary">{item.book.title}</p><p className="text-xs text-secondary">{item.book.author?.name ?? t("sidebar.authors")}</p></div>
                   <span className="text-xs font-bold text-primary">{item.avgRating.toFixed(1)} ★</span>
                 </div>
               ))

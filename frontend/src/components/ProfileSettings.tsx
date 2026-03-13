@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useUpdateProfile } from "@/lib/hooks/useQueries";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 type UserData = {
   id: string;
@@ -22,6 +23,7 @@ type Props = {
 };
 
 export const ProfileSettings = ({ user, loading, onUpdate }: Props) => {
+  const { t } = useLanguage();
   const [name, setName] = useState(() => user?.name || "");
   const [phone, setPhone] = useState(() => user?.phone || "");
   const [year, setYear] = useState(() => user?.year || "");
@@ -63,14 +65,14 @@ export const ProfileSettings = ({ user, loading, onUpdate }: Props) => {
         });
       }
 
-      toast.success("Profile updated successfully");
-      setMessage({ type: "success", text: "Profile updated successfully!" });
+      toast.success(t("student_settings.messages.success_update"));
+      setMessage({ type: "success", text: t("student_settings.messages.success_update") });
     } catch (e) {
       setMessage({ 
         type: "error", 
-        text: e instanceof Error ? e.message : "Failed to update profile" 
+        text: e instanceof Error ? e.message : t("student_settings.messages.failed_update") 
       });
-      toast.error(e instanceof Error ? e.message : "Failed to update profile");
+      toast.error(e instanceof Error ? e.message : t("student_settings.messages.failed_update"));
     }
   };
 
@@ -78,7 +80,7 @@ export const ProfileSettings = ({ user, loading, onUpdate }: Props) => {
     return (
       <div className="space-y-8">
         <h3 className="text-xl font-serif font-extrabold text-primary">
-          My Profile
+          {t("student_settings.profile_title")}
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl animate-pulse">
           <div className="md:col-span-2 h-16 bg-muted/50 rounded-xl" />
@@ -94,7 +96,7 @@ export const ProfileSettings = ({ user, loading, onUpdate }: Props) => {
   return (
     <div className="space-y-8">
       <h3 className="text-xl font-serif font-extrabold text-primary">
-        My Profile
+        {t("student_settings.profile_title")}
       </h3>
 
       {message && (
@@ -112,79 +114,79 @@ export const ProfileSettings = ({ user, loading, onUpdate }: Props) => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl">
         <div className="md:col-span-2 space-y-2">
           <label className="text-xs font-bold text-secondary uppercase tracking-widest px-1">
-            Full Name
+            {t("student_settings.labels.full_name")}
           </label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Enter your full name"
+            placeholder={t("student_settings.placeholders.full_name")}
             className="w-full px-5 py-3.5 rounded-xl border border-border bg-card text-sm text-primary focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all placeholder:text-secondary/30"
           />
         </div>
 
         <div className="space-y-2">
           <label className="text-xs font-bold text-secondary uppercase tracking-widest px-1">
-            Student ID
+            {t("student_settings.labels.student_id")}
           </label>
           <input
             type="text"
-            value={user?.student_id || "Not set"}
+            value={user?.student_id || t("student_settings.hints.not_set")}
             disabled
             className="w-full px-5 py-3.5 rounded-xl border border-border bg-muted/30 text-sm text-secondary focus:outline-none transition-all cursor-not-allowed"
           />
           <p className="text-xs text-secondary/60 px-1">
-            Contact admin to update student ID
+            {t("student_settings.hints.student_id")}
           </p>
         </div>
 
         <div className="space-y-2">
           <label className="text-xs font-bold text-secondary uppercase tracking-widest px-1">
-            Phone Number
+            {t("student_settings.labels.phone")}
           </label>
           <input
             type="tel"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            placeholder="+251 912 345 678"
+            placeholder={t("student_settings.placeholders.phone")}
             className="w-full px-5 py-3.5 rounded-xl border border-border bg-card text-sm text-primary focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all placeholder:text-secondary/30"
           />
         </div>
 
         <div className="space-y-2">
           <label className="text-xs font-bold text-secondary uppercase tracking-widest px-1">
-            Year
+            {t("student_settings.labels.year")}
           </label>
           <select
             value={year}
             onChange={(e) => setYear(e.target.value)}
             className="w-full px-5 py-3.5 rounded-xl border border-border bg-card text-sm text-primary focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all"
           >
-            <option value="">Select Year</option>
-            <option value="1st Year">1st Year</option>
-            <option value="2nd Year">2nd Year</option>
-            <option value="3rd Year">3rd Year</option>
-            <option value="4th Year">4th Year</option>
-            <option value="5th Year">5th Year</option>
+            <option value="">{t("student_settings.placeholders.select_year")}</option>
+            <option value="1st Year">{t("student_settings.years.y1")}</option>
+            <option value="2nd Year">{t("student_settings.years.y2")}</option>
+            <option value="3rd Year">{t("student_settings.years.y3")}</option>
+            <option value="4th Year">{t("student_settings.years.y4")}</option>
+            <option value="5th Year">{t("student_settings.years.y5")}</option>
           </select>
         </div>
 
         <div className="space-y-2">
           <label className="text-xs font-bold text-secondary uppercase tracking-widest px-1">
-            Department
+            {t("student_settings.labels.department")}
           </label>
           <input
             type="text"
             value={department}
             onChange={(e) => setDepartment(e.target.value)}
-            placeholder="e.g., Computer Science"
+            placeholder={t("student_settings.placeholders.department")}
             className="w-full px-5 py-3.5 rounded-xl border border-border bg-card text-sm text-primary focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all placeholder:text-secondary/30"
           />
         </div>
 
         <div className="md:col-span-2 space-y-2">
           <label className="text-xs font-bold text-secondary uppercase tracking-widest px-1">
-            Email Address
+            {t("student_settings.labels.email")}
           </label>
           <input
             type="email"
@@ -193,7 +195,7 @@ export const ProfileSettings = ({ user, loading, onUpdate }: Props) => {
             className="w-full px-5 py-3.5 rounded-xl border border-border bg-muted/30 text-sm text-secondary focus:outline-none transition-all cursor-not-allowed"
           />
           <p className="text-xs text-secondary/60 px-1">
-            Email cannot be changed
+            {t("student_settings.hints.email_readonly")}
           </p>
         </div>
 
@@ -209,14 +211,14 @@ export const ProfileSettings = ({ user, loading, onUpdate }: Props) => {
             disabled={updateProfile.isPending}
             className="px-6 py-3 rounded-xl border border-border bg-card text-sm font-bold text-secondary hover:bg-muted transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Cancel
+            {t("student_settings.actions.cancel")}
           </button>
           <button
             onClick={handleSave}
             disabled={updateProfile.isPending || !name.trim()}
             className="px-6 py-3 rounded-xl bg-primary text-background text-sm font-bold hover:bg-accent transition-all active:scale-95 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {updateProfile.isPending ? "Saving..." : "Save Changes"}
+            {updateProfile.isPending ? t("student_settings.actions.saving") : t("student_settings.actions.save")}
           </button>
         </div>
       </div>

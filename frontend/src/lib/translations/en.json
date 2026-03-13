@@ -1,0 +1,1020 @@
+{
+  "common": {
+    "dashboard_redirect": "Redirecting to your dashboard...",
+    "error_occurred": "Something went wrong. Please try again.",
+    "pagination": {
+      "previous": "Previous",
+      "next": "Next",
+      "page_info": "Page {current} of {total}"
+    }
+  },
+  "navbar": {
+    "home": "Home",
+    "books": "Books",
+    "about": "About Us",
+    "login": "Log in",
+    "signup": "Sign up"
+  },
+  "hero": {
+    "title_part1": "Your Next Read, Just a Click",
+    "title_italic": "Away",
+    "description": "Experience the simplest way to borrow books within our gibi gubae. Search our online catalog, request instantly, and get your book delivered to your dorm. Built for students who love reading without the hassle.",
+    "cta": "Explore Collections"
+  },
+  "how_it_works": {
+    "title": "How It Works",
+    "steps": {
+      "create_account": {
+        "title": "Create Account",
+        "description": "Register your journey, beat a bookshelf's limit."
+      },
+      "choose_book": {
+        "title": "Choose a Book",
+        "description": "Explore our vast library, find your next read."
+      },
+      "dorm_delivery": {
+        "title": "Dorm Delivery",
+        "description": "Your book delivered to your dorm, stress-free."
+      },
+      "return_pay": {
+        "title": "Return & Pay",
+        "description": "Use your book share, pay for the next time, and keep the cycle going."
+      }
+    }
+  },
+  "faq": {
+    "title": "Frequently Asked Questions",
+    "questions": [
+      {
+        "question": "How do I borrow a book?",
+        "answer": "Simply search for the book in our catalog, click 'Borrow', and follow the instructions to request delivery to your dorm."
+      },
+      {
+        "question": "How long can I keep a book?",
+        "answer": "You can typically keep a book for 2 weeks. You can request an extension if no one else has reserved it."
+      },
+      {
+        "question": "What if the book I want is not available?",
+        "answer": "You can join the waitlist for any book. We'll notify you as soon as it's returned and ready for you."
+      },
+      {
+        "question": "What is Birana Book Rental System?",
+        "answer": "Birana is a digital sanctuary for academic and spiritual books, designed specifically for students to easily access and share knowledge within their community without the traditional library hurdles."
+      },
+      {
+        "question": "How will I be notified about my book?",
+        "answer": "You'll receive notifications via our app and through your registered contact method when your book is ready for delivery or due for return."
+      },
+      {
+        "question": "How do I return a book?",
+        "answer": "You can drop off the book at designated collection points or request a pickup from your dorm through the app."
+      }
+    ]
+  },
+  "cta_section": {
+    "title": "Ready to dive into your next great read?",
+    "description": "Experience the simplest way to borrow books within our gibi gubae. Built for students who love reading—without the hassle.",
+    "button": "Explore Collections"
+  },
+  "footer": {
+    "description": "We are here to make your reading life easier through a modern digital book rental system.",
+    "links_title": "Links",
+    "contact_title": "Contact",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "rights": "All rights reserved."
+  },
+  "about_page": {
+    "story": {
+      "title": "Our Story",
+      "p1": "It all started with a stack of Google Forms and a team of dedicated volunteers. For years, our fellowship managed book lending manually—students would fill out forms, volunteers would track everything on spreadsheets, and books were handed out whenever schedules aligned.",
+      "p2": "It worked, but it wasn't easy. Books got lost in the shuffle. Students didn't know what was available. Volunteers spent hours on administrative work instead of connecting with readers. We knew there had to be a better way.",
+      "p3": "So we built one. What started as a conversation among friends became a project to create a simple, fair, and community-focused borrowing system. Today, the Fellowship Library is a fully digital platform that lets students browse, request, and receive books—all delivered to their dorm, with a pay-per-day model that's fair for everyone."
+    },
+    "mission": {
+      "title": "Our Mission",
+      "description": "At the Gibi Gubae Library, we believe that reading nurtures the mind and soul. Our mission is simple: to make quality books accessible to every member of our Gibi Gubae community—without hassle, without barriers, and with a personal touch. We're not just a library. We're a community of readers who share stories, grow in faith, and support one another's journey."
+    },
+    "stats": {
+      "books": "Books in our collection",
+      "borrowed": "Books borrowed this year",
+      "members": "Library members keeping things running",
+      "readers": "Active readers"
+    },
+    "involvement": {
+      "title": "Be Part of the Story",
+      "borrow": {
+        "title": "Borrow Books",
+        "description": "The easiest way to get involved! Sign up and start reading."
+      },
+      "donate": {
+        "title": "Donate Books",
+        "description": "Have a book to share? We accept gently used donations that align with our collection."
+      },
+      "volunteer": {
+        "title": "Be Volunteer",
+        "description": "Help with deliveries, book processing, or admin tasks. Time commitment is flexible."
+      },
+      "cta_explore": "Explore Collections",
+      "cta_contact": "Contact Us"
+    }
+  },
+  "books_page": {
+    "sort_by": "Sort by:",
+    "sort_options": {
+      "title_asc": "Title (A-Z)",
+      "title_desc": "Title (Z-A)",
+      "most_available": "Most Available",
+      "least_available": "Least Available",
+      "shortest": "Shortest",
+      "longest": "Longest"
+    },
+    "modes": {
+      "all": "All",
+      "physical": "Physical",
+      "digital": "Digital"
+    },
+    "status": {
+      "loading": "Loading...",
+      "no_books": "No books found",
+      "showing": "Showing {start}-{end} of {total} {mode}books"
+    },
+    "filters": {
+      "all_authors": "All Authors",
+      "availability": "Availability",
+      "available": "Available",
+      "unavailable": "Unavailable",
+      "min_rating_placeholder": "Min rating (e.g. 4)",
+      "year_placeholder": "Publication year",
+      "tags_placeholder": "Tags (comma separated)",
+      "topics_placeholder": "Topics (comma separated)"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Hello, Welcome Back",
+      "subtitle": "Don’t have an account? Sign up to start renting and reviewing books.",
+      "identity_label": "Email",
+      "identity_placeholder": "you@astu.edu.et",
+      "password_label": "Password",
+      "password_placeholder": "Enter your password",
+      "forgot_password": "Forgot password?",
+      "remember_me": "Remember me",
+      "submit": "Log in",
+      "submitting": "Logging in...",
+      "no_account": "Don't have an account?",
+      "signup_link": "Sign up",
+      "google_login": "Continue with Google",
+      "or_continue_with": "Or continue with",
+      "messages": {
+        "email_confirmed": "Email confirmed successfully! You can now log in.",
+        "google_failed": "Google sign-in failed. Please try again.",
+        "google_timeout": "Google sign-in timed out. Please try again.",
+        "invalid_credentials": "Invalid email or password"
+      },
+      "back_label": "New here? Create an account"
+    },
+    "signup": {
+      "title": "Create an account",
+      "subtitle": "Already have an account? Log in",
+      "full_name_label": "Full Name",
+      "full_name_placeholder": "Enter your full name",
+      "year_label": "Year",
+      "year_placeholder": "e.g. 3rd year",
+      "department_label": "Department",
+      "department_placeholder": "e.g. Computer Science",
+      "id_label": "Id no.",
+      "id_placeholder": "Enter your ID",
+      "phone_label": "Phone Number",
+      "phone_placeholder": "+2519XXXXXXXX",
+      "email_label": "Email",
+      "email_placeholder": "you@astu.edu.et",
+      "password_label": "Enter Your Password",
+      "password_placeholder": "Create a strong password",
+      "confirm_password_label": "Confirm Your Password",
+      "confirm_password_placeholder": "Confirm your password",
+      "terms_agree": "I agree to the {terms} and {privacy}.",
+      "terms_label": "terms of use",
+      "privacy_label": "privacy policy",
+      "submit": "Create account",
+      "submitting": "Creating account...",
+      "already_registered": "Already registered?",
+      "signin_link": "Sign in",
+      "back_label": "Already have an account? Sign in",
+      "modal": {
+        "title": "Check your email",
+        "message": "We've sent a confirmation link to your email address. Please follow the link to activate your account. This tab will automatically redirect once confirmed."
+      },
+      "messages": {
+        "password_mismatch": "Passwords do not match",
+        "signup_failed": "Failed to create account"
+      }
+    },
+    "forgot_password": {
+      "title": "Forgot your password?",
+      "subtitle": "No worries. Enter your university email and we’ll send you a secure link to reset your password.",
+      "email_label": "University email",
+      "email_placeholder": "you@astu.edu.et",
+      "help_text": "Make sure you use the same email you registered with. If you no longer have access to it, contact the library team.",
+      "submit": "Send reset link",
+      "submitting": "Sending link...",
+      "back_label": "Back to login",
+      "modal": {
+        "title": "Check your email",
+        "message": "If an account exists with that email, we've sent a password reset link. Please check your inbox and follow the instructions.",
+        "button_label": "Return to Login"
+      }
+    }
+  },
+  "student_dashboard": {
+    "welcome": "Welcome back, {name}",
+    "subtitle": "Here's what's happening with your books.",
+    "currently_borrowed": "Currently Borrowed Book",
+    "borrowed": {
+      "none": "You have no borrowed books.",
+      "explore": "Visit the Books page to borrow a book.",
+      "loan_date": "Borrowed on",
+      "due_date": "Due date",
+      "overdue_label": "Days overdue",
+      "remaining_label": "Days remaining",
+      "days_left": "{count} days left",
+      "return_instruction": "Return this book to a librarian to complete the return."
+    },
+    "history": {
+      "title": "Borrowing History",
+      "see_all": "See all",
+      "none": "No borrowing history yet.",
+      "table": {
+        "title": "Title",
+        "borrowed": "Borrowed Date",
+        "returned": "Returned Date",
+        "days_kept": "Days Kept",
+        "amount_paid": "Amount Paid"
+      }
+    },
+    "snapshot": {
+      "title": "Your Reading Snapshot",
+      "due_soon": "Due Soon",
+      "on_time_rate": "On-Time Rate",
+      "reservations": "Reservations",
+      "unread_alerts": "Unread Alerts"
+    },
+    "recommendations": {
+      "title": "Recommended For You",
+      "none": "No recommendations yet.",
+      "available": "{count} copies available",
+      "unavailable": "Currently unavailable"
+    },
+    "categories": {
+      "title": "Favorite Categories",
+      "none": "No category insights yet."
+    },
+    "trending": {
+      "title": "Trending Books",
+      "none": "No trending data yet.",
+      "rentals": "{count} rentals"
+    },
+    "top_rated": {
+      "title": "Top Rated Books",
+      "none": "No rating data yet."
+    }
+  },
+  "digital_library": {
+    "title": "Digital Library",
+    "subtitle": "Read digital books online and download when allowed.",
+    "loading": "Loading digital books...",
+    "none": "No digital books available.",
+    "view_details": "View Details",
+    "download_allowed": "Download Allowed",
+    "details": "Details",
+    "read": "Read",
+    "opening": "Opening...",
+    "preparing": "Preparing...",
+    "download": "Download",
+    "page_info": "Page {page} of {total}",
+    "updating": "Updating...",
+    "previous": "Previous",
+    "next": "Next"
+  },
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "users": "Users",
+    "books": "Books",
+    "categories": "Categories",
+    "authors": "Authors",
+    "borrowings": "Borrowings",
+    "reservations": "Reservations",
+    "overdue": "Overdue",
+    "alerts": "Alerts",
+    "activity_logs": "Activity Logs",
+    "reports": "Reports",
+    "settings": "Settings",
+    "history": "Borrowing History",
+    "wishlist": "Wish List",
+    "digital": "Digital Library",
+    "payments": "Payments",
+    "notifications": "Notifications",
+    "account_settings": "Account Settings",
+    "logout": "Logout"
+  },
+  "dashboard": {
+    "analytics_title": "Analytics Dashboard",
+    "analytics_subtitle": "Goals, trends, and live library KPIs.",
+    "loading": "Loading analytics...",
+    "stats": {
+      "students": "Students",
+      "books": "Books",
+      "active_rentals": "Active Rentals",
+      "overdue": "Overdue",
+      "reservations": "Reservations",
+      "revenue": "Revenue (Month)"
+    },
+    "rentals_per_week": "Rentals Per Week",
+    "goal_progress": "Monthly Goal Progress",
+    "targets": {
+      "title": "Set Monthly Targets",
+      "rentals": "Rentals",
+      "active_readers": "Active Readers",
+      "on_time_returns": "On-Time Returns",
+      "new_books": "New Books",
+      "save": "Save Targets",
+      "saving": "Saving..."
+    }
+  },
+  "admin_reservations": {
+    "title": "Reservations",
+    "subtitle": "Queue management and reservation windows.",
+    "refresh": "Refresh",
+    "cancel_selected": "Cancel Reservation ({count} Selected)",
+    "cancelling": "Cancelling...",
+    "high_demand": {
+      "title": "Books Under High Demand",
+      "loading": "Loading demand insights...",
+      "no_demand": "No high-demand pressure detected.",
+      "queue": "Queue",
+      "copies": "Copies",
+      "available": "Available",
+      "pressure": "Pressure ratio",
+      "recommendation": "Inventory action recommended (10+ queue, <=2 copies)"
+    },
+    "table": {
+      "student": "Student",
+      "book": "Book",
+      "queue": "Queue",
+      "status": "Status",
+      "debt": "Debt",
+      "reserved": "Reserved",
+      "expires": "Expires",
+      "action": "Action",
+      "clear": "Clear"
+    },
+    "actions": {
+      "move_to_top": "Move to Top",
+      "issue_book": "Issue Book"
+    },
+    "modal": {
+      "title": "Issue Reserved Book",
+      "copy_code": "Copy Code",
+      "cancel": "Cancel",
+      "issuing": "Issuing..."
+    },
+    "messages": {
+      "no_cancelled": "No reservations were cancelled",
+      "cancel_success": "Successfully cancelled {count} reservation(s)",
+      "move_success": "Reservation moved to top of queue",
+      "copy_code_required": "Copy code is required",
+      "issue_success": "Reservation issued and converted to rental"
+    }
+  },
+  "book_details": {
+    "breadcrumb": {
+      "books": "Books",
+      "digital": "Digital",
+      "physical": "Physical"
+    },
+    "status": {
+      "read_only": "Read Only",
+      "download": "Download",
+      "available": "Available on Shelf: {count}",
+      "unavailable": "Unavailable"
+    },
+    "not_found": {
+      "title": "Book Not Found",
+      "desc": "The book you're looking for doesn't exist.",
+      "button": "Browse Books"
+    },
+    "loading": "Loading book information...",
+    "about_book": "About This Book",
+    "about_author": "About the Author",
+    "actions": {
+      "borrow": "Borrow Now",
+      "borrow_label": "Borrow",
+      "reserve": "Reserve Now",
+      "reserve_label": "Reserve",
+      "wishlist": "Add to Wishlist",
+      "remove_wishlist": "Remove from Wishlist",
+      "in_wishlist": "In Wishlist",
+      "currently_borrowed": "Currently Borrowed",
+      "complete_payment": "Complete Borrow Payment",
+      "read_now": "Read Now",
+      "download_pdf": "Download PDF",
+      "opening_pdf": "Opening PDF...",
+      "preparing_download": "Preparing Download...",
+      "updating_wishlist": "Updating Wishlist...",
+      "submitting_review": "Submitting Review...",
+      "removing_review": "Removing Review...",
+      "submit_review": "Submit Review",
+      "update_review": "Update Review"
+    },
+    "labels": {
+      "rating": "Rating",
+      "category": "Category",
+      "access": "Access",
+      "available_on_shelf": "Available on Shelf",
+      "read_and_download": "Read + Download",
+      "copies": "{count} copies",
+      "copy": "{count} copy",
+      "review": "review",
+      "reviews": "reviews",
+      "students_in_queue": "{count} students currently in queue",
+      "already_reserved": "Already Reserved",
+      "no_bio": "No biography has been added for this author yet."
+    },
+    "reviews": {
+      "title": "Recent Reviews",
+      "write_title": "Write a Review",
+      "placeholder": "Write your review",
+      "unlock_digital": "Read this digital book first to unlock the review form.",
+      "remove": "Remove"
+    },
+    "sections": {
+      "more_by": "More by {name}",
+      "related_in": "Related in {name}",
+      "none_related": "No related books found for this author or category yet."
+    },
+    "messages": {
+      "login_to_borrow": "Please log in to borrow books",
+      "login_to_reserve": "Please log in to reserve books",
+      "login_to_wishlist": "Please log in to manage wishlist",
+      "added_wishlist": "Book added to wishlist",
+      "removed_wishlist": "Book removed from wishlist",
+      "borrower_persona_required": "Borrower Persona Required",
+      "review_saved": "Review saved",
+      "review_removed": "Review removed"
+    }
+  },
+  "shared": {
+    "search_placeholder": "Search for books, authors, or categories...",
+    "amount_owed": {
+      "title": "Amount Owed",
+      "daily_fine": "Daily Fine (if overdue):",
+      "per_day": "{amount} birr per day",
+      "days_borrowed": "Days Borrowed So Far:",
+      "days": "{count} days",
+      "total_owed": "Total Amount Owed:",
+      "birr": "{amount} birr"
+    }
+  },
+  "student_reservations": {
+    "title": "My Reservations",
+    "subtitle": "Track your queue and reservation windows.",
+    "no_reservations": "No reservations found.",
+    "cancelling": "Cancelling...",
+    "cancel": "Cancel",
+    "success_cancel": "Reservation cancelled",
+    "error_cancel": "Failed to cancel reservation"
+  },
+  "student_history": {
+    "title": "Borrowing History",
+    "subtitle": "View your complete borrowing history and track your reading journey.",
+    "summary": {
+      "total_borrowed": "Total Books Borrowed",
+      "total_paid": "Total Amount Paid",
+      "avg_cost": "Average Cost Per Book",
+      "total_reading_days": "Total Days of Reading",
+      "birr": "{amount} birr",
+      "days_suffix": "{count} days"
+    },
+    "table": {
+      "book": "Book",
+      "borrowed_on": "Borrowed On",
+      "status": "Status",
+      "days": "{count} days borrowed",
+      "reading": "Reading",
+      "returned": "Returned",
+      "overdue": "Overdue",
+      "title": "Title",
+      "borrowed_date": "Borrowed Date",
+      "returned_date": "Returned Date",
+      "days_kept": "Days Kept",
+      "amount_paid": "Amount Paid",
+      "action": "Action",
+      "see_detail": "See Book Detail",
+      "empty_message": "No borrowing history yet. Visit the Books page to borrow your first book!",
+      "status_borrowed": "Currently Borrowed",
+      "status_pending": "Pending Payment",
+      "status_returned": "Returned",
+      "status_completed": "Completed"
+    }
+  },
+  "student_wishlist": {
+    "title": "My Wishlist",
+    "subtitle": "Books you want to read. We'll notify you when they're available.",
+    "removed": "Removed from wishlist",
+    "failed_remove": "Failed to remove from wishlist",
+    "grid_title": "Books You Want to Read",
+    "empty_message": "Your wishlist is empty. Browse books and add them to your wishlist!",
+    "browse_books": "Browse Books",
+    "filters": {
+      "all": "All Books",
+      "physical": "Physical Only",
+      "digital": "Digital Only"
+    },
+    "status": {
+      "no_longer_available": "No Longer Available",
+      "available": "Available",
+      "unavailable": "Unavailable",
+      "remove_title": "Remove from wishlist"
+    },
+    "summary": {
+      "total": "Books On Wishlist",
+      "available": "Available Now",
+      "currently_unavailable": "Currently Unavailable",
+      "no_longer_available": "No Longer Available"
+    }
+  },
+  "student_payments": {
+    "title": "Fine Payments",
+    "subtitle": "Review pending fines and payment history.",
+    "verifying": "Verifying payment {ref}...",
+    "success_verify": "Payment verified successfully.",
+    "pending_verify": "Payment is still pending confirmation.",
+    "failed_verify": "Payment failed. Please try again.",
+    "status_updated": "Payment status updated.",
+    "outstanding_title": "Outstanding Overdue Fines",
+    "outstanding_desc": "Total due: {amount} ETB. Borrow checkout will force settlement of these overdue fines.",
+    "more_overdue": "+{count} more overdue fine(s)",
+    "pending_fines": "Pending Fines",
+    "loading_fines": "Loading pending fines...",
+    "no_fines": "No pending fines.",
+    "pay_now": "Pay Now",
+    "pending_payments": "Pending Payments",
+    "loading_payments": "Loading pending payments...",
+    "no_pending_payments": "No pending payments.",
+    "continue_payment": "Continue Payment",
+    "history": "Payment History",
+    "no_history": "No payments yet."
+  },
+  "student_notifications": {
+    "title": "Notifications",
+    "subtitle": "Stay updated with due reminders and library updates.",
+    "mark_all": "Mark All Read",
+    "marking": "Marking...",
+    "success_mark_all": "All notifications marked as read",
+    "failed_mark_all": "Failed to mark all as read",
+    "unread_count": "{count} unread",
+    "view_all": "View All Notifications",
+    "no_unread": "No unread notifications",
+    "no_notifications": "No notifications found.",
+    "detail_title": "Notification Details",
+    "mark_as_read": "Mark as Read",
+    "read_status": "Notification Read",
+    "mark_as_read_success": "Notification marked as read",
+    "mark_as_read_error": "Failed to mark as read"
+  },
+  "student_settings": {
+    "title": "Account Settings",
+    "subtitle": "Manage your personal information, notification preferences, and account security.",
+    "profile_title": "My Profile",
+    "labels": {
+      "full_name": "Full Name",
+      "student_id": "Student ID",
+      "phone": "Phone Number",
+      "year": "Year",
+      "department": "Department",
+      "email": "Email Address",
+      "password": "Password"
+    },
+    "placeholders": {
+      "full_name": "Enter your full name",
+      "phone": "+251 912 345 678",
+      "select_year": "Select Year",
+      "department": "e.g., Computer Science"
+    },
+    "hints": {
+      "student_id": "Contact admin to update student ID",
+      "not_set": "Not set",
+      "email_readonly": "Email cannot be changed"
+    },
+    "years": {
+      "y1": "1st Year",
+      "y2": "2nd Year",
+      "y3": "3rd Year",
+      "y4": "4th Year",
+      "y5": "5th Year"
+    },
+    "actions": {
+      "save": "Save Changes",
+      "saving": "Saving...",
+      "cancel": "Cancel",
+      "change_password": "Change Password"
+    },
+    "messages": {
+      "success_update": "Profile updated successfully!",
+      "failed_update": "Failed to update profile",
+      "email_readonly_btn": "Email Cannot Be Changed"
+    },
+    "security_title": "Account Security"
+  },
+  "change_password": {
+    "title": "Change Password",
+    "subtitle": "Enter your current password and choose a new one",
+    "labels": {
+      "old": "Old Password",
+      "new": "New Password",
+      "confirm": "Confirm New Password"
+    },
+    "placeholders": {
+      "old": "Enter old Password",
+      "new": "Enter New Password",
+      "confirm": "Confirm New Password"
+    },
+    "actions": {
+      "submit": "Change Password",
+      "submitting": "Changing Password..."
+    },
+    "messages": {
+      "required": "All fields are required",
+      "length": "New password must be at least 6 characters",
+      "match": "New passwords do not match",
+      "success": "Password changed successfully!",
+      "failed": "Failed to change password"
+    }
+  },
+  "admin_users": {
+    "title": "Manage Users",
+    "subtitle_super": "Super Admin can manage both admins and students",
+    "subtitle_admin": "Admin can manage students only",
+    "tabs": {
+      "students": "Students",
+      "admins": "Admins"
+    },
+    "search_placeholder": "Search user",
+    "table": {
+      "name": "Name",
+      "email": "Email",
+      "id_no": "ID No",
+      "year": "Year",
+      "phone_no": "Phone No",
+      "status": "Status",
+      "actions": "Actions",
+      "no_users": "No users found"
+    },
+    "roles": {
+      "blocked": "Blocked",
+      "super_admin": "Super Admin",
+      "admin": "Admin",
+      "student": "Student"
+    },
+    "actions": {
+      "unblock": "Unblock",
+      "block": "Block",
+      "delete": "Delete",
+      "promote": "Promote",
+      "make_student": "Make Student",
+      "make_super_admin": "Make Super Admin",
+      "processing": "Processing..."
+    },
+    "confirm": {
+      "unblock_title": "Unblock {name}?",
+      "unblock_desc": "This will restore account access immediately.",
+      "block_title": "Block {name}?",
+      "block_desc": "This user will not be able to access the system until you unblock them.",
+      "delete_title": "Delete {name}?",
+      "delete_desc": "This removes the user account permanently if no protected related records exist.",
+      "promote_title": "Promote {name} to admin?",
+      "promote_desc": "The user will gain admin permissions and keep student persona access.",
+      "to_student_title": "Convert {name} to student?",
+      "to_student_desc": "This removes admin privileges and keeps the account as a student user.",
+      "transfer_super_title": "Transfer super admin to {name}?",
+      "transfer_super_desc": "This admin will become the only super admin. Your account will automatically become a normal admin."
+    },
+    "insights": {
+      "total_rentals": "Total Rentals",
+      "on_time_rate": "On-Time Rate",
+      "active_overdue": "Active Overdue",
+      "wishlist": "Wishlist",
+      "favorite_categories": "Favorite Categories",
+      "no_category_data": "No category data yet",
+      "borrowing_history": "Borrowing History",
+      "history_empty": "No history",
+      "due": "Due {date}",
+      "late": "Late by {count} day(s)",
+      "on_time": "Returned on time",
+      "loading": "Loading user progress..."
+    },
+    "messages": {
+      "delete_success": "User deleted successfully",
+      "unblock_success": "User unblocked successfully",
+      "block_success": "User blocked successfully",
+      "status_update_failed": "Failed to update user status",
+      "promote_success": "Student promoted to admin successfully",
+      "to_student_success": "Admin converted to student successfully",
+      "transfer_success": "Super admin role transferred successfully"
+    }
+  },
+  "admin_books": {
+    "title": "Manage Books",
+    "subtitle": "Filter, sort, and access detailed Book profiles",
+    "search_placeholder": "Search book",
+    "add_new": "Add new book",
+    "tabs": {
+      "all": "All Books",
+      "physical": "Physical Books",
+      "digital": "Digital Books",
+      "categories": "Categories"
+    },
+    "table": {
+      "title": "Title",
+      "author": "Author",
+      "category": "Category",
+      "copies": "Copies",
+      "status": "Status",
+      "no_books": "No books found"
+    },
+    "status": {
+      "digital": "Digital",
+      "read_only": "Read Only",
+      "download_allowed": "Download Allowed",
+      "out_of_stock": "Out of Stock",
+      "available": "Available"
+    },
+    "actions": {
+      "edit": "Edit",
+      "condition": "Condition",
+      "delete": "Delete"
+    },
+    "modal": {
+      "add_title": "Add New Book",
+      "edit_title": "Update Book",
+      "labels": {
+        "title": "Book Title",
+        "author": "Author",
+        "category": "Category",
+        "copies": "Copies",
+        "pages": "Pages",
+        "publication_year": "Publication Year",
+        "loan_duration": "Loan Duration (Days)",
+        "rental_price": "Rental Price (ETB)",
+        "tags": "Tags (comma separated)",
+        "topics": "Topics (comma separated)",
+        "pdf_access": "PDF Access Level",
+        "description": "Description",
+        "cover_image": "Cover Image",
+        "book_gallery": "Book Gallery",
+        "pdf_file": "PDF File"
+      },
+      "placeholders": {
+        "author": "Select Author",
+        "category": "Select Category",
+        "pdf_access": "Select PDF Access"
+      },
+      "drop_image": "Click to upload cover image",
+      "drop_gallery": "Click to add images to gallery",
+      "drop_pdf": "Click to upload PDF document",
+      "submit_add": "Add Book to Collection",
+      "submit_update": "Update Book",
+      "submitting_add": "Adding...",
+      "submitting_update": "Updating..."
+    },
+    "messages": {
+      "delete_success": "Book deleted successfully",
+      "add_physical_success": "Physical book added",
+      "update_physical_success": "Physical book updated",
+      "add_digital_success": "Digital book added",
+      "update_digital_success": "Digital book updated",
+      "deleting": "Deleting...",
+      "status_update_failed": "Failed to update status"
+    },
+    "condition_modal": {
+      "title": "Book Condition Management",
+      "all_copies": "All Copies",
+      "no_copies": "No copies found",
+      "update_title": "Update Condition",
+      "select_copy": "Select a copy to update its condition",
+      "selected_copy": "Selected Copy",
+      "current": "Current",
+      "new_condition": "New Condition *",
+      "notes_label": "Notes (Optional)",
+      "notes_placeholder": "Add notes about the book's condition...",
+      "submit_update": "Update Condition",
+      "saving": "Saving...",
+      "history_title": "Condition History",
+      "no_history": "No history yet. Update a copy to see history.",
+      "conditions": {
+        "NEW": "NEW",
+        "GOOD": "GOOD",
+        "WORN": "WORN",
+        "DAMAGED": "DAMAGED",
+        "LOST": "LOST"
+      },
+      "status": {
+        "available": "Available",
+        "checked_out": "Checked Out"
+      }
+    }
+  },
+  "admin_authors": {
+    "title": "Manage Authors",
+    "subtitle": "Filter, sort, and access detailed Author profiles",
+    "search_placeholder": "Search author",
+    "add_new": "Add new author",
+    "table": {
+      "image": "IMAGE",
+      "name": "NAME",
+      "bio": "BIO",
+      "category": "CATEGORY",
+      "books": "BOOKS",
+      "status": "STATUS",
+      "no_authors": "No authors found"
+    },
+    "status": {
+      "active": "Active"
+    },
+    "modal": {
+      "add_title": "Add New Author",
+      "edit_title": "Update Author",
+      "labels": {
+        "name": "Name",
+        "bio": "Bio",
+        "image": "Image"
+      },
+      "placeholders": {
+        "name": "Author Name",
+        "bio": "Author Biography"
+      },
+      "drop_image": "Click to upload author image",
+      "submit_add": "Add Author to Collection",
+      "submit_update": "Update Author",
+      "submitting_add": "Adding...",
+      "submitting_update": "Updating..."
+    },
+    "messages": {
+      "add_success": "Author created successfully",
+      "update_success": "Author updated successfully",
+      "delete_success": "Author deleted successfully",
+      "add_failed": "Failed to create author",
+      "update_failed": "Failed to update author",
+      "delete_failed": "Failed to delete author"
+    },
+    "confirm": {
+      "delete_title": "Delete Author?",
+      "delete_desc": "This will remove {name}. This action cannot be undone.",
+      "delete_confirm": "Delete Author"
+    }
+  },
+  "admin_categories": {
+    "title": "Manage Categories",
+    "subtitle": "Create, edit and remove categories used by books.",
+    "search_placeholder": "Search category",
+    "add_new": "Add new category",
+    "table": {
+      "category": "Category",
+      "physical": "Physical",
+      "digital": "Digital",
+      "actions": "Actions",
+      "no_categories": "No categories found"
+    },
+    "actions": {
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "modal": {
+      "add_title": "Add Category",
+      "edit_title": "Edit Category",
+      "label_name": "Category Name",
+      "placeholder_name": "Enter category name",
+      "submit_add": "Create Category",
+      "submit_update": "Update Category",
+      "submitting": "Saving..."
+    },
+    "confirm": {
+      "delete_title": "Delete Category?",
+      "delete_desc": "This will remove {name} if no linked books depend on it.",
+      "cancel": "Cancel",
+      "delete_btn": "Delete Category"
+    },
+    "messages": {
+      "add_success": "Category created successfully",
+      "update_success": "Category updated successfully",
+      "delete_success": "Category deleted successfully"
+    }
+  },
+  "admin_activity_logs": {
+    "title": "Admin Activity Logs",
+    "subtitle": "Comprehensive audit trail of system-wide administrative actions.",
+    "retention": "Retention: Last 200 Actions",
+    "loading": "Fetching audit data...",
+    "no_logs": "No activity logs recorded yet.",
+    "system": "System",
+    "table": {
+      "admin": "Admin",
+      "action": "Action",
+      "description": "Description",
+      "timestamp": "Timestamp"
+    }
+  },
+  "admin_alerts": {
+    "title": "Alerts & Notifications",
+    "subtitle": "Monitor inventory alerts and system notifications.",
+    "run_scan": "Run Scan",
+    "scanning": "Scanning...",
+    "resolved": "Resolved",
+    "resolve": "Resolve",
+    "tabs": {
+      "alerts": "Inventory Alerts",
+      "notifications": "Notifications",
+      "inventory": "Inventory Alerts"
+    },
+    "actions": {
+      "resolve": "Resolve",
+      "resolved": "Resolved"
+    },
+    "messages": {
+      "scan_success": "Alert scan completed",
+      "scan_failed": "Failed to scan alerts",
+      "resolve_success": "Alert resolved",
+      "resolve_failed": "Failed to resolve alert"
+    }
+  },
+  "admin_borrowings": {
+    "title": "Borrowings",
+    "subtitle": "Track active rentals, returns, and overdue items.",
+    "search_placeholder": "Search borrowing",
+    "refresh": "Refresh",
+    "table": {
+      "student": "Student",
+      "book": "Book",
+      "loan_date": "Loan Date",
+      "due_date": "Due Date",
+      "status": "Status",
+      "fine": "Fine",
+      "action": "Action",
+      "no_borrowings": "No borrowings found"
+    },
+    "actions": {
+      "return": "Return",
+      "processing": "Working...",
+      "working": "Working..."
+    },
+    "messages": {
+      "return_success": "Return processed successfully",
+      "return_failed": "Failed to process return"
+    }
+  },
+  "admin_reports": {
+    "title": "Reports & Export",
+    "subtitle": "Generate CSV or preview JSON report data from the database.",
+    "types": {
+      "rentals": "Rentals",
+      "overdue": "Overdue",
+      "users": "Users",
+      "inventory": "Inventory",
+      "reservations": "Reservations"
+    },
+    "download_csv": "Download CSV",
+    "download_excel": "Download Excel",
+    "download_pdf": "Download PDF",
+    "select_preview": "Select a report to preview",
+    "select_report": "Select a report to preview",
+    "loading": "Loading...",
+    "messages": {
+      "load_failed": "Failed to load report data"
+    }
+  },
+  "admin_overdue": {
+    "title": "Overdue Dashboard",
+    "subtitle": "Track overdue records, ranking, and fine exposure.",
+    "send_reminders": "Send Reminder(s) ({count} Selected)",
+    "send_reminder": "Send Reminder(s) ({count} Selected)",
+    "sending": "Sending...",
+    "days": "days",
+    "ranking_title": "Overdue Ranking (Escalation Priority)",
+    "no_ranking": "No ranking data.",
+    "ranking_item": "#{rank} {name} • {days} days • {fine} ETB",
+    "table": {
+      "student": "Student",
+      "book": "Book",
+      "due_date": "Due Date",
+      "days_overdue": "Days Overdue",
+      "fine": "Estimated Fine",
+      "estimated_fine": "Estimated Fine",
+      "no_overdue": "No overdue rentals"
+    },
+    "messages": {
+      "reminders_success": "Reminders queued successfully",
+      "reminders_failed": "Failed to queue reminders"
+    }
+  }
+}
+

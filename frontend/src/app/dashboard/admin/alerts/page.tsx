@@ -8,6 +8,7 @@ import { useNotifications, useMarkAsRead, Notification } from "@/lib/hooks/useNo
 import { LoadingList } from "@/components/ui/Loading";
 import { NotificationOverlay } from "@/components/notifications/NotificationOverlay";
 import { toast } from "sonner";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 type Alert = {
   id: string;
@@ -75,6 +76,7 @@ export function useScanAlerts() {
 function AlertsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useLanguage();
 
   // URL States - Source of Truth
   const notificationId = searchParams.get("notification");
@@ -111,18 +113,18 @@ function AlertsContent() {
   const handleScanAlerts = async () => {
     try {
       await scanAlerts.mutateAsync();
-      toast.success("Alert scan completed");
+      toast.success(t("admin_alerts.messages.scan_success"));
     } catch {
-      toast.error("Failed to scan alerts");
+      toast.error(t("admin_alerts.messages.scan_failed"));
     }
   };
 
   const handleResolveAlert = async (id: string) => {
     try {
       await resolveAlert.mutateAsync(id);
-      toast.success("Alert resolved");
+      toast.success(t("admin_alerts.messages.resolve_success"));
     } catch {
-      toast.error("Failed to resolve alert");
+      toast.error(t("admin_alerts.messages.resolve_failed"));
     }
   };
 
@@ -144,15 +146,15 @@ function AlertsContent() {
     <div className="p-6 lg:p-12 space-y-8">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="space-y-2">
-          <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-[#2B1A10]">Alerts & Notifications</h1>
-          <p className="text-[#AE9E85] font-medium">Monitor inventory alerts and system notifications.</p>
+          <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-[#2B1A10]">{t("admin_alerts.title")}</h1>
+          <p className="text-[#AE9E85] font-medium">{t("admin_alerts.subtitle")}</p>
         </div>
         <button
           onClick={handleScanAlerts}
           disabled={scanAlerts.isPending}
           className="px-4 py-2.5 bg-[#2B1A10] text-white text-sm font-bold rounded-xl disabled:opacity-50"
         >
-          {scanAlerts.isPending ? "Scanning..." : "Run Scan"}
+          {scanAlerts.isPending ? t("admin_alerts.scanning") : t("admin_alerts.run_scan")}
         </button>
       </div>
 
@@ -161,13 +163,13 @@ function AlertsContent() {
           onClick={() => handleTabChange("alerts")}
           className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === "alerts" ? "border-[#2B1A10] text-[#2B1A10]" : "border-transparent text-[#AE9E85]"}`}
         >
-          Inventory Alerts
+          {t("admin_alerts.tabs.alerts")}
         </button>
         <button
           onClick={() => handleTabChange("notifications")}
           className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === "notifications" ? "border-[#2B1A10] text-[#2B1A10]" : "border-transparent text-[#AE9E85]"}`}
         >
-          Notifications
+          {t("admin_alerts.tabs.notifications")}
           {notificationsData?.unreadCount && notificationsData.unreadCount > 0 && (
             <span className="ml-2 px-2 py-0.5 text-xs bg-red-500 text-white rounded-full">
               {notificationsData.unreadCount}
@@ -194,7 +196,7 @@ function AlertsContent() {
                   disabled={item.is_resolved}
                   className="px-3 py-1.5 text-xs font-bold border rounded-lg disabled:opacity-30"
                 >
-                  {item.is_resolved ? "Resolved" : "Resolve"}
+                  {item.is_resolved ? t("admin_alerts.resolved") : t("admin_alerts.resolve")}
                 </button>
               </div>
             ))

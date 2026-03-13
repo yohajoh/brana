@@ -6,31 +6,23 @@ import Link from "next/link";
 import React from "react";
 import { RxPeople } from "react-icons/rx";
 
-const page = () => {
+import { useLanguage } from "@/components/providers/LanguageProvider";
+
+const AboutPage = () => {
+  const { t } = useLanguage();
+
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col selection:bg-primary/10">
       <Navbar />
       <div className="px-4 sm:px-8 lg:px-16 flex gap-20 pt-10 items-center justify-between mb-40 max-w-7xl mx-auto">
         <div>
           <h2 className="text-4xl font-serif font-bold text-primary mb-5">
-            Our Story
+            {t("about_page.story.title")}
           </h2>
           <p className="text-[16px] max-w-171.25 leading-relaxed">
-            It all started with a stack of Google Forms and a team of dedicated
-            volunteers. For years, our fellowship managed book lending
-            manually—students would fill out forms, volunteers would track
-            everything on spreadsheets, and books were handed out whenever
-            schedules aligned.
-            <br /> It worked, but it wasn't easy. Books got lost in the shuffle.
-            Students didn't know what was available. Volunteers spent hours on
-            administrative work instead of connecting with readers. We knew
-            there had to be a better way.
-            <br /> So we built one. What started as a conversation among friends
-            became a project to create a simple, fair, and community-focused
-            borrowing system. Today, the Fellowship Library is a fully digital
-            platform that lets students browse, request, and receive books—all
-            delivered to their dorm, with a pay-per-day model that's fair for
-            everyone.
+            {t("about_page.story.p1")}
+            <br /> {t("about_page.story.p2")}
+            <br /> {t("about_page.story.p3")}
           </p>
         </div>
         <Image
@@ -44,15 +36,10 @@ const page = () => {
 
       <div className="px-4 sm:px-8 lg:px-16 pt-10 text-center mb-40 max-w-7xl mx-auto">
         <h2 className="text-4xl font-serif font-bold text-primary mb-5">
-          Our Mission
+          {t("about_page.mission.title")}
         </h2>
         <p className="text-[16px] max-w-190 leading-relaxed mx-auto">
-          At the Gibi Gubae Library, we believe that reading nurtures the mind
-          and soul. Our mission is simple: to make quality books accessible to
-          every member of our Gibi Gubae community—without hassle, without
-          barriers, and with a personal touch. We're not just a library. We're a
-          community of readers who share stories, grow in faith, and support one
-          another's journey.
+          {t("about_page.mission.description")}
         </p>
       </div>
 
@@ -63,7 +50,7 @@ const page = () => {
               200+
             </h3>
             <p className="text-[16px] leading-relaxed mx-auto">
-              Books in our collection
+              {t("about_page.stats.books")}
             </p>
           </div>
           <div className="px-4 sm:px-8 lg:px-16 text-center w-full border-r-2 border-accent">
@@ -71,7 +58,7 @@ const page = () => {
               87
             </h3>
             <p className="text-[16px] leading-relaxed mx-auto">
-              Books borrowed this year
+              {t("about_page.stats.borrowed")}
             </p>
           </div>
           <div className="px-4 sm:px-8 lg:px-16 text-center w-full border-r-2 border-accent">
@@ -79,7 +66,7 @@ const page = () => {
               12
             </h3>
             <p className="text-[16px] leading-relaxed mx-auto">
-              Library members keeping things running
+              {t("about_page.stats.members")}
             </p>
           </div>
           <div className="px-4 sm:px-8 lg:px-16 text-center ">
@@ -87,7 +74,7 @@ const page = () => {
               50+
             </h3>
             <p className="text-[16px] leading-relaxed mx-auto">
-              Active readers
+              {t("about_page.stats.readers")}
             </p>
           </div>
         </div>
@@ -95,7 +82,7 @@ const page = () => {
 
       <div className="px-4 sm:px-8 lg:px-16 pt-10 text-center mb-50 flex flex-col items-center">
         <h2 className="text-4xl font-serif font-bold text-primary mb-15">
-          Be Part of the Story
+          {t("about_page.involvement.title")}
         </h2>
         <div className="flex gap-12 ">
           <div className="flex flex-col items-center w-75">
@@ -109,16 +96,16 @@ const page = () => {
             </div>
             <div className="px-4 pb-5 pt-10 text-center bg-white/50 w-full rounded-2xl shadow-xl  flex flex-col items-center gap-1">
               <h4 className="text-[24px] font-serif font-bold text-primary">
-                Borrow Books
+                {t("about_page.involvement.borrow.title")}
               </h4>
               <p className="text-[16px] leading-relaxed mb-4 max-w-60">
-                The easiest way to get involved! Sign up and start reading.
+                {t("about_page.involvement.borrow.description")}
               </p>
               <Link
                 href="/books"
                 className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary  py-2 text-[14px] font-bold text-background shadow-xl hover:bg-accent transition-all group active:scale-95 cursor-pointer"
               >
-                Explore Collections
+                {t("about_page.involvement.cta_explore")}
                 <MoveRight
                   size={20}
                   className="group-hover:translate-x-1 transition-transform"
@@ -137,17 +124,16 @@ const page = () => {
             </div>
             <div className="px-4 pb-5 pt-10 text-center bg-white/50 w-full  rounded-2xl shadow-xl  flex flex-col items-center gap-1">
               <h4 className="text-[24px] font-serif font-bold text-primary">
-                Donate Books
+                {t("about_page.involvement.donate.title")}
               </h4>
               <p className="text-[16px] leading-relaxed mb-4">
-                Have a book to share? We accept gently used donations that align
-                with our collection.
+                {t("about_page.involvement.donate.description")}
               </p>
               <Link
                 href="#"
                 className="flex w-full items-center gap-2 rounded-lg bg-primary justify-center py-2 text-[14px] font-bold text-background shadow-xl hover:bg-accent transition-all group active:scale-95 cursor-pointer"
               >
-                Contact Us
+                {t("about_page.involvement.cta_contact")}
               </Link>
             </div>
           </div>
@@ -157,17 +143,16 @@ const page = () => {
             </div>
             <div className="px-4 pb-5 pt-10 text-center bg-white/50 w-full rounded-2xl shadow-xl  flex flex-col items-center gap-1">
               <h4 className="text-[24px] font-serif font-bold text-primary">
-                Be Volunteer
+                {t("about_page.involvement.volunteer.title")}
               </h4>
               <p className="text-[16px] leading-relaxed mb-4 max-w-65">
-                Help with deliveries, book processing, or admin tasks. Time
-                commitment is flexible.
+                {t("about_page.involvement.volunteer.description")}
               </p>
               <Link
                 href="#"
                 className="flex w-full justify-center items-center gap-2 rounded-lg bg-primary py-2 text-[14px] font-bold text-background shadow-xl hover:bg-accent transition-all group active:scale-95 cursor-pointer"
               >
-                Contact Us
+                {t("about_page.involvement.cta_contact")}
               </Link>
             </div>
           </div>
@@ -179,4 +164,4 @@ const page = () => {
   );
 };
 
-export default page;
+export default AboutPage;

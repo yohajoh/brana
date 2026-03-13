@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useMyPayments, useMyRentals, useMyDebtSummary, api } from "@/lib/hooks/useQueries";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 type Payment = {
   id: string;
@@ -25,6 +26,7 @@ type RentalFine = {
 };
 
 function PaymentsContent() {
+  const { t } = useLanguage();
   const searchParams = useSearchParams();
   const txRefFromQuery =
     searchParams.get("tx_ref") ||
@@ -59,12 +61,12 @@ function PaymentsContent() {
         );
         await refetchPayments();
         const paymentStatus = verifyRes?.data?.payment?.status;
-        if (paymentStatus === "SUCCESS") setVerifyMessage("Payment verified successfully.");
-        else if (paymentStatus === "PENDING") setVerifyMessage("Payment is still pending confirmation.");
-        else if (paymentStatus === "FAILED") setVerifyMessage("Payment failed. Please try again.");
-        else setVerifyMessage("Payment status updated.");
+        if (paymentStatus === "SUCCESS") setVerifyMessage(t("student_payments.success_verify"));
+        else if (paymentStatus === "PENDING") setVerifyMessage(t("student_payments.pending_verify"));
+        else if (paymentStatus === "FAILED") setVerifyMessage(t("student_payments.failed_verify"));
+        else setVerifyMessage(t("student_payments.status_updated"));
       } catch (err) {
-        setVerifyMessage(err instanceof Error ? err.message : "Payment verification failed.");
+        setVerifyMessage(err instanceof Error ? err.message : t("common.error_occurred"));
       } finally {
         setVerifyingTx(null);
       }
@@ -96,18 +98,17 @@ function PaymentsContent() {
   return (
     <div className="p-6 lg:p-12 space-y-8">
       <div className="space-y-2">
-        <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-primary">Fine Payments</h1>
-        <p className="text-secondary font-medium">Review pending fines and payment history.</p>
-        {verifyingTx && <p className="text-sm text-secondary">Verifying payment {verifyingTx}...</p>}
+        <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-primary">{t("student_payments.title")}</h1>
+        <p className="text-secondary font-medium">{t("student_payments.subtitle")}</p>
+        {verifyingTx && <p className="text-sm text-secondary">{t("student_payments.verifying", { ref: verifyingTx })}</p>}
         {verifyMessage && <p className="text-sm text-primary">{verifyMessage}</p>}
       </div>
 
       {debtSummary?.hasDebt ? (
         <section className="rounded-2xl border border-amber-300 bg-amber-50 p-4 space-y-2">
-          <h2 className="text-lg font-serif font-bold text-[#7A4B00]">Outstanding Overdue Fines</h2>
+          <h2 className="text-lg font-serif font-bold text-[#7A4B00]">{t("student_payments.outstanding_title")}</h2>
           <p className="text-sm text-[#7A4B00]">
-            Total due: <span className="font-bold">{Number(debtSummary.totalDebt || 0).toFixed(2)} ETB</span>. Borrow
-            checkout will force settlement of these overdue fines.
+            {t("student_payments.outstanding_desc", { amount: Number(debtSummary.totalDebt || 0).toFixed(2) })}
           </p>
           <div className="space-y-1">
             {debtSummary.overdueFines.slice(0, 4).map((entry) => (
@@ -116,19 +117,19 @@ function PaymentsContent() {
               </p>
             ))}
             {debtSummary.overdueFines.length > 4 ? (
-              <p className="text-xs text-[#7A4B00]">+{debtSummary.overdueFines.length - 4} more overdue fine(s)</p>
+              <p className="text-xs text-[#7A4B00]">{t("student_payments.more_overdue", { count: debtSummary.overdueFines.length - 4 })}</p>
             ) : null}
           </div>
         </section>
       ) : null}
 
       <section className="space-y-4">
-        <h2 className="text-xl font-serif font-bold text-primary">Pending Fines</h2>
+        <h2 className="text-xl font-serif font-bold text-primary">{t("student_payments.pending_fines")}</h2>
         <div className="space-y-3">
           {loading ? (
-            <div className="text-sm text-secondary">Loading pending fines...</div>
+            <div className="text-sm text-secondary">{t("student_payments.loading_fines")}</div>
           ) : pendingFines.length === 0 ? (
-            <div className="text-sm text-secondary">No pending fines.</div>
+            <div className="text-sm text-secondary">{t("student_payments.no_fines")}</div>
           ) : (
             pendingFines.map((r) => (
               <div
@@ -137,13 +138,13 @@ function PaymentsContent() {
               >
                 <div>
                   <p className="text-sm font-bold text-primary">{r.physical_book.title}</p>
-                  <p className="text-xs text-secondary">Fine: {Number(r.fine || 0).toFixed(2)} ETB</p>
+                  <p className="text-xs text-secondary">{t("admin_reservations.table.debt")}: {Number(r.fine || 0).toFixed(2)} ETB</p>
                 </div>
                 <button
                   onClick={() => payFine(r.id)}
                   className="px-4 py-2 rounded-xl bg-primary text-background text-sm font-bold"
                 >
-                  Pay Now
+                  {t("student_payments.pay_now")}
                 </button>
               </div>
             ))
@@ -152,12 +153,12 @@ function PaymentsContent() {
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-xl font-serif font-bold text-primary">Pending Payments</h2>
+        <h2 className="text-xl font-serif font-bold text-primary">{t("student_payments.pending_payments")}</h2>
         <div className="space-y-3">
           {loading ? (
-            <div className="text-sm text-secondary">Loading pending payments...</div>
+            <div className="text-sm text-secondary">{t("student_payments.loading_payments")}</div>
           ) : actionablePayments.length === 0 ? (
-            <div className="text-sm text-secondary">No pending payments.</div>
+            <div className="text-sm text-secondary">{t("student_payments.no_pending_payments")}</div>
           ) : (
             actionablePayments.map((p) => (
               <div
@@ -167,14 +168,14 @@ function PaymentsContent() {
                 <div>
                   <p className="text-sm font-bold text-primary">{p.rental?.physical_book?.title || "Book"}</p>
                   <p className="text-xs text-secondary">
-                    Amount: {Number(p.amount || 0).toFixed(2)} ETB - Status: {p.status}
+                    {t("dashboard.stats.revenue")}: {Number(p.amount || 0).toFixed(2)} ETB - {t("admin_reservations.table.status")}: {p.status}
                   </p>
                 </div>
                 <button
                   onClick={() => retryPayment(p)}
                   className="px-4 py-2 rounded-xl bg-primary text-background text-sm font-bold"
                 >
-                  Continue Payment
+                  {t("student_payments.continue_payment")}
                 </button>
               </div>
             ))
@@ -183,19 +184,19 @@ function PaymentsContent() {
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-xl font-serif font-bold text-primary">Payment History</h2>
+        <h2 className="text-xl font-serif font-bold text-primary">{t("student_payments.history")}</h2>
         <div className="bg-white rounded-2xl border border-border/60 overflow-hidden">
           <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr] gap-4 px-6 py-3 border-b border-border/50 bg-[#FDFAF6]">
-            <span className="text-[11px] font-bold text-secondary uppercase">Book</span>
-            <span className="text-[11px] font-bold text-secondary uppercase">Amount</span>
-            <span className="text-[11px] font-bold text-secondary uppercase">Method</span>
-            <span className="text-[11px] font-bold text-secondary uppercase">Status</span>
-            <span className="text-[11px] font-bold text-secondary uppercase">Date</span>
+            <span className="text-[11px] font-bold text-secondary uppercase">{t("admin_reservations.table.book")}</span>
+            <span className="text-[11px] font-bold text-secondary uppercase">{t("dashboard.stats.revenue")}</span>
+            <span className="text-[11px] font-bold text-secondary uppercase">{t("admin_reservations.table.method") || "Method"}</span>
+            <span className="text-[11px] font-bold text-secondary uppercase">{t("admin_reservations.table.status")}</span>
+            <span className="text-[11px] font-bold text-secondary uppercase">{t("admin_reservations.table.reserved")}</span>
           </div>
           {loading ? (
-            <div className="py-16 text-center text-secondary text-sm">Loading payments...</div>
+            <div className="py-16 text-center text-secondary text-sm">{t("student_payments.loading_payments")}</div>
           ) : payments.length === 0 ? (
-            <div className="py-16 text-center text-secondary text-sm">No payments yet.</div>
+            <div className="py-16 text-center text-secondary text-sm">{t("student_payments.no_history")}</div>
           ) : (
             payments.map((p) => (
               <div
@@ -217,13 +218,14 @@ function PaymentsContent() {
 }
 
 function PaymentsLoading() {
+  const { t } = useLanguage();
   return (
     <div className="p-6 lg:p-12 space-y-8">
       <div className="space-y-2">
         <div className="h-12 w-64 bg-[#E1D2BD]/30 rounded-lg animate-pulse" />
         <div className="h-5 w-96 bg-[#E1D2BD]/30 rounded-lg animate-pulse" />
       </div>
-      <div className="py-16 text-center text-secondary text-sm">Loading payments...</div>
+      <div className="py-16 text-center text-secondary text-sm">{t("student_payments.loading_payments")}</div>
     </div>
   );
 }

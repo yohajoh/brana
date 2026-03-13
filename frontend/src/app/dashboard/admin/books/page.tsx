@@ -30,6 +30,7 @@ import {
   useConditionHistory,
   useUpdateCondition,
 } from "@/lib/hooks/useQueries";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 type Tab = "all" | "physical" | "digital" | "categories";
 
@@ -104,6 +105,7 @@ export default function AdminBooksPage() {
   const [conditionBookId, setConditionBookId] = useState("");
   const [conditionBookTitle, setConditionBookTitle] = useState("");
   const [deleteBookCandidate, setDeleteBookCandidate] = useState<DeleteBookCandidate>(null);
+  const { t } = useLanguage();
 
   const { data: booksData, isLoading: booksLoading } = useBooks("limit=200");
   const { data: digitalData, isLoading: digitalLoading } = useDigitalBooks("limit=200");
@@ -159,10 +161,10 @@ export default function AdminBooksPage() {
   const handleDeleteBook = async (candidate: NonNullable<DeleteBookCandidate>) => {
     try {
       await deleteBook.mutateAsync({ id: candidate.id, type: candidate.type });
-      toast.success("Book deleted successfully");
+      toast.success(t("admin_books.messages.delete_success"));
       setDeleteBookCandidate(null);
     } catch (error) {
-      toast.error(getErrorMessage(error, "Failed to delete book"));
+      toast.error(getErrorMessage(error, t("admin_books.messages.status_update_failed")));
     }
   };
 
@@ -177,10 +179,10 @@ export default function AdminBooksPage() {
   };
 
   const TABS: { key: Tab; label: string }[] = [
-    { key: "all", label: "All Books" },
-    { key: "physical", label: "Physical Books" },
-    { key: "digital", label: "Digital Books" },
-    { key: "categories", label: "Categories" },
+    { key: "all", label: t("admin_books.tabs.all") },
+    { key: "physical", label: t("admin_books.tabs.physical") },
+    { key: "digital", label: t("admin_books.tabs.digital") },
+    { key: "categories", label: t("admin_books.tabs.categories") },
   ];
 
   const displayBooks = getDisplayBooks();
@@ -217,16 +219,16 @@ export default function AdminBooksPage() {
     try {
       if (editingCategoryId) {
         await updateCategoryFn.mutateAsync({ id: editingCategoryId, data: { name: categoryName } });
-        toast.success("Category updated successfully");
+        toast.success(t("admin_categories.messages.update_success"));
       } else {
         await createCategoryFn.mutateAsync({ name: categoryName });
-        toast.success("Category created successfully");
+        toast.success(t("admin_categories.messages.add_success"));
       }
       setShowCategoryModal(false);
       setEditingCategoryId(null);
       setCategoryName("");
     } catch (error) {
-      toast.error(getErrorMessage(error, "Failed to save category"));
+      toast.error(getErrorMessage(error, t("admin_categories.messages.add_failed")));
     }
   };
 
@@ -234,9 +236,9 @@ export default function AdminBooksPage() {
     if (!confirm("Delete this category?")) return;
     try {
       await deleteCategoryFn.mutateAsync(id);
-      toast.success("Category deleted successfully");
+      toast.success(t("admin_categories.messages.delete_success"));
     } catch (error) {
-      toast.error(getErrorMessage(error, "Failed to delete category"));
+      toast.error(getErrorMessage(error, t("admin_categories.messages.delete_failed")));
     }
   };
 
@@ -245,15 +247,15 @@ export default function AdminBooksPage() {
       <div className="p-6 lg:p-12 space-y-8">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="space-y-1">
-            <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-[#2B1A10]">Manage Books</h1>
-            <p className="text-[#AE9E85] font-medium">Filter, sort, and access detailed Book profiles</p>
+            <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-[#2B1A10]">{t("admin_books.title")}</h1>
+            <p className="text-[#AE9E85] font-medium">{t("admin_books.subtitle")}</p>
           </div>
           <div className="flex items-center gap-3 mt-2">
             <div className="relative">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#AE9E85]" />
               <input
                 type="text"
-                placeholder="Search book"
+                placeholder={t("admin_books.search_placeholder")}
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
@@ -268,7 +270,7 @@ export default function AdminBooksPage() {
               className="flex items-center gap-2 px-4 py-2.5 bg-[#2B1A10] text-white text-sm font-bold rounded-xl"
             >
               <Plus size={16} />
-              {activeTab === "categories" ? "Add new category" : "Add new book"}
+              {activeTab === "categories" ? t("admin_categories.add_new") : t("admin_books.add_new")}
             </button>
           </div>
         </div>
@@ -319,9 +321,9 @@ export default function AdminBooksPage() {
               disabled={currentPage === 1}
               className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-[#2B1A10]/60 disabled:opacity-30"
             >
-              <ChevronLeft size={16} />
-              Previous
-            </button>
+            <ChevronLeft size={16} />
+            {t("common.previous")}
+          </button>
             <div className="flex items-center gap-1.5">
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                 <button
@@ -338,7 +340,7 @@ export default function AdminBooksPage() {
               disabled={currentPage === totalPages}
               className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-[#2B1A10]/60 disabled:opacity-30"
             >
-              Next
+              {t("common.next")}
               <ChevronRight size={16} />
             </button>
           </div>
@@ -384,7 +386,7 @@ export default function AdminBooksPage() {
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
             <div className="flex items-center justify-between px-8 pt-7 pb-4 border-b border-[#E1D2BD]/50">
               <h3 className="text-xl font-serif font-extrabold text-[#2B1A10]">
-                {editingCategoryId ? "Edit Category" : "Add Category"}
+                {editingCategoryId ? t("admin_categories.modal.edit_title") : t("admin_categories.modal.add_title")}
               </h3>
               <button
                 onClick={() => setShowCategoryModal(false)}
@@ -401,7 +403,7 @@ export default function AdminBooksPage() {
               className="px-8 py-6 space-y-4"
             >
               <div>
-                <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">Category Name</label>
+                <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">{t("admin_categories.modal.label_name")}</label>
                 <input
                   type="text"
                   required
@@ -416,10 +418,10 @@ export default function AdminBooksPage() {
                 className="w-full py-3 bg-[#2B1A10] text-white text-sm font-bold rounded-xl disabled:opacity-50"
               >
                 {createCategoryFn.isPending || updateCategoryFn.isPending
-                  ? "Saving..."
+                  ? t("admin_categories.modal.submitting")
                   : editingCategoryId
-                    ? "Update Category"
-                    : "Create Category"}
+                    ? t("admin_categories.modal.submit_update")
+                    : t("admin_categories.modal.submit_add")}
               </button>
             </form>
           </div>
@@ -449,10 +451,9 @@ export default function AdminBooksPage() {
             className="w-full max-w-md rounded-[28px] border border-[#E1D2BD] bg-[#FFF9F1] p-6 shadow-2xl"
           >
             <div className="space-y-2">
-              <h3 className="text-2xl font-serif font-black text-[#2B1A10]">Delete Book?</h3>
+              <h3 className="text-2xl font-serif font-black text-[#2B1A10]">{t("admin_categories.confirm.delete_title")}</h3>
               <p className="text-sm text-[#7B6853] leading-6">
-                This will remove <span className="font-bold text-[#2B1A10]">{deleteBookCandidate.title}</span>. This
-                action cannot be undone.
+                {t("admin_categories.confirm.delete_desc", { name: deleteBookCandidate.title })}
               </p>
             </div>
             <div className="mt-6 flex items-center justify-end gap-3">
@@ -462,7 +463,7 @@ export default function AdminBooksPage() {
                 disabled={deleteBook.isPending}
                 className="px-4 py-2.5 rounded-xl border border-[#D9C8B3] text-sm font-bold text-[#6C5236] disabled:opacity-40"
               >
-                Cancel
+                {t("common.cancel")}
               </button>
               <button
                 type="button"
@@ -470,7 +471,7 @@ export default function AdminBooksPage() {
                 disabled={deleteBook.isPending}
                 className="px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-red-700 disabled:opacity-40"
               >
-                {deleteBook.isPending ? "Deleting..." : "Delete Book"}
+                {deleteBook.isPending ? t("admin_books.messages.deleting") || "Deleting..." : t("admin_books.actions.delete")}
               </button>
             </div>
           </div>
@@ -503,15 +504,15 @@ function BookTable({
     };
   }, []);
 
-  if (books.length === 0) return <div className="py-16 text-center text-sm text-[#AE9E85]">No books found</div>;
+  if (books.length === 0) return <div className="py-16 text-center text-sm text-[#AE9E85]">{t("admin_books.table.no_books")}</div>;
   return (
     <>
       <div className="grid grid-cols-[2.5fr_2fr_1.5fr_1fr_1fr_auto] gap-4 px-6 py-3 border-b border-[#E1D2BD]/50 bg-[#FDFAF6]">
-        <span className="text-[11px] font-bold text-[#AE9E85] uppercase">Title</span>
-        <span className="text-[11px] font-bold text-[#AE9E85] uppercase">Author</span>
-        <span className="text-[11px] font-bold text-[#AE9E85] uppercase">Category</span>
-        <span className="text-[11px] font-bold text-[#AE9E85] uppercase text-center">Copies</span>
-        <span className="text-[11px] font-bold text-[#AE9E85] uppercase">Status</span>
+        <span className="text-[11px] font-bold text-[#AE9E85] uppercase">{t("admin_books.table.title")}</span>
+        <span className="text-[11px] font-bold text-[#AE9E85] uppercase">{t("admin_books.table.author")}</span>
+        <span className="text-[11px] font-bold text-[#AE9E85] uppercase">{t("admin_books.table.category")}</span>
+        <span className="text-[11px] font-bold text-[#AE9E85] uppercase text-center">{t("admin_books.table.copies")}</span>
+        <span className="text-[11px] font-bold text-[#AE9E85] uppercase">{t("admin_books.table.status")}</span>
         <span className="w-16"></span>
       </div>
       {books.map((book) => (
@@ -523,16 +524,16 @@ function BookTable({
           <span className="text-sm text-[#8B6B4A] truncate">{book.author?.name || "—"}</span>
           <span className="text-sm text-[#2B1A10]/70">{book.category?.name || "—"}</span>
           <span className="text-sm text-[#2B1A10]/70 text-center">
-            {book.type === "digital" ? "Digital" : (book.total ?? "—")}
+            {book.type === "digital" ? t("admin_books.status.digital") : (book.total ?? "—")}
           </span>
           <span
             className={`text-xs font-bold px-2.5 py-1 rounded-lg w-fit ${book.type === "digital" ? "bg-[#F3EFE6] text-[#2B1A10]" : book.available === 0 || book.status === "BORROWED" ? "bg-red-50 text-red-600" : "bg-green-50 text-green-700"}`}
           >
             {book.type === "digital"
               ? book.pdf_access === "RESTRICTED"
-                ? "Read Only"
-                : "Download Allowed"
-              : book.status || (book.available === 0 ? "Out of Stock" : "Available")}
+                ? t("admin_books.status.read_only")
+                : t("admin_books.status.download_allowed")
+              : book.status || (book.available === 0 ? t("admin_books.status.out_of_stock") : t("admin_books.status.available"))}
           </span>
           <div className="relative flex justify-end" onClick={(event) => event.stopPropagation()}>
             <button
@@ -554,7 +555,7 @@ function BookTable({
                   }}
                   className="flex w-full items-center px-3 py-2.5 text-left text-sm font-semibold text-[#2B1A10] hover:bg-[#F8F2E9]"
                 >
-                  Edit
+                  {t("admin_books.actions.edit")}
                 </button>
                 {book.type === "physical" ? (
                   <button
@@ -565,7 +566,7 @@ function BookTable({
                     }}
                     className="flex w-full items-center px-3 py-2.5 text-left text-sm font-semibold text-[#2B1A10] hover:bg-[#F8F2E9]"
                   >
-                    Condition
+                    {t("admin_books.actions.condition")}
                   </button>
                 ) : null}
                 <button
@@ -577,7 +578,7 @@ function BookTable({
                   disabled={deletingId === book.id}
                   className="flex w-full items-center px-3 py-2.5 text-left text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-40"
                 >
-                  Delete
+                  {t("admin_books.actions.delete")}
                 </button>
               </div>
             ) : null}
@@ -600,12 +601,12 @@ function CategoryTable({
   deletingId?: string;
 }) {
   if (categories.length === 0)
-    return <div className="py-16 text-center text-sm text-[#AE9E85]">No categories found</div>;
+    return <div className="py-16 text-center text-sm text-[#AE9E85]">{t("admin_categories.table.no_categories")}</div>;
   return (
     <>
       <div className="grid grid-cols-[3fr_1fr_auto] gap-4 px-6 py-3 border-b border-[#E1D2BD]/50 bg-[#FDFAF6]">
-        <span className="text-[11px] font-bold text-[#AE9E85] uppercase">Category Name</span>
-        <span className="text-[11px] font-bold text-[#AE9E85] uppercase">Books</span>
+        <span className="text-[11px] font-bold text-[#AE9E85] uppercase">{t("admin_categories.table.category")}</span>
+        <span className="text-[11px] font-bold text-[#AE9E85] uppercase">{t("admin_categories.table.physical")} / {t("admin_categories.table.digital")}</span>
         <span className="w-16"></span>
       </div>
       {categories.map((cat) => (
@@ -772,6 +773,7 @@ function AddBookModal({
   onSubmit: (type: "physical" | "digital", data: FormData) => Promise<void>;
   submitting: boolean;
 }) {
+  const { t } = useLanguage();
   const [modalTab, setModalTab] = useState<"physical" | "digital">("physical");
   const [form, setForm] = useState({
     title: "",
@@ -1012,14 +1014,14 @@ function AddBookModal({
             disabled={!!editingBook}
             className={`text-sm font-bold pb-2 border-b-2 ${modalTab === "physical" ? "text-[#2B1A10] border-[#2B1A10]" : "text-[#AE9E85] border-transparent"} disabled:opacity-50`}
           >
-            Physical Book
+            {t("admin_books.tabs.physical")}
           </button>
           <button
             onClick={() => setModalTab("digital")}
             disabled={!!editingBook}
             className={`text-sm font-bold pb-2 border-b-2 ${modalTab === "digital" ? "text-[#2B1A10] border-[#2B1A10]" : "text-[#AE9E85] border-transparent"} disabled:opacity-50`}
           >
-            Digital Book
+            {t("admin_books.tabs.digital")}
           </button>
           <button
             onClick={onClose}
@@ -1031,7 +1033,7 @@ function AddBookModal({
         <form onSubmit={handleSubmit} className="px-8 py-6 space-y-4 max-h-[80vh] overflow-y-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">Title *</label>
+              <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">{t("admin_books.modal.labels.title")} *</label>
               <input
                 type="text"
                 value={form.title}
@@ -1041,8 +1043,8 @@ function AddBookModal({
               />
             </div>
             <SearchableDropdown
-              label="Author"
-              placeholder="Select author"
+              label={t("admin_books.modal.labels.author")}
+              placeholder={t("admin_books.modal.placeholders.author")}
               options={authors}
               selectedId={form.author_id}
               onSelect={(author) => {
@@ -1050,15 +1052,15 @@ function AddBookModal({
                 setAuthorSearch(author.name);
               }}
               onCreate={createInlineAuthor}
-              createLabel="Add new author"
+              createLabel={t("admin_authors.modal.submit_add")}
               isCreating={createAuthorFn.isPending}
             />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <SearchableDropdown
-              label="Category"
-              placeholder="Select category"
+              label={t("admin_books.modal.labels.category")}
+              placeholder={t("admin_books.modal.placeholders.category")}
               options={categories.map((category) => ({ id: category.id, name: category.name }))}
               selectedId={form.category_id}
               onSelect={(category) => {
@@ -1066,12 +1068,12 @@ function AddBookModal({
                 setCategorySearch(category.name);
               }}
               onCreate={createInlineCategory}
-              createLabel="Add new category"
+              createLabel={t("admin_categories.modal.submit_add")}
               isCreating={createCategoryFn.isPending}
             />
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">Rental Price *</label>
+                <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">{t("admin_books.modal.labels.rental_price")} *</label>
                 <input
                   type="number"
                   min="0.01"
@@ -1082,7 +1084,7 @@ function AddBookModal({
                 />
               </div>
               <div>
-                <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">Loan Days Override</label>
+                <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">{t("admin_books.modal.labels.loan_duration")}</label>
                 <input
                   type="number"
                   min="1"
@@ -1098,7 +1100,7 @@ function AddBookModal({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {modalTab === "physical" ? (
               <div>
-                <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">Copies *</label>
+                <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">{t("admin_books.modal.labels.copies")} *</label>
                 <input
                   type="number"
                   min="1"
@@ -1111,7 +1113,7 @@ function AddBookModal({
             ) : (
               <div>
                 <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">
-                  {editingBook ? "PDF (optional)" : "PDF *"}
+                  {editingBook ? t("admin_books.modal.labels.pdf_file_edit") : t("admin_books.modal.labels.pdf_file")}
                 </label>
                 <div
                   onClick={() => pdfInputRef.current?.click()}
@@ -1120,7 +1122,7 @@ function AddBookModal({
                   {pdfFile ? (
                     <p className="text-xs text-[#2B1A10] truncate px-2">{pdfFile.name}</p>
                   ) : (
-                    <p className="text-xs text-[#AE9E85]">{editingBook ? "Upload new PDF" : "Upload PDF"}</p>
+                    <p className="text-xs text-[#AE9E85]">{editingBook ? t("admin_books.modal.drop_pdf_edit") : t("admin_books.modal.drop_pdf")}</p>
                   )}
                 </div>
                 <input
@@ -1133,7 +1135,7 @@ function AddBookModal({
               </div>
             )}
             <div>
-              <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">Year</label>
+              <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">{t("admin_books.modal.labels.publication_year")}</label>
               <input
                 type="text"
                 value={form.publication_year}
@@ -1143,7 +1145,7 @@ function AddBookModal({
               />
             </div>
             <div>
-              <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">Pages</label>
+              <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">{t("admin_books.modal.labels.pages")}</label>
               <input
                 type="number"
                 min="1"
@@ -1156,7 +1158,7 @@ function AddBookModal({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">Tags</label>
+              <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">{t("admin_books.modal.labels.tags")}</label>
               <input
                 type="text"
                 value={form.tags}
@@ -1166,7 +1168,7 @@ function AddBookModal({
               />
             </div>
             <div>
-              <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">Topics</label>
+              <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">{t("admin_books.modal.labels.topics")}</label>
               <input
                 type="text"
                 value={form.topics}
@@ -1177,7 +1179,7 @@ function AddBookModal({
             </div>
           </div>
           <div>
-            <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">Description</label>
+            <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">{t("admin_books.modal.labels.description")}</label>
             <textarea
               rows={3}
               value={form.description}
@@ -1187,7 +1189,7 @@ function AddBookModal({
           </div>
           {modalTab === "digital" && (
             <div>
-              <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">Access Mode</label>
+              <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">{t("admin_books.modal.labels.pdf_access")}</label>
               <select
                 value={form.pdf_access}
                 onChange={(e) =>
@@ -1195,14 +1197,14 @@ function AddBookModal({
                 }
                 className="w-full px-3 py-2.5 text-sm border border-[#E1D2BD] rounded-xl text-[#2B1A10]"
               >
-                <option value="RESTRICTED">Read Only (Restricted)</option>
-                <option value="FREE">Free Download</option>
-                <option value="PAID">Paid</option>
+                <option value="RESTRICTED">{t("admin_books.status.read_only")}</option>
+                <option value="FREE">{t("admin_books.status.free_download")}</option>
+                <option value="PAID">{t("admin_books.status.paid")}</option>
               </select>
             </div>
           )}
           <div>
-            <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">Cover Image</label>
+            <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">{t("admin_books.modal.labels.cover_image")}</label>
             <div
               onClick={() => imageInputRef.current?.click()}
               className="w-full h-24 border-2 border-dashed border-[#E1D2BD] rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-[#8B6B4A]"
@@ -1212,7 +1214,7 @@ function AddBookModal({
               ) : (
                 <>
                   <Upload size={20} className="text-[#AE9E85]" />
-                  <p className="text-xs text-[#AE9E85]">Click to upload</p>
+                  <p className="text-xs text-[#AE9E85]">{t("admin_books.modal.drop_image")}</p>
                 </>
               )}
             </div>
@@ -1225,15 +1227,15 @@ function AddBookModal({
             />
           </div>
           <div>
-            <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">Gallery Images (up to 10)</label>
+            <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">{t("admin_books.modal.labels.book_gallery")}</label>
             <div
               onClick={() => galleryInputRef.current?.click()}
               className="w-full h-20 border-2 border-dashed border-[#E1D2BD] rounded-2xl flex items-center justify-center cursor-pointer hover:border-[#8B6B4A]"
             >
               <p className="text-xs text-[#AE9E85]">
                 {galleryFiles.length > 0
-                  ? `${galleryFiles.length} image(s) selected`
-                  : "Click to select multiple images"}
+                  ? t("admin_books.modal.gallery_selected", { count: galleryFiles.length })
+                  : t("admin_books.modal.drop_gallery")}
               </p>
             </div>
             <input
@@ -1251,12 +1253,10 @@ function AddBookModal({
             className="w-full py-3 bg-[#2B1A10] text-white text-sm font-bold rounded-xl disabled:opacity-50 mt-2"
           >
             {submitting
-              ? editingBook
-                ? "Updating..."
-                : "Adding..."
+              ? t("admin_books.modal.submitting")
               : editingBook
-                ? "Update Book"
-                : "Add book to collection"}
+                ? t("admin_books.modal.submit_update")
+                : t("admin_books.modal.submit_add")}
           </button>
         </form>
       </div>
@@ -1275,6 +1275,7 @@ function ConditionModal({
   bookId: string;
   title: string;
 }) {
+  const { t } = useLanguage();
   const [selectedCopyId, setSelectedCopyId] = useState("");
   const [conditionForm, setConditionForm] = useState({ condition: "GOOD", notes: "" });
 
@@ -1290,7 +1291,7 @@ function ConditionModal({
     if (!selectedCopyId) return;
     try {
       await updateCondition.mutateAsync({ copyId: selectedCopyId, data: conditionForm });
-      toast.success("Condition updated successfully");
+      toast.success(t("admin_books.condition_modal.submit_update") || "Condition updated successfully");
     } catch {
       toast.error("Failed to update condition");
     }

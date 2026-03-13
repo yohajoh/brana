@@ -1,0 +1,990 @@
+{
+  "common": {
+    "dashboard_redirect": "Gara daashboordii keessaniitti qajeelaa jira...",
+    "error_occurred": "Rakkoon uumameera. Maaloo irra deebi'ii yaali.",
+    "pagination": {
+      "previous": "Kan Duraa",
+      "next": "Kan Itti Aanu",
+      "page_info": "Fuula {current} keessaa {total}"
+    }
+  },
+  "navbar": {
+    "home": "Mana",
+    "books": "Kitaabota",
+    "about": "Waa'ee Keenya",
+    "login": "Seeni",
+    "signup": "Galmaa'i"
+  },
+  "hero": {
+    "title_part1": "Dubbisa Keessan Itti Aanu፣ Qofaan",
+    "title_italic": "Cunqursuun",
+    "description": "Gibi gubae keenya keessatti kitaabota liqeeffachuuf karaa salphaa ta'e dhandhamaa. Kaataaloogii keenya onlaayinii barbaadaa, battalumatti gaafadhaa, kitaaba keessan mooraa keessanitti argadhaa. Barattoota dubbisuu jaallatan, rakkina malee qophaa'e.",
+    "cta": "Sassaabbiiwwan sakatta'i"
+  },
+  "how_it_works": {
+    "title": "Akkaataa Inni Itti Hojjetu",
+    "steps": {
+      "create_account": {
+        "title": "Account uumi",
+        "description": "Imala keessan galmeessaa, daangaa raakii kitaabaa injifadhaa."
+      },
+      "choose_book": {
+        "title": "Kitaaba filadhu",
+        "description": "Mana kitaabaa keenya bal'aa sakatta'aa, dubbisa keessan itti aanu argadhaa."
+      },
+      "dorm_delivery": {
+        "title": "Geessitii Dormii",
+        "description": "Kitaabni keessan dhiphuu malee dormii keessanitti geeffama."
+      },
+      "return_pay": {
+        "title": "Deebisi & Kafali",
+        "description": "Qooda kitaaba keessanii fayyadamaa, yeroo itti aanuuf kaffalaa, marsaa sana itti fufaa."
+      }
+    }
+  },
+  "faq": {
+    "title": "Gaaffiiwwan Yeroo Baay'ee Gaafataman",
+    "questions": [
+      {
+        "question": "Akkamittan kitaaba liqeeffachuu danda'a?",
+        "answer": "Kaataaloogii keenya keessatti kitaaba barbaadaa, 'Borrow' kan jedhu cuqaasaa, qajeelfama hordofuun dormii keessanitti akka geeffamu gaafadhaa."
+      },
+      {
+        "question": "Kitaaba yeroo hammamiitiif qabachuu danda'a?",
+        "answer": "Kitaaba tokko torban 2f qabachuu dandeessu. Namni biraan yoo hin qabanne dheeressuu gaafachuu dandeessu."
+      },
+      {
+        "question": "Kitaabni ani barbaadu yoo hin jirre hoo?",
+        "answer": "Kitaaba kamiyyuu irratti tarree eeggataa irratti makamuu dandeessu. Akkuma deebi'ee fi qophii ta'een isiniif beeksisna."
+      },
+      {
+        "question": "Sirni Kiraayii Kitaaba Birana Maali?",
+        "answer": "Birana barattoonni gufuu mana kitaabaa aadaa malee beekumsa salphaatti akka argatan fi qooddatan kan qophaa'e, bakka jireenyaa kitaabota barnootaa fi hafuuraa ti."
+      },
+      {
+        "question": "Waa'ee kitaaba kootii akkamittan beeksifama?",
+        "answer": "Yeroo kitaabni keessan geessitiiaf qophii ta'u ykn deebiiaf yeroon geessetti appii keenya fi karaa quunnamtii galmeessitaniin beeksifamtu."
+      },
+      {
+        "question": "Akkamittan kitaaba deebisa?",
+        "answer": "Kitaabicha bakka sassaabbbii murteeffame irratti gatuu ykn appii kanaan dormii keessan irraa akka fuutamu gaafachuu dandeessu."
+      }
+    ]
+  },
+  "cta_section": {
+    "title": "Dubbisa keessan isa guddaa itti aanuuf qophiidhaa?",
+    "description": "Gibi gubae keenya keessatti kitaabota liqeeffachuuf karaa salphaa ta'e dhandhamaa. Barattoota dubbisuu jaallatan, rakkina malee qophaa'e.",
+    "button": "Sassaabbiiwwan sakatta'i"
+  },
+  "footer": {
+    "description": "Sirna kiraayii kitaaba dijitalaa ammayyaatiin jireenya dubbisa keessanii salphisna.",
+    "links_title": "Liinkiiwwan",
+    "contact_title": "Quunnamtii",
+    "privacy": "Iyyaannoo Dhuunfaa",
+    "terms": "Haalawwan Tajaajilaa",
+    "rights": "Mirgi hunduun eegamaadha."
+  },
+  "about_page": {
+    "story": {
+      "title": "Seenaa Keenya",
+      "p1": "Hundi isaa tarree Google Forms fi garee namoota fedhii qabanitiin jalqabe. Waggoota hedduu dura gamታni keenya kitaaba liqeeffachuu harkaan bulchaa ture - barattoonni forms guutu, namoonni fedha qaban hunda spreadsheet irratti hordofu ture.",
+      "p2": "Inni ni hojjeta ture, garuu salphaa hin turre. Kitaabonni makuu keessatti badu turan. Barattoonni maaltu akka jirun hin beekan turan. Namoonni fedha qaban dhimma bulchiinsaa irratti sa'aatii dheeraa dabarsu turan. Karaan biraa jiraachuu akka qabu beekna ture.",
+      "p3": "Snaaf ijaarre. Maaltu akka marii hiriyoota gidduutti jalqabe gara pirojeektii sirna liqeeffannaa salphaa, haqa qabuu fi hawaasummaa irratti xiyyeeffatu ijaaruutti jijjiirame. Har'a, 'Fellowship Library' platform dijitaalaa guutuu barattoonni akka sakatta'an, gaafatan fi kitaaba argatan dha - hundi isaanii dormii isaaniitti kan geeffaman dha."
+    },
+    "mission": {
+      "title": "Ergaa Keenya",
+      "description": "Mana kitaabaa Gibi Gubae keessatti, dubbisuun sammuu fi hafuura akka sooru amanna. Ergaan keenya salphaadha: kitaabota qulqullina qaban miseensa hawaasa Gibi Gubae hundaaf akka dhaqqabaman gochuu - rakkina malee, gufuu malee. Nuti mana kitaabaa qofa miti. Nuti hawaasa dubbistoota seenaa qooddatan, amantiin guddatan fi wal deeggaran dha."
+    },
+    "stats": {
+      "books": "Kitaabota sassaabbii keenya keessa jiran",
+      "borrowed": "Kitaabota waggaa kana liqeeffaman",
+      "members": "Miseensota mana kitaabaa hojicha gaggeessan",
+      "readers": "Dubbistoota ho'aa"
+    },
+    "involvement": {
+      "title": "Seenichatti Makamaa",
+      "borrow": {
+        "title": "Kitaabota Liqeeffachuuf",
+        "description": "Karaa itti hirmaattan isa salphaa! Galmaa'aa dubbisuu jalqabaa."
+      },
+      "donate": {
+        "title": "Kitaabota Kennuuf",
+        "description": "Kitaaba qooddan qabduu? Kitaabota tajaajilarra oolan kan sassaabbii keenya waliin deeman ni fudhanna."
+      },
+      "volunteer": {
+        "title": "Fedha qabeessa Ta'aa",
+        "description": "Geessitii, qophii kitaabaa ykn dhimma bulchiinsaa irratti gargaaraa. Yeroon keessan kan jijjiiramu dha."
+      },
+      "cta_explore": "Sassaabbiiwwan sakatta'i",
+      "cta_contact": "Quunnamtii"
+    }
+  },
+  "books_page": {
+    "sort_by": "Kanaan addaan baasi:",
+    "sort_options": {
+      "title_asc": "Mata-duree (A-Z)",
+      "title_desc": "Mata-duree (Z-A)",
+      "most_available": "Baay'inaan kan jiru",
+      "least_available": "Xiqqummaan kan jiru",
+      "shortest": "Gabaabaa",
+      "longest": "Dheeraa"
+    },
+    "modes": {
+      "all": "Hunda",
+      "physical": "Waraqaa",
+      "digital": "Dijitaalaa"
+    },
+    "status": {
+      "loading": "Fe'amaa jira...",
+      "no_books": "Kitaabni hin argamne",
+      "showing": "Kitaabota {total} {mode}keessaa {start}-{end} argisiisaa jira"
+    },
+    "filters": {
+      "all_authors": "Barreessitoota hunda",
+      "availability": "Argamuu",
+      "available": "Kan jiru",
+      "unavailable": "Kan hin jirre",
+      "min_rating_placeholder": "Sadarkaa xiqqaa ( fkn. 4)",
+      "year_placeholder": "Waggaa maxxansaa",
+      "tags_placeholder": "Tags (comma separated)",
+      "topics_placeholder": "Topics (comma separated)"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Baga Nagaun Deebitan",
+      "subtitle": "Akkawuntii hin qabdanii? Kitaaba liqeeffachuu fi gura madaaluuf galmaa'aa.",
+      "identity_label": "Email",
+      "identity_placeholder": "you@astu.edu.et",
+      "password_label": "Jecha Icitii",
+      "password_placeholder": "Jecha icitii keessan galchaa",
+      "forgot_password": "Jecha icitii dhabdanii?",
+      "remember_me": "Na yaadadhu",
+      "submit": "Seenidhaa",
+      "submitting": "Seenaa jira...",
+      "no_account": "Mee kallaattii hin qabdanii?",
+      "signup_link": "Galmaa'uuf",
+      "google_login": "Google'n itti fufi",
+      "or_continue_with": "Yookaan kanaan itti fufi",
+      "messages": {
+        "email_confirmed": "Email mirkanaa'eera! Amma seenuun dandeessu.",
+        "google_failed": "Google'n seenuuf yaaliin godhame hin milkoofne. Irra deebiaa yaalaa.",
+        "google_timeout": "Google'n seenuuf yeroon dhumateera. Irra deebiaa yaalaa.",
+        "invalid_credentials": "Email ykn jecha icitii dogoggora"
+      },
+      "back_label": "Häraa muree? Akkawuntii ijaaraa"
+    },
+    "signup": {
+      "title": "Akkawuntii ijaaraa",
+      "subtitle": "Duraan akkawuntii qabduu? Seenidhaa",
+      "full_name_label": "Maqaa Guutuu",
+      "full_name_placeholder": "Maqaa guutuu keessan galchaa",
+      "year_label": "Waggaa",
+      "year_placeholder": "fkn. Waggaa 3ffaa",
+      "department_label": "Muummee Barnootaa",
+      "department_placeholder": "fkn. Computer Science",
+      "id_label": "Lakk. Eenyummaa",
+      "id_placeholder": "ID keessan galchaa",
+      "phone_label": "Lakk. Bilbilaa",
+      "phone_placeholder": "+2519XXXXXXXX",
+      "email_label": "Email",
+      "email_placeholder": "you@astu.edu.et",
+      "password_label": "Jecha Icitii Galchaa",
+      "password_placeholder": "Jecha icitii jabaa ijaaraa",
+      "confirm_password_label": "Jecha Icitii Mirkaneessi",
+      "confirm_password_placeholder": "Jecha icitii keessan mirkaneessi",
+      "terms_agree": "{terms} fi {privacy} waliin walii nan gala.",
+      "terms_label": "Waliigaltee tajaajilaa",
+      "privacy_label": "imaammata dhuunfaa",
+      "submit": "Galmaa'i",
+      "submitting": "Akkawuntii ijaaraa jira...",
+      "already_registered": "Duraan galmooftanii?",
+      "signin_link": "Seenidhaa",
+      "back_label": "Duraan akkawuntii qabduu? Seenidhaa",
+      "modal": {
+        "title": "Email keessan mirkaneeffadhaa",
+        "message": "Liinkii mirkaneessaa email keessaniitti snesineerra. Maaloo liinkii sana hordofuun akkawuntii keessan hojjachiisaa. Erga mirkanaa'ee booda fuulli kun ofumaan ni jijjiirama."
+      },
+      "messages": {
+        "password_mismatch": "Jechi icitii wal hin fudhatu",
+        "signup_failed": "Galmaa'uun hin milkoofne"
+      }
+    },
+    "forgot_password": {
+      "title": "Jecha icitii dhabdanii?",
+      "subtitle": "Hin yaadda'inaa. Email yunivarsiitii keessan galchaa, nutis liinkii nageenya isaa eeggate kan jecha icitii keessan ittiin jijjiirtan isiniif snesina.",
+      "email_label": "Email Yunivarsiitii",
+      "email_placeholder": "you@astu.edu.et",
+      "help_text": "Email ittiin galmaa'an fayyadamuu keessan mirkaneeffadhaa. Yoo itti fayyadamuu hin dandeenye ta'e garee kutaa kitaabaa qunnamaa.",
+      "submit": "Liinkii snesi",
+      "submitting": "Liinkii snesaa jira...",
+      "back_label": "Gara seenuutti deebi'i",
+      "modal": {
+        "title": "Email keessan mirkaneeffadhaa",
+        "message": "Akkawuntiin email kanaan jiru yoo jiraate, liinkii jecha icitii jijjiiruuf snesineerra. Maaloo email keessan mirkaneeffadhaa.",
+        "button_label": "Gara seenuutti deebi'i"
+      }
+    }
+  },
+  "student_dashboard": {
+    "welcome": "Baga Nagaan Deebitan፣ {name}",
+    "subtitle": "Waa'ee kitaabota keessanii maaltu deemaa akka jiru kanadha.",
+    "currently_borrowed": "Kitaaba Amma Liqeeffame",
+    "borrowed": {
+      "none": "Kitaaba liqeeffattan hin qabdnu.",
+      "explore": "Kitaaba liqeeffachuuf fuula kitaabotaa daawwadhaa.",
+      "loan_date": "Guyyaa liqeeffame",
+      "due_date": "Guyyaa deebi'u",
+      "overdue_label": "Guyyoota yeroon itti darbe",
+      "remaining_label": "Guyyoota hafan",
+      "days_left": "Guyyoota {count} hafan",
+      "return_instruction": "Deebii sana xumuruuf kitaaba kana obbo/adeer mana kitaabaatti deebisaa."
+    },
+    "history": {
+      "title": "Seenaa Liqii",
+      "see_all": "Hunduma ilaali",
+      "none": "Hanga ammaatti seenaan liqii hin jiru.",
+      "table": {
+        "title": "Mata-duree",
+        "borrowed": "Guyyaa Liqeeffame",
+        "returned": "Guyyaa Deebi'e",
+        "days_kept": "Guyyoota tures",
+        "amount_paid": "Hangam Kafalame"
+      }
+    },
+    "snapshot": {
+      "title": "Kan Dubbisa Keessanii",
+      "due_soon": "Dhiyootti Kan Deebi'u",
+      "on_time_rate": "Reetii Yeroon Deebisuu",
+      "reservations": "Bakka Qabachuu",
+      "unread_alerts": "Akeekkachiisota Hin Dubbisamne"
+    },
+    "recommendations": {
+      "title": "Isiniif Kan Gorfame",
+      "none": "Hanga ammaatti gorsi hin jiru.",
+      "available": "Kopponni {count} ni argamu",
+      "unavailable": "Amma hin argamu"
+    },
+    "categories": {
+      "title": "Ramaddiiwwan Jaallataman",
+      "none": "Hanga ammaatti odeeffannoon ramaddii hin jiru."
+    },
+    "trending": {
+      "title": "Kitaabota Beekamoo",
+      "none": "Hanga ammaatti deetaan hin jiru.",
+      "rentals": "Liqiiwwan {count}"
+    },
+    "top_rated": {
+      "title": "Kitaabota Sadarkaa Ol'aanaa Qaban",
+      "none": "Hanga ammaatti deetaan sadarkaa hin jiru."
+    }
+  },
+  "digital_library": {
+    "title": "Mana Kitaabaa Diijitaalaa",
+    "subtitle": "Kitaabota diijitaalaa onlaayiniin dubbisaa akkasumas yeroo hayyamamu buusaa.",
+    "loading": "Kitaabota diijitaalaa fe'aa jira...",
+    "none": "Kitaabni diijitaalaa argamu hin jiru.",
+    "view_details": "Bal'ina Ilaali",
+    "download_allowed": "Buusuun ni hayyamama",
+    "details": "Bal'ina",
+    "read": "Dubbisi",
+    "opening": "Banamaa jira...",
+    "preparing": "Qophaa'aa jira...",
+    "download": "Buusi",
+    "page_info": "Fuula {page} keessaa {total}",
+    "updating": "Haaromaa jira...",
+    "previous": "Kan Duraa",
+    "next": "Kan Itti Aanu"
+  },
+  "sidebar": {
+    "dashboard": "Daashboordii",
+    "users": "Fayyadamtoota",
+    "books": "Kitaabota",
+    "categories": "Ramaddiiwwan",
+    "authors": "Barreessitoota",
+    "borrowings": "Liqiiwwan",
+    "reservations": "Bakka qabachuu",
+    "overdue": "Kan yeroon itti darbe",
+    "alerts": "Akeekkachiisota",
+    "activity_logs": "Galmee gochaawwan",
+    "reports": "Gabaasota",
+    "settings": "Teessuma",
+    "history": "Seenaa Liqii",
+    "wishlist": "Tarree Fedhii",
+    "digital": "Mana Kitaabaa Diijitaalaa",
+    "payments": "Kafaltiiwwan",
+    "notifications": "Beeksistoota",
+    "account_settings": "Teessuma Akkawuntii",
+    "logout": "Tahuu"
+  },
+  "dashboard": {
+    "analytics_title": "Daashboordii Xiinxalaa",
+    "analytics_subtitle": "Galmoota, dhiibbaawwan fi kiyoowwan mana kitaabaa qabatamaa.",
+    "loading": "Xiinxala fe'aa jira...",
+    "stats": {
+      "students": "Barattoota",
+      "books": "Kitaabota",
+      "active_rentals": "Liqiiwwan Hojii Irra Jiran",
+      "overdue": "Kan Yeroon Itti Darbe",
+      "reservations": "Bakka Qabachuu",
+      "revenue": "Galii (Ji'a)"
+    },
+    "rentals_per_week": "Liqiiwwan Torbeetti",
+    "goal_progress": "Adeemsa Galma Ji'aa",
+    "targets": {
+      "title": "Galmoota Ji'aa Teessisi",
+      "rentals": "Liqiiwwan",
+      "active_readers": "Dubbistoota Hojii Irra Jiran",
+      "on_time_returns": "Yeroon Kan Deebi'an",
+      "new_books": "Kitaabota Haaraa",
+      "save": "Galmoota Olkaayi",
+      "saving": "Olkaayamaa jira..."
+    }
+  },
+  "admin_reservations": {
+    "title": "Bakka Qabachuu",
+    "subtitle": "Bulchiinsa tarree fi foddaa bakka qabachuu.",
+    "refresh": "Haaromsi",
+    "cancel_selected": "Bakka Qabachuu Haqi ({count} Filatame)",
+    "cancelling": "Haqumaa jira...",
+    "high_demand": {
+      "title": "Kitaabota Fedhii Ol'aanaa Qaban",
+      "loading": "Odeeffannoo fedhii fe'aa jira...",
+      "no_demand": "Kitaabni fedhii ol'aanaa qabu hin argamne.",
+      "queue": "Tarree",
+      "copies": "Koppiiwwan",
+      "available": "Kan jiran",
+      "pressure": "Reeshoo dhiibbaa",
+      "recommendation": "Tarkaanfiin galmee ni gorfama (10+ tarree, <=2 koppiiwwan)"
+    },
+    "table": {
+      "student": "Barataa",
+      "book": "Kitaaba",
+      "queue": "Tarree",
+      "status": "Haala",
+      "debt": "Iddee",
+      "reserved": "Kan qabame",
+      "expires": "Kan dhumu",
+      "action": "Tarkaanfii",
+      "clear": "Qulqulluu"
+    },
+    "actions": {
+      "move_to_top": "Olkaasi",
+      "issue_book": "Kitaaba Kenni"
+    },
+    "modal": {
+      "title": "Kitaaba Qabame Kenni",
+      "copy_code": "Koodii Koppii",
+      "cancel": "Haqi",
+      "issuing": "Kennaa jira..."
+    },
+    "messages": {
+      "no_cancelled": "Bakka qabachuun tokkollee hin haqamne",
+      "cancel_success": "Bakka qabachuun {count} milkiidhaan haqamaniiru",
+      "move_success": "Bakkichi gara fiixee tarree tti jijjiirameera",
+      "copy_code_required": "Koodiin koppii ni barbaachisa",
+      "issue_success": "Kitaabichi kennameera akkasumas gara liqiitti jijjiirameera"
+    }
+  },
+  "book_details": {
+    "breadcrumb": {
+      "books": "Kitaabota",
+      "digital": "Diijitaalaa",
+      "physical": "Qaamaa"
+    },
+    "status": {
+      "read_only": "Dubbisa Qofaa",
+      "download": "Buusi",
+      "available": "Sheelfii irratti ni argama: {count}",
+      "unavailable": "Hin argamu"
+    },
+    "not_found": {
+      "title": "Kitaabni Hin Argamne",
+      "desc": "Kitaabni ati barbaaddu hin jiru.",
+      "button": "Kitaabota Barbaadi"
+    },
+    "loading": "Odeeffannoo kitaabaa fe'aa jira...",
+    "about_book": "Waa'ee Kitaaba Kanaa",
+    "about_author": "Waa'ee Barreessichaa",
+    "actions": {
+      "borrow": "Amma liqeeffadhu",
+      "borrow_label": "Liqeessi",
+      "reserve": "Amma bakka qabadhu",
+      "reserve_label": "Iddoo Qabadhu",
+      "wishlist": "Tarree fedhiitti dabali",
+      "remove_wishlist": "Tarree fedhii irraa haqi",
+      "in_wishlist": "Tarree Fedhii Keessa Jira",
+      "currently_borrowed": "Amma Liqeeffameera",
+      "complete_payment": "Kafaltii Liqii Xumuri",
+      "read_now": "Amma Dubbisi",
+      "download_pdf": "PDF Buusi",
+      "opening_pdf": "PDF banamaa jira...",
+      "preparing_download": "Buusuuf qophaa'aa jira...",
+      "updating_wishlist": "Tarree fedhii haaromsaa jira...",
+      "submitting_review": "Yaada ergaa jira...",
+      "removing_review": "Yaada haqaa jira...",
+      "submit_review": "Yaada Ergi",
+      "update_review": "Yaada Haaromsi"
+    },
+    "labels": {
+      "rating": "Sadarkaa",
+      "category": "Ramaddii",
+      "access": "Madaallii",
+      "available_on_shelf": "Almiraa irra jira",
+      "read_and_download": "Dubbisuu + Buusuu",
+      "copies": "Kophii {count}",
+      "copy": "Kophii {count}",
+      "review": "yaada",
+      "reviews": "yaadoleen",
+      "students_in_queue": "barattoota {count} amma tarree keessa jiru",
+      "already_reserved": "Duraan qabameera",
+      "no_bio": "Barreessaa kanaaf hanga ammaatti seenaan jireenyaa hin dabalame."
+    },
+    "reviews": {
+      "title": "Yaadolee Dhihoo",
+      "write_title": "Yaada Barreessi",
+      "placeholder": "Yaada keessan barreessaa",
+      "unlock_digital": "Yaada barreessuuf jalqaba kitaaba diijitaalaa kana dubbisaa.",
+      "remove": "Haqi"
+    },
+    "sections": {
+      "more_by": "Kan biroo {name} irraa",
+      "related_in": "{name} keessatti kan walitti dhufeenya qabu",
+      "none_related": "Barreessaa ykn ramaddii kanaaf kitaabni walitti dhufeenya qabu hin argamne."
+    },
+    "messages": {
+      "login_to_borrow": "Maaloo kitaaba liqeeffachuuf seeni",
+      "login_to_reserve": "Maaloo kitaaba bakka qabachuuf seeni",
+      "login_to_wishlist": "Maaloo tarree fedhii keessan bulchuuf seeni",
+      "added_wishlist": "Kitaabichi tarree fedhiitti dabalameera",
+      "removed_wishlist": "Kitaabichi tarree fedhii irraa haqameera",
+      "borrower_persona_required": "Eenyummaa liqeeffataa ni barbaachisa",
+      "review_saved": "Yaadni keessan ol-ka'ameera",
+      "review_removed": "Yaadni keessan haqameera"
+    }
+  },
+  "shared": {
+    "search_placeholder": "Kitaabota, barreessitoota ykn ramaddiiwwan barbaadi...",
+    "amount_owed": {
+      "title": "Hangam Siraa Jira",
+      "daily_fine": "Adabbii Guyyaa (yoo turaan):",
+      "per_day": "Guyyaatti birrii {amount}",
+      "days_borrowed": "Guyyoota hanga ammaatti liqeeffaman:,",
+      "days": "Guyyoota {count}",
+      "total_owed": "Waliigala Hangam Siraa Jira:",
+      "birr": "Birrii {amount}"
+    }
+  },
+  "student_reservations": {
+    "title": "Bakka Qabachuu Koo",
+    "subtitle": "Tarree keessaniifi yeroo bakka qabannaa keessanii hordofaa.",
+    "no_reservations": "Bakka qabannaan argame hin jiru.",
+    "cancelling": "Haqamaa jira...",
+    "cancel": "Haqi",
+    "success_cancel": "Bakka qabannaan haqameera",
+    "error_cancel": "Bakka qabannaa haqsuun hin danda'amne"
+  },
+  "student_history": {
+    "title": "Seenaa Ergisaa",
+    "subtitle": "Seenaa ergisaa keessan guutuu ilaalaa fi imala dubbisa keessanii hordofaa.",
+    "summary": {
+      "total_borrowed": "Walumaagala Kitaabota Liqeeffaman",
+      "total_paid": "Walumaagala Kafaltii Raawwatame",
+      "avg_cost": "Giddu-galeessa Gatii Kitaaba Tokkoo",
+      "total_reading_days": "Walumaagala Guyyoota Dubbisaa",
+      "birr": "{amount} birr",
+      "days_suffix": "Guyyaa {count}"
+    },
+    "table": {
+      "book": "Kitaaba",
+      "borrowed_on": "Guyyaa Liqeeffame",
+      "status": "Haala",
+      "days": "Guyyaa {count}f liqeeffame",
+      "reading": "Dubbisa Jira",
+      "returned": "Deebi'eera",
+      "overdue": "Yeroon darbeera",
+      "title": "Mata-duree",
+      "borrowed_date": "Guyyaa Liqeeffame",
+      "returned_date": "Guyyaa Deebi'e",
+      "days_kept": "Guyyoota Qabame",
+      "amount_paid": "Kafaltii Raawwatame",
+      "action": "Gocha",
+      "see_detail": "Bal'ina Kitaabaa Ilaali",
+      "empty_message": "Seenaan liqeeffannaa ammatti hin jiru. Kitaaba jalqabaa liqeeffachuuf fuula Kitaabotaa daawwadhaa!",
+      "status_borrowed": "Amma Liqeeffameera",
+      "status_pending": "Kafaltii Eegaa Jira",
+      "status_returned": "Deebi'eera",
+      "status_completed": "Xumurameera"
+    }
+  },
+  "student_wishlist": {
+    "title": "Haaltu Koo",
+    "subtitle": "Kitaabota dubbisuu barbaaddan. Yeroo isaan argaman isiniif beeksifna.",
+    "removed": "Haaltu keessaa haqameera",
+    "failed_remove": "Haaltu keessaa haquun hin danda'amne",
+    "grid_title": "Kitaabota Dubbisuu Barbaaddan",
+    "empty_message": "Haaltun keessan duwwaadha. Kitaabota sakatta'aa fi gara haaltu keessaniitti dabaladhaa!",
+    "browse_books": "Kitaabota Sakatta'i",
+    "filters": {
+      "all": "Kitaabota Hunda",
+      "physical": "Physical qofa",
+      "digital": "Digital qofa"
+    },
+    "status": {
+      "no_longer_available": "Amma hin jiru",
+      "available": "Ni jira",
+      "unavailable": "Hin jiru",
+      "remove_title": "Haaltu keessaa haqi"
+    },
+    "summary": {
+      "total": "Kitaabota Haaltu Irra Jiran",
+      "available": "Amma kan Argaman",
+      "currently_unavailable": "Amma kan Hin Argamne",
+      "no_longer_available": "Lammata kan Hin Argamne"
+    }
+  },
+  "student_payments": {
+    "title": "Kafaltii Adabbii",
+    "subtitle": "Adabbiiwwan madaallii irra jiranii fi seenaa kafaltii madaallii irra deebi'anii ilaalaa.",
+    "verifying": "Kafaltii {ref} mirkaneessaa jira...",
+    "success_verify": "Kafaltiin milkiin mirkaneeffameera.",
+    "pending_verify": "Kafaltiin ammayyuu mirkaneessa eegaa jira.",
+    "failed_verify": "Kafaltiin hin milkoofne. Maaloo irra deebitanii yaalaa.",
+    "status_updated": "Haalli kafaltii haaromeera.",
+    "outstanding_title": "Adabbiiwwan Yeroon Itti Dabarse",
+    "outstanding_desc": "Ida'ama hundi: {amount} ETB. Kitaaba liqeeffachuuf adabbiiwwan yeroon itti dabarse kana kafaluun dirqama.",
+    "more_overdue": "+{count} adabbiiwwan yeroon itti dabarse dabalataa",
+    "pending_fines": "Adabbiiwwan Eeggannoo Irra Jiran",
+    "loading_fines": "Adabbiiwwan eeggannoo irra jiran fe'amaa jiru...",
+    "no_fines": "Adabbiin eeggannoo irra jiru hin jiru.",
+    "pay_now": "Amma Kafali",
+    "pending_payments": "Kafaltiiwwan Eeggannoo Irra Jiran",
+    "loading_payments": "Kafaltiiwwan eeggannoo irra jiran fe'amaa jiru...",
+    "no_pending_payments": "Kafaltiin eeggannoo irra jiru hin jiru.",
+    "continue_payment": "Kafaltii Itti Fufi",
+    "history": "Seenaa Kafaltii",
+    "no_history": "Hanga ammaatti kafaltiin hin jiru."
+  },
+  "student_notifications": {
+    "title": "Beeksisa",
+    "subtitle": "Yaadachiisawwan yeroo fi odeeffannoo haaraa mana kitaabaa waliin deemaa.",
+    "mark_all": "Hunda Dubbifame Jedhi",
+    "marking": "Ta'aa jira...",
+    "success_mark_all": "Beeksisni hundi akka dubbifametti mallatteeffameera",
+    "failed_mark_all": "Hunda akka dubbifametti mallatteessuun hin danda'amne",
+    "unread_count": "{count} kan hin dubbifamne",
+    "view_all": "Beeksisa Hunda Ilaali",
+    "no_unread": "Beeksisni hin dubbifamne hin jiru",
+    "no_notifications": "Beeksisi argame hin jiru.",
+    "detail_title": "Bal'ina Beeksisaa",
+    "mark_as_read": "Akka Dubbifametti Mallatteessi",
+    "read_status": "Beeksisni Dubbifameera",
+    "mark_as_read_success": "Beeksisni akka dubbifametti mallatteeffameera",
+    "mark_as_read_error": "Akka dubbifametti mallatteessuun hin danda'amne"
+  },
+  "student_settings": {
+    "title": "Sirna Lakkoofsaa",
+    "subtitle": "Odeeffannoo dhuunfaa keessan, filannoo beeksisaa fi nageenya lakkoofsa keessanii bulchaa.",
+    "profile_title": "Profaayilii Koo",
+    "labels": {
+      "full_name": "Maqaa Guutuu",
+      "student_id": "Eenyummaa Barataa",
+      "phone": "Lakkoofsa Bilbilaa",
+      "year": "Waggaa",
+      "department": "Damee Barnootaa",
+      "email": "Teessoo Iimeelii",
+      "password": "Jecha Icctii"
+    },
+    "placeholders": {
+      "full_name": "Maqaa guutuu keessan galchaa",
+      "phone": "+251 912 345 678",
+      "select_year": "Waggaa filadhaa",
+      "department": "fkn, Saayinsii Koompitarwaa"
+    },
+    "hints": {
+      "student_id": "Eenyummaa barataa haaromsuuf admin quunnamaa",
+      "not_set": "Hin galle",
+      "email_readonly": "Iimeelii jijjiiruun hin danda'amu"
+    },
+    "years": {
+      "y1": "Waggaa 1ffaa",
+      "y2": "Waggaa 2ffaa",
+      "y3": "Waggaa 3ffaa",
+      "y4": "Waggaa 4ffaa",
+      "y5": "Waggaa 5ffaa"
+    },
+    "actions": {
+      "save": "Jijjiirama Ol-ka'i",
+      "saving": "Ol-ka'amaa jira...",
+      "cancel": "Haqi",
+      "change_password": "Jecha Icctii Jijjiiri"
+    },
+    "messages": {
+      "success_update": "Profaayiliin milkiin haaromeera!",
+      "failed_update": "Profaayilii haaromsuun hin danda'amne",
+      "email_readonly_btn": "Iimeelii jijjiiruun hin danda'amu"
+    },
+    "security_title": "Nageenya Lakkoofsaa"
+  },
+  "change_password": {
+    "title": "Jecha Icctii Jijjiiri",
+    "subtitle": "Jecha icctii keessan kan amma galchaa fi kan haaraa filadhaa",
+    "labels": {
+      "old": "Jecha Icctii Moofaa",
+      "new": "Jecha Icctii Haaraa",
+      "confirm": "Jecha Icctii Haaraa Mirkaneessi"
+    },
+    "placeholders": {
+      "old": "Jecha icctii moofaa galchaa",
+      "new": "Jecha icctii haaraa galchaa",
+      "confirm": "Jecha icctii haaraa mirkaneessi"
+    },
+    "actions": {
+      "submit": "Jecha Icctii Jijjiiri",
+      "submitting": "Jecha icctii jijjiiramaa jira..."
+    },
+    "messages": {
+      "required": "Dirree hundi guutamuu qabu",
+      "length": "Jechi icctii haaraa yoo xiqqaate agartuu 6 ta'uu qaba",
+      "match": "Jechi icctii haaraa wal hin fudhatu",
+      "success": "Jechi icctii milkiin jijjiirameera!",
+      "failed": "Jecha icctii jijjiiruun hin danda'amne"
+    }
+  },
+  "admin_users": {
+    "title": "Fayyadamtoota Bulchuu",
+    "subtitle_super": "Super Admin bulchitootaa fi barattoota lamaaninuu bulchuu danda'a",
+    "subtitle_admin": "Bulchaan barattoota qofa bulchuu danda'a",
+    "tabs": {
+      "students": "Barattoota",
+      "admins": "Bulchitoota"
+    },
+    "search_placeholder": "Fayyadamaa barbaadi",
+    "table": {
+      "name": "Maqaa",
+      "email": "Iimeelii",
+      "id_no": "Lakk. Eenyummaa",
+      "year": "Waggaa",
+      "phone_no": "Lakk. Bilbilaa",
+      "status": "Haala",
+      "actions": "Gochaawwan",
+      "no_users": "Fayyadamaan hin argamne"
+    },
+    "roles": {
+      "blocked": "Kan dhorkame",
+      "super_admin": "Super Admin",
+      "admin": "Admin",
+      "student": "Barataa"
+    },
+    "actions": {
+      "unblock": "Dhorkaa kaasi",
+      "block": "Dhorki",
+      "delete": "Haquu",
+      "promote": "Gara Admin ol guddisi",
+      "make_student": "Gara Barataatti jijjiiri",
+      "make_super_admin": "Gara Super Admin-tti jijjiiri",
+      "processing": "Adeemsarra jira..."
+    },
+    "confirm": {
+      "unblock_title": "{name} dhorkaan haa ka'uu?",
+      "unblock_desc": "Kun battalumatti fayyadama herregaa deebisa.",
+      "block_title": "{name} haa dhorkamuu?",
+      "block_desc": "Fayyadamaan kun hanga ati dhorkaa kaastutti sirna kana fayyadamuu hin danda'u.",
+      "delete_title": "{name} haa haquamuu?",
+      "delete_desc": "Kun yoo ragaaleen walqabatan hin jirre herrega fayyadamaa dhaabbataatti balleessa.",
+      "promote_title": "{name} gara admin-tti haa guddisamuu?",
+      "promote_desc": "Fayyadamaan kun hayyama admin ni argata, akkasumas karaa barataa seenuu danda'uu isaa ni itti fufa.",
+      "to_student_title": "{name} gara barataatti haa jijjiiramuu?",
+      "to_student_desc": "Kun hayyama admin ni balleessa, herregni isaa akka fayyadamaa barataatti ni hafa.",
+      "transfer_super_title": "Super admin-ummaa gara {name}-tti haa dabarfamuu?",
+      "transfer_super_desc": "Admin kun super admin qofa ta'a. Herregni kee ofumaan gara admin idileetti jijjiirama."
+    },
+    "insights": {
+      "total_rentals": "Waliigala Liqii",
+      "on_time_rate": "Reeetii yeroon deebisuu",
+      "active_overdue": "Liqii yeroon irra darbe",
+      "wishlist": "Hawiilee",
+      "favorite_categories": "Ramaddiiwwan jaallataman",
+      "no_category_data": "Ragaan ramaddii hin jiru",
+      "borrowing_history": "Seenaa Liqii",
+      "history_empty": "Seenaan hin jiru",
+      "due": "Kan deebi'u {date}",
+      "late": "Guyyaa {count} tureera",
+      "on_time": "Yeroon deebi'eera",
+      "loading": "Ragaa fayyadamaa fidaa jira..."
+    },
+    "messages": {
+      "delete_success": "Fayyadamaan milkiin haqumeera",
+      "unblock_success": "Dhorkaan fayyadamaa milkiin ka'eera",
+      "block_success": "Fayyadamaan milkiin dhorkameera",
+      "status_update_failed": "Haala fayyadamaa haaromsun hin danda'amne",
+      "promote_success": "Barataan gara admin-tti milkiin guddisameera",
+      "to_student_success": "Bulchaan gara barataatti milkiin jijjiirameera",
+      "transfer_success": "Gaheen super admin milkiin dabarfameera"
+    }
+  },
+  "admin_books": {
+    "title": "Kitaabota Bulchuu",
+    "subtitle": "Kitaabota calali, qindeessi, fi ragaa isaanii argadhū",
+    "search_placeholder": "Kitaaba barbaadi",
+    "add_new": "Kitaaba haaraa dabali",
+    "tabs": {
+      "all": "Kitaabota Hundumaa",
+      "physical": "Kitaabota Qaamaa",
+      "digital": "Kitaabota Diijitaalaa",
+      "categories": "Ramaddiiwwan"
+    },
+    "table": {
+      "title": "Mata-duree",
+      "author": "Barreessaa",
+      "category": "Ramaddii",
+      "copies": "Koppiiwwan",
+      "status": "Haala",
+      "no_books": "Kitaabni hin argamne"
+    },
+    "status": {
+      "digital": "Diijitaala",
+      "read_only": "Dubbisuu Qofa",
+      "download_allowed": "Buufachuun hayyamameera",
+      "out_of_stock": "Dhumateera",
+      "available": "Ni jira"
+    },
+    "actions": {
+      "edit": "Giddu-seena",
+      "condition": "Haala",
+      "delete": "Haquu"
+    },
+    "modal": {
+      "add_title": "Kitaaba Haaraa Dabali",
+      "edit_title": "Kitaaba Haaromsi",
+      "labels": {
+        "title": "Mata-duree Kitaabaa",
+        "author": "Barreessaa",
+        "category": "Ramaddii",
+        "copies": "Koppiiwwan",
+        "pages": "Fuulawwan",
+        "publication_year": "Waggaa Itti Maxxanfame",
+        "loan_duration": "Yeroo Liqii (Guyyaa)",
+        "rental_price": "Gatii Liqii (ETB)",
+        "tags": "Tags (koomaan gargar baasi)",
+        "topics": "Mata-dureewwan (koomaan gargar baasi)",
+        "pdf_access": "Sadarkaa PDF Argachuu",
+        "description": "Ibsa",
+        "cover_image": "Fakkii Qolaa",
+        "book_gallery": "Agarsiisa Kitaabaa",
+        "pdf_file": "Faayila PDF"
+      },
+      "placeholders": {
+        "author": "Barreessaa filadhu",
+        "category": "Ramaddii filadhu",
+        "pdf_access": "PDF filadhu"
+      },
+      "drop_image": "Fakkii qolaa fe'uuf as tuqi",
+      "drop_gallery": "Fakkiiwwan agarsiisaa dabaluuf as tuqi",
+      "drop_pdf": "Sanada PDF fe'uuf as tuqi",
+      "submit_add": "Kitaaba dabali",
+      "submit_update": "Kitaaba Haaromsi",
+      "submitting_add": "Dabalaa jira...",
+      "submitting_update": "Haaromsaa jira..."
+    },
+    "messages": {
+      "delete_success": "Kitaabni milkiin haqumeera",
+      "add_physical_success": "Kitaabni qaamaa dabalameera",
+      "update_physical_success": "Kitaabni qaamaa haaromsameera",
+      "add_digital_success": "Kitaabni diijitaalaa dabalameera",
+      "update_digital_success": "Kitaabni diijitaalaa haaromsameera"
+    }
+  },
+  "admin_authors": {
+    "title": "Barreessitoota Bulchuu",
+    "subtitle": "Ragaa barreessitootaa calali, qindeessi, fi argadhu",
+    "search_placeholder": "Barreessaa barbaadi",
+    "add_new": "Barreessaa haaraa dabali",
+    "table": {
+      "image": "FAKKII",
+      "name": "MAQAA",
+      "bio": "BIO",
+      "category": "RAMADDII",
+      "books": "KITAABOTA",
+      "status": "HAALA",
+      "no_authors": "Barreessaan hin argamne"
+    },
+    "status": {
+      "active": "Hojirra jira"
+    },
+    "modal": {
+      "add_title": "Barreessaa Haaraa Dabali",
+      "edit_title": "Barreessaa Haaromsi",
+      "labels": {
+        "name": "Maqaa",
+        "bio": "Bio",
+        "image": "Fakkii"
+      },
+      "placeholders": {
+        "name": "Maqaa Barreessaa",
+        "bio": "Seenaa Barreessaa"
+      },
+      "drop_image": "Fakkii barreessaa fe'uuf as tuqi",
+      "submit_add": "Barreessaa dabali",
+      "submit_update": "Barreessaa Haaromsi",
+      "submitting_add": "Dabalaa jira...",
+      "submitting_update": "Haaromsaa jira..."
+    },
+    "messages": {
+      "add_success": "Barreessaan milkiin uumameera",
+      "update_success": "Barreessaan milkiin haaromsameera",
+      "delete_success": "Barreessaan milkiin haqumeera",
+      "add_failed": "Barreessaa uumuun hin danda'amne",
+      "update_failed": "Barreessaa haaromsuun hin danda'amne",
+      "delete_failed": "Barreessaa haquun hin danda'amne"
+    },
+    "confirm": {
+      "delete_title": "Barreessaan ni haquamuu?",
+      "delete_desc": "{name} ni balleeffama. Gochi kun deebi'uun hin danda'amu.",
+      "delete_confirm": "Barreessaa Haquu"
+    }
+  },
+  "admin_categories": {
+    "title": "Ramaddiiwwan Bulchuu",
+    "subtitle": "Ramaddiiwwan kitaabotaa uumi, giddu-seeni fi balleessi.",
+    "search_placeholder": "Ramaddii barbaadi",
+    "add_new": "Ramaddii haaraa dabali",
+    "table": {
+      "category": "Ramaddii",
+      "physical": "Qaamaa",
+      "digital": "Diijitaala",
+      "actions": "Gochaawwan",
+      "no_categories": "Ramaddiin hin argamne"
+    },
+    "actions": {
+      "edit": "Giddu-seena",
+      "delete": "Haquu"
+    },
+    "modal": {
+      "add_title": "Ramaddii Dabali",
+      "edit_title": "Ramaddii Giddu-seeni",
+      "label_name": "Maqaa Ramaddii",
+      "placeholder_name": "Maqaa ramaddii galchi",
+      "submit_add": "Ramaddii Uumi",
+      "submit_update": "Ramaddii Haaromsi",
+      "submitting": "Ol-kaayaa jira..."
+    },
+    "confirm": {
+      "delete_title": "Ramaddiin ni haquamuu?",
+      "delete_desc": "Yoo kitaabni isaan walqabatu hin jirre {name} ni balleeffama.",
+      "cancel": "Dhiisi",
+      "delete_btn": "Ramaddii Haquu"
+    },
+    "messages": {
+      "add_success": "Ramaddiin milkiin uumameera",
+      "update_success": "Ramaddiin milkiin haaromsameera",
+      "delete_success": "Ramaddiin milkiin haqumeera"
+    }
+  },
+  "admin_activity_logs": {
+    "title": "Galmee Gochaawwan Admin",
+    "subtitle": "Xumura guutuu gochaawwan bulchiinsaa sirna keessa jiranii.",
+    "retention": "Kuusaa: Gochaawwan 200 Dhumaa",
+    "loading": "Ragaa sanadaa fe'aa jira...",
+    "no_logs": "Galmeen hin galmoofne.",
+    "system": "Sirna",
+    "table": {
+      "admin": "Admin",
+      "action": "Gocha",
+      "description": "Ibsa",
+      "timestamp": "Yeroo"
+    }
+  },
+  "admin_alerts": {
+    "title": "Akeekkachiisaa fi Beeksisa",
+    "subtitle": "Akeekkachiisa qabeenyaa fi beeksisa sirnaa hordofuu.",
+    "run_scan": "Scan godhi",
+    "scanning": "Scan godhaa jira...",
+    "resolved": "Furameera",
+    "resolve": "Furi",
+    "tabs": {
+      "alerts": "Akeekkachiisa Qabeenyaa",
+      "notifications": "Beeksisoota",
+      "inventory": "Akeekkachiisa Qabeenyaa"
+    },
+    "actions": {
+      "resolve": "Furi",
+      "resolved": "Furameera"
+    },
+    "messages": {
+      "scan_success": "Scan godhuun xumurameera",
+      "scan_failed": "Scan godhuun hin danda'amne",
+      "resolve_success": "Akeekkachiisni furameera",
+      "resolve_failed": "Akeekkachiisa furuun hin danda'amne"
+    }
+  },
+  "admin_borrowings": {
+    "title": "Liqiiwwan",
+    "subtitle": "Liqiiwwan jiran, deebiiwwan, fi kanneen yeroon irra darbe hordofuu.",
+    "search_placeholder": "Liqii barbaadi",
+    "refresh": "Haaromsi",
+    "table": {
+      "student": "Barataa",
+      "book": "Kitaaba",
+      "loan_date": "Guyyaa Liqii",
+      "due_date": "Guyyaa Deebii",
+      "status": "Haala",
+      "fine": "Adabbii",
+      "action": "Gocha",
+      "no_borrowings": "Liqiin hin argamne"
+    },
+    "actions": {
+      "return": "Deebisi",
+      "processing": "Hojjechaa jira...",
+      "working": "Hojjechaa jira..."
+    },
+    "messages": {
+      "return_success": "Deebiin milkiin raawwatameera",
+      "return_failed": "Deebii raawwachuun hin danda'amne"
+    }
+  },
+  "admin_reports": {
+    "title": "Gabaasota fi Erguu",
+    "subtitle": "Kuus-deetaa irraa ragaa gabaasa CSV ykn JSON uumi.",
+    "types": {
+      "rentals": "Liqiiwwan",
+      "overdue": "Yeroo irra darbe",
+      "users": "Fayyadamtoota",
+      "inventory": "Qabeenya",
+      "reservations": "Qabachuu"
+    },
+    "download_csv": "CSV Buufadhu",
+    "download_excel": "Excel Buufadhu",
+    "download_pdf": "PDF Buufadhu",
+    "select_preview": "Gabaasa ilaaluuf filadhu",
+    "select_report": "Gabaasa ilaaluuf filadhu",
+    "loading": "Fe'aa jira...",
+    "messages": {
+      "load_failed": "Ragaa gabaasaa fe'uun hin danda'amne"
+    }
+  },
+  "admin_overdue": {
+    "title": "Dookiyumentii Yeroon Irra Darbe",
+    "subtitle": "Ragaalee yeroon irra darbe, sadarkaa, fi adabbii hordofuu.",
+    "send_reminders": "Yaadachiisa Ergi ({count} Filameera)",
+    "send_reminder": "Yaadachiisa Ergi ({count} Filameera)",
+    "sending": "Ergaa jira...",
+    "days": "guyyaa",
+    "ranking_title": "Sadarkaa Yeroon Irra Darbe (Dursa)",
+    "no_ranking": "Ragaan sadarkaa hin jiru.",
+    "ranking_item": "#{rank} {name} • guyyaa {days} • {fine} ETB",
+    "table": {
+      "student": "Barataa",
+      "book": "Kitaaba",
+      "due_date": "Guyyaa Deebii",
+      "days_overdue": "Guyyaa Irra Darbe",
+      "fine": "Adabbii Tilmaamame",
+      "estimated_fine": "Adabbii Tilmaamame",
+      "no_overdue": "Liqiin yeroon irra darbe hin jiru"
+    },
+    "messages": {
+      "reminders_success": "Yaadachiisni milkiin deemaa jira",
+      "reminders_failed": "Yaadachiisa erguun hin danda'amne"
+    }
+  }
+}

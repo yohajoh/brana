@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import { Bell, ChevronRight } from "lucide-react";
 import { useAllNotifications, useMarkAsRead, Notification } from "@/lib/hooks/useNotifications";
 import { LoadingCard } from "@/components/ui/Loading";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 export function AdminNotificationDropdown() {
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -62,7 +64,7 @@ export function AdminNotificationDropdown() {
           setIsOpen(!isOpen);
           if (!isOpen) refetch();
         }}
-        aria-label="Notifications"
+        aria-label={t("student_notifications.title")}
         className="relative flex items-center justify-center w-10 h-10 rounded-full border border-[#C2B199] bg-[#FDF8F0] hover:bg-[#F3EFE6] transition-colors"
       >
         <Bell size={20} className="text-[#2B1A10]" />
@@ -76,8 +78,8 @@ export function AdminNotificationDropdown() {
       {isOpen && (
         <div className="absolute right-0 top-12 w-80 sm:w-96 max-h-[500px] overflow-hidden bg-white rounded-2xl border border-[#E1D2BD] shadow-xl z-50">
           <div className="flex items-center justify-between px-4 py-3 border-b border-[#E1D2BD]">
-            <h3 className="font-bold text-[#2B1A10]">Notifications</h3>
-            {displayUnreadCount > 0 && <span className="text-xs text-[#AE9E85]">{displayUnreadCount} unread</span>}
+            <h3 className="font-bold text-[#2B1A10]">{t("student_notifications.title")}</h3>
+            {displayUnreadCount > 0 && <span className="text-xs text-[#AE9E85]">{t("student_notifications.unread_count", { count: displayUnreadCount })}</span>}
           </div>
 
           <div className="max-h-96 overflow-y-auto">
@@ -118,7 +120,7 @@ export function AdminNotificationDropdown() {
                 </button>
               ))
             ) : (
-              <div className="p-8 text-center text-[#AE9E85] text-sm">No unread notifications</div>
+              <div className="p-8 text-center text-[#AE9E85] text-sm">{t("student_notifications.no_unread")}</div>
             )}
           </div>
 
@@ -127,7 +129,7 @@ export function AdminNotificationDropdown() {
               onClick={handleViewAll}
               className="w-full flex items-center justify-center gap-2 py-2 text-sm font-medium text-[#2B1A10] hover:text-[#3B2718] transition-colors"
             >
-              View All Notifications
+              {t("student_notifications.view_all")}
               <ChevronRight size={16} />
             </button>
           </div>

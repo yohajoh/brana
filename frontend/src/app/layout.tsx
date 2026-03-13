@@ -21,6 +21,8 @@ export const metadata: Metadata = {
   description: "Birana - automated book rental system",
 };
 
+import { LanguageProvider } from "@/components/providers/LanguageProvider";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -31,10 +33,12 @@ export default function RootLayout({
       <body className={`${inter.variable} ${lora.variable} antialiased`}>
         <QueryProvider>
           <SocketProvider>
-            <PersonaProvider>
-              <ToastProvider />
-              {children}
-            </PersonaProvider>
+            <LanguageProvider>
+              <PersonaProvider>
+                <ToastProvider />
+                {children}
+              </PersonaProvider>
+            </LanguageProvider>
           </SocketProvider>
         </QueryProvider>
       </body>

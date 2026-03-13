@@ -5,6 +5,7 @@ import { useMyRentals, useSystemConfig } from "@/lib/hooks/useQueries";
 import { HistorySummary } from "@/components/HistorySummary";
 import { DetailedHistoryTable } from "@/components/DetailedHistoryTable";
 import { Pagination } from "@/components/Pagination";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 export type RentalItem = {
   id: string;
@@ -28,6 +29,7 @@ export type SystemConfig = {
 };
 
 export default function BorrowingHistoryPage() {
+  const { t } = useLanguage();
   const [page, setPage] = useState(1);
   const limit = 10;
 
@@ -42,8 +44,8 @@ export default function BorrowingHistoryPage() {
   return (
     <div className="p-6 lg:p-12 space-y-12">
       <div className="space-y-2">
-        <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-primary">Borrowing History</h1>
-        <p className="text-secondary font-medium">View your complete borrowing history and track your reading journey.</p>
+        <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-primary">{t("student_history.title")}</h1>
+        <p className="text-secondary font-medium">{t("student_history.subtitle")}</p>
       </div>
 
       <HistorySummary rentals={rentals} config={config} loading={isLoading} />

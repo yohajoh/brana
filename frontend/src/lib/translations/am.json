@@ -1,0 +1,1015 @@
+{
+  "common": {
+    "dashboard_redirect": "ወደ ዳሽቦርድዎ እየዞረ ነው...",
+    "error_occurred": "ችግር ተከስቷል። እባክዎ እንደገና ይሞክሩ።",
+    "pagination": {
+      "previous": "ቀዳሚ",
+      "next": "ቀጣይ",
+      "page_info": "ገጽ {current} ከ {total}"
+    }
+  },
+  "navbar": {
+    "home": "መነሻ",
+    "books": "መጽሐፍት",
+    "about": "ስለ እኛ",
+    "login": "ግባ",
+    "signup": "ተመዝገብ"
+  },
+  "hero": {
+    "title_part1": "ቀጣዩ ንባብዎ፣ በአንድ ጠቅታ ",
+    "title_italic": "ብቻ",
+    "description": "በግብረ ገባችን ውስጥ መጽሐፍትን ለመበደር ቀላሉን መንገድ ይለማመዱ። የእኛን የመስመር ላይ ካታሎግ ይፈልጉ፣ ወዲያውኑ ይጠይቁ እና መጽሐፍዎን በዶርምዎ ያግኙ። ያለ ምንም ችግር ንባብን ለሚወዱ ተማሪዎች የተሰራ።",
+    "cta": "ስብስቦችን ያስሱ"
+  },
+  "how_it_works": {
+    "title": "እንዴት እንደሚሰራ",
+    "steps": {
+      "create_account": {
+        "title": "መለያ ይፍጠሩ",
+        "description": "ጉዞዎን ይመዝግቡ፣ የመጽሐፍ መደርደሪያ ገደብን ያሸንፉ።"
+      },
+      "choose_book": {
+        "title": "መጽሐፍ ይምረጡ",
+        "description": "ሰፊውን ቤተ-መጽሐፍታችንን ያስሱ፣ የሚቀጥለውን ንባብዎን ያግኙ።"
+      },
+      "dorm_delivery": {
+        "title": "የዶርም አቅርቦት",
+        "description": "መጽሐፍዎ ያለ ምንም ጭንቀት ወደ ዶርምዎ ይደርሳል።"
+      },
+      "return_pay": {
+        "title": "ይመልሱ እና ይከፍሉ",
+        "description": "የመጽሐፍ ድርሻዎን ይጠቀሙ፣ ለሚቀጥለው ጊዜ ይክፈሉ እና ዑደቱን ይቀጥሉ።"
+      }
+    }
+  },
+  "faq": {
+    "title": "ተደጋግሞ የሚነሱ ጥያቄዎች",
+    "questions": [
+      {
+        "question": "እንዴት መጽሐፍ መበደር እችላለሁ?",
+        "answer": "በቀላሉ በካታሎጋችን ውስጥ መጽሐፉን ይፈልጉ፣ 'Borrow' የሚለውን ይጫኑ እና መመሪያዎቹን በመከተል ወደ ዶርምዎ እንዲመጣ ይጠይቁ።"
+      },
+      {
+        "question": "መጽሐፍ ለምን ያህል ጊዜ ማቆየት እችላለሁ?",
+        "answer": "ብዙውን ጊዜ መጽሐፍ ለ2 ሳምንታት ማቆየት ይችላሉ። ሌላ ሰው ካልያዘው ተጨማሪ ጊዜ መጠየቅ ይችላሉ።"
+      },
+      {
+        "question": "የምፈልገው መጽሐፍ ባይኖር ምን ይደረጋል?",
+        "answer": "ለማንኛውም መጽሐፍ በተጠባባቂ ዝርዝር ውስጥ መመዝገብ ይችላሉ። መጽሐፉ ሲመለስ እና ዝግጁ ሲሆን ወዲያውኑ እናሳውቅዎታለን።"
+      },
+      {
+        "question": "ብራና መጽሐፍ ኪራይ ስርዓት ምንድን ነው?",
+        "answer": "ብራና ተማሪዎች ያለ ባህላዊ የቤተ-መጽሐፍት መሰናክሎች እውቀትን በቀላሉ እንዲያገኙ እና እንዲያጋሩ የተነደፈ የትምህርት እና የመንፈሳዊ መጽሐፍት ዲጂታል መጠለያ ነው።"
+      },
+      {
+        "question": "ስለ መጽሐፌ እንዴት ማሳወቂያ ይደርሰኛል?",
+        "answer": "መጽሐፍዎ ለርክክብ ሲዘጋጅ ወይም የሚመለስበት ጊዜ ሲደርስ በእኛ መተግበሪያ እና በተመዘገቡበት የአድራሻ ዘዴ ማሳወቂያ ይደርሰዎታል።"
+      },
+      {
+        "question": "እንዴት መጽሐፍ እመልሳለሁ?",
+        "answer": "መጽሐፉን በተመረጡ የመሰብሰቢያ ቦታዎች ማስረከብ ወይም በመተግበሪያው በኩል ከዶርምዎ እንዲወሰድ መጠየቅ ይችላሉ።"
+      }
+    ]
+  },
+  "cta_section": {
+    "title": "ለቀጣዩ ታላቅ ንባብዎ ተዘጋጅተዋል?",
+    "description": "በግብረ ገባችን ውስጥ መጽሐፍትን ለመበደር ቀላሉን መንገድ ይለማመዱ። ያለ ምንም ችግር ንባብን ለሚወዱ ተማሪዎች የተሰራ።",
+    "button": "ስብስቦችን ያስሱ"
+  },
+  "footer": {
+    "description": "በዘመናዊ ዲጂታል የመጽሐፍ ኪራይ ስርዓት የንባብ ህይወትዎን ቀላል ለማድረግ እዚህ ተገኝተናል።",
+    "links_title": "ሊንኮች",
+    "contact_title": "እውቂያ",
+    "privacy": "የግላዊነት ፖሊሲ",
+    "terms": "የአጠቃቀም ደንቦች",
+    "rights": "መብቱ በህግ የተጠበቀ ነው።"
+  },
+  "about_page": {
+    "story": {
+      "title": "የእኛ ታሪክ",
+      "p1": "ሁሉም የተጀመረው በጎግል ፎርሞች እና በወሰኑ በጎ ፈቃደኞች ቡድን ነው። ለዓመታት የእኛ ማህበር የመጽሐፍ ብድርን በእጅ ሲያስተዳድር ቆይቷል - ተማሪዎች ቅጾችን ይሞላሉ ፣ በጎ ፈቃደኞች ሁሉንም ነገር በስፕሬድ ሺቶች ላይ ይከታተላሉ ፣ እና መጽሐፍት በፕሮግራሞች በተመቻቹ ጊዜ ይሰጡ ነበር።",
+      "p2": "ይሰራ ነበር፣ ግን ቀላል አልነበረም። መጽሐፍት በመሃል ይጠፉ ነበር። ተማሪዎች ምን ዝግጁ እንደሆነ አያውቁም ነበር። በጎ ፈቃደኞች ከአንባቢዎች ጋር ከመገናኘት ይልቅ በአስተዳደራዊ ሥራ ላይ ሰዓታትን ያሳልፉ ነበር። የተሻለ መንገድ ሊኖር እንደሚገባ እናውቅ ነበር።",
+      "p3": "ስለዚህ አንድ ገንባን። በጓደኞች መካከል እንደ ንግግር የጀመረው ፕሮጀክት ቀላል፣ ፍትሃዊ እና በማህበረሰብ ላይ ያተኮረ የመበደር ስርዓት ለመፍጠር ሆነ። ዛሬ፣ ፌሎውሺፕ ላይብረሪ ተማሪዎች መጽሐፍትን እንዲፈልጉ፣ እንዲጠይቁ እና እንዲቀበሉ የሚያስችል ሙሉ ዲጂታል ፕላትፎርም ነው - ሁሉም ወደ ዶርማቸው የሚቀርቡ፣ ለሁሉም ፍትሃዊ በሆነ የቀን ክፍያ ሞዴል።"
+    },
+    "mission": {
+      "title": "የእኛ ተልዕኮ",
+      "description": "በግብረ ገባችን ቤተ-መጽሐፍት ንባብ አእምሮን እና ነፍስን እንደሚያሳድግ እናምናለን። ተልዕኳችን ቀላል ነው፡ ጥራት ያላቸው መጽሐፍትን ለእያንዳንዱ የግብረ ገባችን ማህበረሰብ አባል ተደራሽ ማድረግ - ያለ ምንም ውጣ ውረድ፣ ያለ ምንም እንቅፋት እና በግል እንክብካቤ። እኛ ቤተ-መጽሐፍት ብቻ አይደለንም። እኛ ታሪኮችን የምናካፍል፣ በእምነት የምናድግ እና እርስ በእርስ የምንደጋገፍ የአንባቢዎች ማህበረሰብ ነን።"
+    },
+    "stats": {
+      "books": "በስብስባችን ውስጥ ያሉ መጽሐፍት",
+      "borrowed": "በዚህ ዓመት የተበደሩ መጽሐፍት",
+      "members": "ቤተ-መጽሐፍቱን የሚያስኬዱ አባላት",
+      "readers": "ንቁ አንባቢዎች"
+    },
+    "involvement": {
+      "title": "የታሪኩ አካል ይሁኑ",
+      "borrow": {
+        "title": "መጽሐፍትን መበደር",
+        "description": "ለመሳተፍ ቀላሉ መንገድ! ይመዝገቡ እና ማንበብ ይጀምሩ።"
+      },
+      "donate": {
+        "title": "መጽሐፍትን ይለግሱ",
+        "description": "የሚያጋሩት መጽሐፍ አለዎት? ከስብስባችን ጋር የሚጣጣሙ በጥሩ ሁኔታ ላይ ያሉ ልገሳዎችን እንቀበላለን።"
+      },
+      "volunteer": {
+        "title": "በጎ ፈቃደኛ ይሁኑ",
+        "description": "በአቅርቦት፣ በመጽሐፍ ዝግጅት ወይም በአስተዳደር ሥራዎች ያግዙ። የጊዜ አጠቃቀምዎ ተለዋዋጭ ነው።"
+      },
+      "cta_explore": "ስብስቦችን ያስሱ",
+      "cta_contact": "እውቂያ"
+    }
+  },
+  "books_page": {
+    "sort_by": "በዚህ ደርድር፦",
+    "sort_options": {
+      "title_asc": "ርዕስ (ከሀ-ፐ)",
+      "title_desc": "ርዕስ (ከፐ-ሀ)",
+      "most_available": "በጣም የሚገኙ",
+      "least_available": "በትንሹ የሚገኙ",
+      "shortest": "አጭር",
+      "longest": "ረጅም"
+    },
+    "modes": {
+      "all": "ሁሉም",
+      "physical": "ወረቀት",
+      "digital": "ዲጂታል"
+    },
+    "status": {
+      "loading": "በመጫን ላይ...",
+      "no_books": "ምንም መጽሐፍ አልተገኘም",
+      "showing": "ከ{total} {mode}መጽሐፍት ውስጥ ከ{start}-{end} ያሉት እየታዩ ነው"
+    },
+    "filters": {
+      "all_authors": "ሁሉም ደራሲያን",
+      "availability": "መገኘት",
+      "available": "የሚገኝ",
+      "unavailable": "የማይገኝ",
+      "min_rating_placeholder": "ዝቅተኛ ደረጃ (ምሳሌ፡ 4)",
+      "year_placeholder": "የታተመበት ዓመት",
+      "tags_placeholder": "መለያዎች (በኮማ የተለዩ)",
+      "topics_placeholder": "ርዕሶች (በኮማ የተለዩ)"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "እንኳን ደህና መጡ",
+      "subtitle": "መለያ የለዎትም? መጽሐፍትን መበደር እና መገምገም ለመጀመር ይመዝገቡ።",
+      "identity_label": "ኢሜይል",
+      "identity_placeholder": "you@astu.edu.et",
+      "password_label": "የይለፍ ቃል",
+      "password_placeholder": "የይለፍ ቃልዎን ያስገቡ",
+      "forgot_password": "የይለፍ ቃል ረስተዋል?",
+      "remember_me": "አስታውሰኝ",
+      "submit": "ይግቡ",
+      "submitting": "በመግባት ላይ...",
+      "no_account": "መለያ የለዎትም?",
+      "signup_link": "ይመዝገቡ",
+      "google_login": "በጎግል ይቀጥሉ",
+      "or_continue_with": "ወይም በዚህ ይቀጥሉ",
+      "messages": {
+        "email_confirmed": "ኢሜይልዎ ተረጋግጧል! አሁን መግባት ይችላሉ።",
+        "google_failed": "በጎግል መግባት አልተሳካም። እባክዎ እንደገና ይሞክሩ።",
+        "google_timeout": "የጎግል መግባት ሰዓት አልፎበታል። እባክዎ እንደገና ይሞክሩ።",
+        "invalid_credentials": "የተሳሳተ ኢሜይል ወይም የይለፍ ቃል"
+      },
+      "back_label": "አዲስ ነዎት? መለያ ይፍጠሩ"
+    },
+    "signup": {
+      "title": "መለያ ይፍጠሩ",
+      "subtitle": "ቀድሞ መለያ አለዎት? ይግቡ",
+      "full_name_label": "ሙሉ ስም",
+      "full_name_placeholder": "ሙሉ ስምዎን ያስገቡ",
+      "year_label": "ዓመት",
+      "year_placeholder": "ምሳሌ፡ 3ኛ ዓመት",
+      "department_label": "ትምህርት ክፍል",
+      "department_placeholder": "ምሳሌ፡ ኮምፒውተር ሳይንስ",
+      "id_label": "መለያ ቁጥር",
+      "id_placeholder": "መለያ ቁጥርዎን ያስገቡ",
+      "phone_label": "ስልክ ቁጥር",
+      "phone_placeholder": "+2519XXXXXXXX",
+      "email_label": "ኢሜይል",
+      "email_placeholder": "you@astu.edu.et",
+      "password_label": "የይለፍ ቃል ያስገቡ",
+      "password_placeholder": "ጠንካራ የይለፍ ቃል ይፍጠሩ",
+      "confirm_password_label": "የይለፍ ቃልዎን ያረጋግጡ",
+      "confirm_password_placeholder": "የይለፍ ቃልዎን ያረጋግጡ",
+      "terms_agree": "ከ{terms} እና {privacy} ጋር እስማማለሁ።",
+      "terms_label": "የአጠቃቀም ደንቦች",
+      "privacy_label": "የግላዊነት ፖሊሲ",
+      "submit": "መለያ ይፍጠሩ",
+      "submitting": "መለያ በመፍጠር ላይ...",
+      "already_registered": "ቀድሞ ተመዝግበዋል?",
+      "signin_link": "ይግቡ",
+      "back_label": "ቀድሞ መለያ አለዎት? ይግቡ",
+      "modal": {
+        "title": "ኢሜይልዎን ያረጋግጡ",
+        "message": "የማረጋገጫ ሊንክ ወደ ኢሜይልዎ ልከናል። እባክዎ መለያዎን ለማንቃት ሊንኩን ይጫኑ። አንዴ ከተረጋገጠ ይህ ገጽ በራሱ ይቀየራል።"
+      },
+      "messages": {
+        "password_mismatch": "የይለፍ ቃሎች አይዛመዱም",
+        "signup_failed": "መለያ መፍጠር አልተቻለም"
+      }
+    },
+    "forgot_password": {
+      "title": "የይለፍ ቃል ረስተዋል?",
+      "subtitle": "አይጨነቁ። የዩኒቨርሲቲ ኢሜይልዎን ያስገቡ እና የይለፍ ቃልዎን ለመቀየር አስተማማኝ ሊንክ እንልክልዎታለን።",
+      "email_label": "የዩኒቨርሲቲ ኢሜይል",
+      "email_placeholder": "you@astu.edu.et",
+      "help_text": "ከተመዘገቡበት ኢሜይል ጋር ተመሳሳይ መሆኑን ያረጋግጡ። ኢሜይሉን መጠቀም ካልቻሉ የቤተ-መጻሕፍት ቡድኑን ያነጋግሩ።",
+      "submit": "የመቀየሪያ ሊንክ ላክ",
+      "submitting": "ሊንክ በመላክ ላይ...",
+      "back_label": "ወደ መግቢያ ተመለስ",
+      "modal": {
+        "title": "ኢሜይልዎን ያረጋግጡ",
+        "message": "በዚያ ኢሜይል የተመዘገበ መለያ ካለ የይለፍ ቃል መቀየሪያ ሊንክ ልከናል። እባክዎ ኢሜይልዎን ያረጋግጡ እና መመሪያውን ይከተሉ።",
+        "button_label": "ወደ መግቢያ ተመለስ"
+      }
+    }
+  },
+  "student_dashboard": {
+    "welcome": "እንኳን በደህና መጡ፣ {name}",
+    "subtitle": "ከመጽሐፍትዎ ጋር ምን እየተከናወነ እንዳለ እነሆ።",
+    "currently_borrowed": "በአሁኑ ጊዜ የተወሰደ መጽሐፍ",
+    "borrowed": {
+      "none": "ምንም የተወሰደ መጽሐፍ የለዎትም።",
+      "explore": "መጽሐፍ ለመዋስ የመጽሐፍት ገጹን ይጎብኙ።",
+      "loan_date": "የተወሰደበት ቀን",
+      "due_date": "መመለሻ ቀን",
+      "overdue_label": "የዘገዩባቸው ቀናት",
+      "remaining_label": "የቀሩ ቀናት",
+      "days_left": "{count} ቀናት ቀርተዋል",
+      "return_instruction": "መመለሱን ለማጠናቀቅ ይህንን መጽሐፍ ለቤተ-መጻሕፍት ባለሙያ ይመልሱ።"
+    },
+    "history": {
+      "title": "የውሰት ታሪክ",
+      "see_all": "ሁሉንም ይመልከቱ",
+      "none": "እስካሁን ምንም የውሰት ታሪክ የለም።",
+      "table": {
+        "title": "ርዕስ",
+        "borrowed": "የተወሰደበት ቀን",
+        "returned": "የተመለሰበት ቀን",
+        "days_kept": "የቆየባቸው ቀናት",
+        "amount_paid": "የተከፈለ መጠን"
+      }
+    },
+    "snapshot": {
+      "title": "የንባብ ቅጽበታዊ እይታዎ",
+      "due_soon": "በቅርቡ የሚመለሱ",
+      "on_time_rate": "በጊዜ የመመለስ መጠን",
+      "reservations": "ቦታ ማስያዝ",
+      "unread_alerts": "ያልተነበቡ ማስጠንቀቂያዎች"
+    },
+    "recommendations": {
+      "title": "ለእርስዎ የሚመከሩ",
+      "none": "እስካሁን ምንም ምክሮች የሉም።",
+      "available": "{count} ቅጂዎች ይገኛሉ",
+      "unavailable": "በአሁኑ ጊዜ አይገኝም"
+    },
+    "categories": {
+      "title": "ተወዳጅ ምድቦች",
+      "none": "እስካሁን ምንም የምድብ ግንዛቤዎች የሉም።"
+    },
+    "trending": {
+      "title": "ተወዳጅ መጽሐፍት",
+      "none": "እስካሁን ምንም ተወዳጅ መረጃ የለም።",
+      "rentals": "{count} ውሰቶች"
+    },
+    "top_rated": {
+      "title": "ከፍተኛ ደረጃ የተሰጣቸው መጽሐፍት",
+      "none": "እስካሁን ምንም የደረጃ መረጃ የለም።"
+    }
+  },
+  "digital_library": {
+    "title": "ዲጂታል ቤተ-መጻሕፍት",
+    "subtitle": "ዲጂታል መጽሐፍትን በመስመር ላይ ያንብቡ እና ሲፈቀድ ያውርዱ።",
+    "loading": "ዲጂታል መጽሐፍትን በመጫን ላይ...",
+    "none": "ምንም የሚገኙ ዲጂታል መጽሐፍት የሉም።",
+    "view_details": "ዝርዝሩን ይመልከቱ",
+    "download_allowed": "ማውረድ ይፈቀዳል",
+    "details": "ዝርዝሮች",
+    "read": "አንብብ",
+    "opening": "እየተከፈተ ነው...",
+    "preparing": "በመዘጋጀት ላይ...",
+    "download": "አውርድ",
+    "page_info": "ገጽ {page} ከ {total}",
+    "updating": "እየታደሰ ነው...",
+    "previous": "የቀድሞ",
+    "next": "ቀጣይ"
+  },
+  "sidebar": {
+    "dashboard": "ዳሽቦርድ",
+    "users": "ተጠቃሚዎች",
+    "books": "መጽሐፍት",
+    "categories": "ምድቦች",
+    "authors": "ደራሲያን",
+    "borrowings": "ውሰቶች",
+    "reservations": "ቦታ ማስያዝ",
+    "overdue": "ጊዜያቸው ያለፈባቸው",
+    "alerts": "ማስጠንቀቂያዎች",
+    "activity_logs": "የድርጊት መዝገቦች",
+    "reports": "ሪፖርቶች",
+    "settings": "ቅንብሮች",
+    "history": "የውሰት ታሪክ",
+    "wishlist": "የምኞት ዝርዝር",
+    "digital": "ዲጂታል ቤተ-መጽሐፍት",
+    "payments": "ክፍያዎች",
+    "notifications": "ማሳወቂያዎች",
+    "account_settings": "المለያ ቅንብሮች",
+    "logout": "ውጣ"
+  },
+  "dashboard": {
+    "analytics_title": "የትንታኔ ዳሽቦርድ",
+    "analytics_subtitle": "ግቦች፣ አዝማሚያዎች እና የቀጥታ ቤተ-መጽሐፍት መለኪያዎች።",
+    "loading": "ትንታኔ በመጫን ላይ...",
+    "stats": {
+      "students": "ተማሪዎች",
+      "books": "መጽሐፍት",
+      "active_rentals": "ንቁ ውሰቶች",
+      "overdue": "ጊዜ ያለፈባቸው",
+      "reservations": "ቦታ ማስያዝ",
+      "revenue": "ገቢ (የወር)"
+    },
+    "rentals_per_week": "ሳምንታዊ ውሰቶች",
+    "goal_progress": "የወርሃዊ ግብ ሂደት",
+    "targets": {
+      "title": "የወርሃዊ ግቦችን ያዘጋጁ",
+      "rentals": "ውሰቶች",
+      "active_readers": "ንቁ አንባቢዎች",
+      "on_time_returns": "በጊዜ የተመለሱ",
+      "new_books": "አዲስ መጽሐፍት",
+      "save": "ግብን አስቀምጥ",
+      "saving": "በመቀመጥ ላይ..."
+    }
+  },
+  "admin_reservations": {
+    "title": "ቦታ ማስያዝ",
+    "subtitle": "የቅደም ተከተል አስተዳደር እና ቦታ የማስያዣ መስኮቶች።",
+    "refresh": "አድስ",
+    "cancel_selected": "ቦታ ማስያዝ ሰርዝ ({count} ተመርጧል)",
+    "cancelling": "በመሰረዝ ላይ...",
+    "high_demand": {
+      "title": "ከፍተኛ ፍላጎት ያላቸው መጽሐፍት",
+      "loading": "የግንዛቤ መረጃዎች በመጫን ላይ...",
+      "no_demand": "ከፍተኛ ፍላጎት ያለው መጽሐፍ አልተገኘም።",
+      "queue": "ተራ",
+      "copies": "ቅጂዎች",
+      "available": "የሚገኙ",
+      "pressure": "የጫና መጠን",
+      "recommendation": "የእቃ ዝርዝር እርምጃ ይመከራል (10+ ተራ፣ <=2 ቅጂዎች)"
+    },
+    "table": {
+      "student": "ተማሪ",
+      "book": "መጽሐፍ",
+      "queue": "ተራ",
+      "status": "ሁኔታ",
+      "debt": "እዳ",
+      "reserved": "የተያዘው",
+      "expires": "የሚያበቃው",
+      "action": "እርምጃ",
+      "clear": "የለም"
+    },
+    "actions": {
+      "move_to_top": "ወደ ላይ ውሰድ",
+      "issue_book": "መጽሐፉን ስጥ"
+    },
+    "modal": {
+      "title": "የተያዘ መጽሐፍ ስጥ",
+      "copy_code": "የቅጂ ኮድ",
+      "cancel": "ሰርዝ",
+      "issuing": "በመስጠት ላይ..."
+    },
+    "messages": {
+      "no_cancelled": "ምንም ቦታ ማስያዝ አልተሰረዘም",
+      "cancel_success": "{count} ቦታ ማስያዝ(ዞች) በተሳካ ሁኔታ ተሰርዘዋል",
+      "move_success": "ቦታ ማስያዝ ወደ ተራው አናት ተዛውሯል",
+      "copy_code_required": "የቅጂ ኮድ ያስፈልጋል",
+      "issue_success": "መጽሐፉ ተሰጥቷል እና ወደ ውሰት ተቀይሯል"
+    }
+  },
+  "book_details": {
+    "breadcrumb": {
+      "books": "መጽሐፍት",
+      "digital": "ዲጂታል",
+      "physical": "አካላዊ"
+    },
+    "status": {
+      "read_only": "ንባብ ብቻ",
+      "download": "አውርድ",
+      "available": "በመደርደሪያው ላይ ይገኛል: {count}",
+      "unavailable": "አይገኝም"
+    },
+    "not_found": {
+      "title": "መጽሐፉ አልተገኘም",
+      "desc": "የሚፈልጉት መጽሐፍ የለም።",
+      "button": "መጽሐፍትን ያስሱ"
+    },
+    "loading": "المጽሐፍ መረጃ በመጫን ላይ...",
+    "about_book": "ስለዚህ መጽሐፍ",
+    "about_author": "ስለ ደራሲው",
+    "actions": {
+      "borrow": "አሁን ይውሰዱ",
+      "borrow_label": "ተዋስ",
+      "reserve": "አሁን ቦታ ያስይዙ",
+      "reserve_label": "ቦታ አስይዝ",
+      "wishlist": "ወደ ምርጫ ዝርዝር ያስገቡ",
+      "remove_wishlist": "ከምርጫ ዝርዝር ያስወግዱ",
+      "in_wishlist": "በምርጫ ዝርዝር ውስጥ",
+      "currently_borrowed": "በአሁኑ ጊዜ የተዋሱት",
+      "complete_payment": "የመዋስ ክፍያውን ያጠናቅቁ",
+      "read_now": "አሁን ያንብቡ",
+      "download_pdf": "ፒዲኤፍ አውርድ",
+      "opening_pdf": "ፒዲኤፍ እየተከፈተ ነው...",
+      "preparing_download": "ማውረድ በመዘጋጀት ላይ...",
+      "updating_wishlist": "የምርጫ ዝርዝር እየታደሰ ነው...",
+      "submitting_review": "አስተያየት እየተላከ ነው...",
+      "removing_review": "አስተያየት እየተወገደ ነው...",
+      "submit_review": "አስተያየት ስጥ",
+      "update_review": "አስተያየት አupdate አድርግ"
+    },
+    "labels": {
+      "rating": "ደረጃ",
+      "category": "ምድብ",
+      "access": "መዳረሻ",
+      "available_on_shelf": "በመደርደሪያው ላይ የሚገኝ",
+      "read_and_download": "ንባብ + ማውረድ",
+      "copies": "{count} ኮፒዎች",
+      "copy": "{count} ኮፒ",
+      "review": "አስተያየት",
+      "reviews": "አስተያየቶች",
+      "students_in_queue": "{count} ተማሪዎች በአሁኑ ጊዜ በመጠባበቅ ላይ ናቸው",
+      "already_reserved": "ቀድሞውኑ ተይዟል",
+      "no_bio": "ለዚህ ደራሲ እስካሁን ምንም የህይወት ታሪክ አልተጨመረም።"
+    },
+    "reviews": {
+      "title": "የቅርብ ጊዜ አስተያየቶች",
+      "write_title": "አስተያየት ይጻፉ",
+      "placeholder": "አስተያየትዎን እዚህ ይጻፉ",
+      "unlock_digital": "አስተያየት ለመጻፍ መጀመሪያ ይህንን ዲጂታል መጽሐፍ ያንብቡ።",
+      "remove": "አስወግድ"
+    },
+    "sections": {
+      "more_by": "ተጨማሪ በ {name}",
+      "related_in": "ተዛማጅ በ {name}",
+      "none_related": "ለዚህ ደራሲ ወይም ምድብ እስካሁን ምንም ተዛማጅ መጽሐፍት አልተገኙም።"
+    },
+    "messages": {
+      "login_to_borrow": "እባክዎ መጽሐፍትን ለመዋስ ይግቡ",
+      "login_to_reserve": "እባክዎ መጽሐፍትን ቦታ ለማስያዝ ይግቡ",
+      "login_to_wishlist": "እባክዎ የምርጫ ዝርዝርዎን ለማስተዳደር ይግቡ",
+      "added_wishlist": "መጽሐፉ ወደ ምርጫ ዝርዝርዎ ተጨምሯል",
+      "removed_wishlist": "መጽሐፉ ከምርጫ ዝርዝርዎ ተወግዷል",
+      "borrower_persona_required": "ተዋሽ መለያ ያስፈልጋል",
+      "review_saved": "አስተያየት ተቀምጧል",
+      "review_removed": "አስተያየት ተወግዷል"
+    }
+  },
+  "shared": {
+    "search_placeholder": "መጽሐፍትን፣ ደራሲያንን ወይም ምድቦችን ይፈልጉ...",
+    "amount_owed": {
+      "title": "ያለብዎት እዳ",
+      "daily_fine": "የቀን ቅጣት (ጊዜው ካለፈ):",
+      "per_day": "በቀን {amount} ብር",
+      "days_borrowed": "እስካሁን የተወሰዱባቸው ቀናት:",
+      "days": "{count} ቀናት",
+      "total_owed": "አጠቃላይ ያለብዎት እዳ:",
+      "birr": "{amount} ብር"
+    }
+  },
+  "student_reservations": {
+    "title": "የእኔ ቦታ ማስያዣዎች",
+    "subtitle": "የእርስዎን ተራ እና ቦታ ማስያዣ ጊዜ ይከታተሉ።",
+    "no_reservations": "ምንም አይነት ቦታ ማስያዣ አልተገኘም።",
+    "cancelling": "በመሰረዝ ላይ...",
+    "cancel": "ሰርዝ",
+    "success_cancel": "ቦታ ማስያዣው ተሰርዟል",
+    "error_cancel": "ቦታ ማስያዣውን መሰረዝ አልተቻለም"
+  },
+  "student_history": {
+    "title": "የባለፈው የውሰት ታሪክ",
+    "subtitle": "የተሟላውን የውሰት ታሪክዎን ይመልከቱ እና የንባብ ጉዞዎን ይከታተሉ።",
+    "summary": {
+      "total_borrowed": "ጠቅላላ የተወሰዱ መጻሕፍት",
+      "total_paid": "ጠቅላላ የተከፈለ መጠን",
+      "avg_cost": "አማካኝ ለእያንዳንዱ መጽሐፍ የወጣ",
+      "total_reading_days": "ጠቅላላ የተነበቡ ቀናት",
+      "birr": "{amount} ብር",
+      "days_suffix": "{count} ቀናት"
+    },
+    "table": {
+      "book": "መጽሐፍ",
+      "borrowed_on": "የተወሰደበት ቀን",
+      "status": "ሁኔታ",
+      "days": "ለ {count} ቀናት የተወሰደ",
+      "reading": "ንባብ ላይ",
+      "returned": "የተመለሰ",
+      "overdue": "ጊዜው ያለፈበት",
+      "title": "ርዕስ",
+      "borrowed_date": "የተወሰደበት ቀን",
+      "returned_date": "የተመለሰበት ቀን",
+      "days_kept": "ለስንት ቀናት እንደቆየ",
+      "amount_paid": "የተከፈለ መጠን",
+      "action": "ተግባር",
+      "see_detail": "የመጽሐፉን ዝርዝር ይመልከቱ",
+      "empty_message": "እስካሁን ምንም የውሰት ታሪክ የለም። የመጀመሪያውን መጽሐፍ ለመዋስ መጻሕፍት ገጽን ይጎብኙ!",
+      "status_borrowed": "አሁን የተወሰደ",
+      "status_pending": "ክፍያ በመጠባበቅ ላይ",
+      "status_returned": "የተመለሰ",
+      "status_completed": "የተጠናቀቀ"
+    }
+  },
+  "student_wishlist": {
+    "title": "የምኞት ዝርዝር",
+    "subtitle": "ሊያነቡዋቸው የሚፈልጓቸው መጽሐፍት። ሲገኙ እናሳውቅዎታለን።",
+    "removed": "ከምኞት ዝርዝር ተወግዷል",
+    "failed_remove": "ከምኞት ዝርዝር ማስወገድ አልተቻለም",
+    "grid_title": "ሊያነቡዋቸው የሚፈልጓቸው መጽሐፍት",
+    "empty_message": "የምኞት ዝርዝርዎ ባዶ ነው። መጻሕፍትን ያስሱ እና ወደ ምኞት ዝርዝርዎ ያክሉ!",
+    "browse_books": "መጻሕፍትን ያስሱ",
+    "filters": {
+      "all": "ሁሉም መጻሕፍት",
+      "physical": "የታተሙ ብቻ",
+      "digital": "ዲጂታል ብቻ"
+    },
+    "status": {
+      "no_longer_available": "አሁን አይገኝም",
+      "available": "ይገኛል",
+      "unavailable": "አይገኝም",
+      "remove_title": "ከምኞት ዝርዝር አስወግድ"
+    },
+    "summary": {
+      "total": "በምኞት ዝርዝር ውስጥ ያሉ መጻሕፍት",
+      "available": "አሁን የሚገኙ",
+      "currently_unavailable": "ለጊዜው የማይገኙ",
+      "no_longer_available": "አሁን የማይገኙ"
+    }
+  },
+  "student_payments": {
+    "title": "የቅጣት ክፍያዎች",
+    "subtitle": "በመጠባበቅ ላይ ያሉ ቅጣቶችን እና የክፍያ ታሪክን ይከልሱ።",
+    "verifying": "የ {ref} ክፍያ እየተረጋገጠ ነው...",
+    "success_verify": "ክፍያ በተሳካ ሁኔታ ተረጋግጧል።",
+    "pending_verify": "ክፍያ አሁንም ማረጋገጫ በመጠባበቅ ላይ ነው።",
+    "failed_verify": "ክፍያ አልተሳካም። እባክዎ እንደገና ይሞክሩ።",
+    "status_updated": "የክፍያ ሁኔታ ተዘምኗል።",
+    "outstanding_title": "ግዴታ ያለባቸው ያለፈባቸው ቅጣቶች",
+    "outstanding_desc": "አጠቃላይ ዕዳ: {amount} ብር። መጽሐፍ ለመዋስ እነዚህን ያለፈባቸውን ቅጣቶች መክፈል ግዴታ ነው።",
+    "more_overdue": "+{count} ተጨማሪ ያለፈባቸው ቅጣቶች",
+    "pending_fines": "በመጠባበቅ ላይ ያሉ ቅጣቶች",
+    "loading_fines": "በመጠባበቅ ላይ ያሉ ቅጣቶች በመጫን ላይ...",
+    "no_fines": "ምንም በመጠባበቅ ላይ ያለ ቅጣት የለም።",
+    "pay_now": "አሁን ይክፈሉ",
+    "pending_payments": "በመጠባበቅ ላይ ያሉ ክፍያዎች",
+    "loading_payments": "በመጠባበቅ ላይ ያሉ ክፍያዎች በመጫን ላይ...",
+    "no_pending_payments": "ምንም በመጠባበቅ ላይ ያሉ ክፍያዎች የሉም።",
+    "continue_payment": "ክፍያውን ይቀጥሉ",
+    "history": "የክፍያ ታሪክ",
+    "no_history": "እስካሁን ምንም ክፍያ የለም።"
+  },
+  "student_notifications": {
+    "title": "ማሳወቂያዎች",
+    "subtitle": "በማለቂያ ጊዜ ማሳሰቢያዎች እና በቤተ-መጻሕፍት ዜናዎች ወቅታዊ መረጃ ያግኙ።",
+    "mark_all": "ሁሉንም እንደተነበበ አድርግ",
+    "marking": "በማድረግ ላይ...",
+    "success_mark_all": "ሁሉም ማሳወቂያዎች እንደተነበቡ ተደርገዋል",
+    "failed_mark_all": "ሁሉንም እንደተነበበ ማድረግ አልተቻለም",
+    "unread_count": "{count} ያልተነበበ",
+    "view_all": "ሁሉንም ማሳወቂያዎች ይመልከቱ",
+    "no_unread": "ምንም ያልተነበበ ማሳወቂያ የለም",
+    "no_notifications": "ምንም ማሳወቂያ አልተገኘም።",
+    "detail_title": "የማሳወቂያ ዝርዝሮች",
+    "mark_as_read": "እንደተነበበ አድርግ",
+    "read_status": "ማሳወቂያው ተነቧል",
+    "mark_as_read_success": "ማሳወቂያው እንደተነበበ ተደርጓል",
+    "mark_as_read_error": "እንደተነበበ ማድረግ አልተቻለም"
+  },
+  "student_settings": {
+    "title": "የመለያ ቅንብሮች",
+    "subtitle": "የግል መረጃዎን፣ የማሳወቂያ ምርጫዎችዎን እና የመለያዎን ደህንነት ያስተዳድሩ።",
+    "profile_title": "የእኔ ፕሮፋይል",
+    "labels": {
+      "full_name": "ሙሉ ስም",
+      "student_id": "የተማሪ መለያ ቁጥር",
+      "phone": "የስልክ ቁጥር",
+      "year": "ዓመት",
+      "department": "ትምህርት ክፍል",
+      "email": "የኢሜይል አድራሻ",
+      "password": "የይለፍ ቃል"
+    },
+    "placeholders": {
+      "full_name": "ሙሉ ስምዎን ያስገቡ",
+      "phone": "+251 912 345 678",
+      "select_year": "ዓመት ይምረጡ",
+      "department": "ለምሳሌ፡ ኮምፒውተር ሳይንስ"
+    },
+    "hints": {
+      "student_id": "የተማሪ መለያ ቁጥርን ለማሻሻል አድሚኑን ያነጋግሩ",
+      "not_set": "አልተቀመጠም",
+      "email_readonly": "ኢሜይል መቀየር አይቻልም"
+    },
+    "years": {
+      "y1": "1ኛ ዓመት",
+      "y2": "2ኛ ዓመት",
+      "y3": "3ኛ ዓመት",
+      "y4": "4ኛ ዓመት",
+      "y5": "5ኛ ዓመት"
+    },
+    "actions": {
+      "save": "ለውጦችን አስቀምጥ",
+      "saving": "በመቀየር ላይ...",
+      "cancel": "ሰርዝ",
+      "change_password": "የይለፍ ቃል ቀይር"
+    },
+    "messages": {
+      "success_update": "ፕሮፋይል በተሳካ ሁኔታ ተዘምኗል!",
+      "failed_update": "ፕሮፋይል ማዘመን አልተቻለም",
+      "email_readonly_btn": "ኢሜይል መቀየር አይቻልም"
+    },
+    "security_title": "የመለያ ደህንነት"
+  },
+  "change_password": {
+    "title": "የይለፍ ቃል ቀይር",
+    "subtitle": "የአሁኑን የይለፍ ቃልዎን ያስገቡ እና አዲስ ይምረጡ",
+    "labels": {
+      "old": "የድሮ የይለፍ ቃል",
+      "new": "አዲስ የይለፍ ቃል",
+      "confirm": "አዲሱን የይለፍ ቃል ያረጋግጡ"
+    },
+    "placeholders": {
+      "old": "የድሮ የይለፍ ቃልዎን ያስገቡ",
+      "new": "አዲስ የይለፍ ቃል ያስገቡ",
+      "confirm": "አዲሱን የይለፍ ቃል ያረጋግጡ"
+    },
+    "actions": {
+      "submit": "የይለፍ ቃል ቀይር",
+      "submitting": "የይለፍ ቃል በመቀየር ላይ..."
+    },
+    "messages": {
+      "required": "ሁሉም መስኮች ያስፈልጋሉ",
+      "length": "አዲስ የይለፍ ቃል ቢያንስ 6 ቁምፊዎች መሆን አለበት",
+      "match": "አዲሱ የይለፍ ቃል አይዛመድም",
+      "success": "የይለፍ ቃል በተሳካ ሁኔታ ተቀይሯል!",
+      "failed": "የይለፍ ቃል መቀየር አልተቻለም"
+    }
+  },
+  "admin_users": {
+    "title": "ተጠቃሚዎችን ያስተዳድሩ",
+    "subtitle_super": "ሱፐር አድሚን ሁለቱንም አድሚኖችን እና ተማሪዎችን ማስተዳደር ይችላል",
+    "subtitle_admin": "አድሚን ተማሪዎችን ብቻ ማስተዳደር ይችላል",
+    "tabs": {
+      "students": "ተማሪዎች",
+      "admins": "አድሚኖች"
+    },
+    "search_placeholder": "ተጠቃሚ ይፈልጉ",
+    "table": {
+      "name": "ስም",
+      "email": "ኢሜይል",
+      "id_no": "የመታወቂያ ቁጥር",
+      "year": "ዓመት",
+      "phone_no": "ስልክ ቁጥር",
+      "status": "ሁኔታ",
+      "actions": "እርምጃዎች",
+      "no_users": "ምንም ተጠቃሚ አልተገኘም"
+    },
+    "roles": {
+      "blocked": "የታገደ",
+      "super_admin": "ሱፐር አድሚን",
+      "admin": "አድሚን",
+      "student": "ተማሪ"
+    },
+    "actions": {
+      "unblock": "እገዳ አንሳ",
+      "block": "እገድ",
+      "delete": "ሰርዝ",
+      "promote": "ወደ አድሚን ቀይር",
+      "make_student": "ወደ ተማሪ ቀይር",
+      "make_super_admin": "ወደ ሱፐር አድሚን ቀይር",
+      "processing": "በማከናወን ላይ..."
+    },
+    "confirm": {
+      "unblock_title": "{name} እገዳ ይነሳ?",
+      "unblock_desc": "ይህ ወዲያውኑ የመለያ መዳረሻን ይመልሳል።",
+      "block_title": "{name} ይታገድ?",
+      "block_desc": "እገዳ እስኪነሳ ድረስ ይህ ተጠቃሚ ወደ ስርዓቱ መግባት አይችልም።",
+      "delete_title": "{name} ይሰረዝ?",
+      "delete_desc": "ምንም ተዛማጅ መረጃዎች ከሌሉ ይህ የተጠቃሚ መለያን በቋሚነት ያስወግዳል።",
+      "promote_title": "{name} ወደ አድሚን ይቀየር?",
+      "promote_desc": "ተጠቃሚው የአድሚን ፈቃድ ያገኛል እና የተማሪ መዳረሻውን ይይዛል።",
+      "to_student_title": "{name} ወደ ተማሪ ይቀየር?",
+      "to_student_desc": "ይህ የአድሚን ፈቃዶችን ያስወግዳል እና መለያውን እንደ ተማሪ ተጠቃሚ ያቆያል።",
+      "transfer_super_title": "ሱፐር አድሚንነት ለ {name} ይተላለፍ?",
+      "transfer_super_desc": "ይህ አድሚን ብቸኛው ሱፐር አድሚን ይሆናል። የእርስዎ መለያ በራስ-ሰር ወደ መደበኛ አድሚንነት ይቀየራል።"
+    },
+    "insights": {
+      "total_rentals": "ጠቅላላ ኪራዮች",
+      "on_time_rate": "በሰዓቱ የመመለስ መጠን",
+      "active_overdue": "ንቁ የመመለሻ ጊዜ ያለፈባቸው",
+      "wishlist": "ምኞት ዝርዝር",
+      "favorite_categories": "ተወዳጅ ምድቦች",
+      "no_category_data": "ምንም የምድብ መረጃ የለም",
+      "borrowing_history": "የብድር ታሪክ",
+      "history_empty": "ምንም ታሪክ የለም",
+      "due": "መመለሻ {date}",
+      "late": "በ {count} ቀን(ናት) ዘግይቷል",
+      "on_time": "በሰዓቱ ተመልሷል",
+      "loading": "የተጠቃሚ መረጃ በመጫን ላይ..."
+    },
+    "messages": {
+      "delete_success": "ተጠቃሚው በተሳካ ሁኔታ ተሰርዟል",
+      "unblock_success": "የተጠቃሚው እገዳ በተሳካ ሁኔታ ተነስቷል",
+      "block_success": "ተጠቃሚው በተሳካ ሁኔታ ታግዷል",
+      "status_update_failed": "የተጠቃሚውን ሁኔታ ማዘመን አልተቻለም",
+      "promote_success": "ተማሪው በተሳካ ሁኔታ ወደ አድሚን ተቀይሯል",
+      "to_student_success": "አድሚኑ በተሳካ ሁኔታ ወደ ተማሪ ተቀይሯል",
+      "transfer_success": "የሱፐር አድሚን ሚና በተሳካ ሁኔታ ተላልፏል"
+    }
+  },
+  "admin_books": {
+    "title": "መጽሐፍትን ያስተዳድሩ",
+    "subtitle": "ዝርዝር የመጽሐፍ መገለጫዎችን ያጣሩ፣ ይለዩ እና ይድረሱ",
+    "search_placeholder": "መጽሐፍ ይፈልጉ",
+    "add_new": "አዲስ መጽሐፍ ጨምር",
+    "tabs": {
+      "all": "ሁሉም መጽሐፍት",
+      "physical": "አካላዊ መጽሐፍት",
+      "digital": "ዲጂታል መጽሐፍት",
+      "categories": "ምድቦች"
+    },
+    "table": {
+      "title": "ርዕስ",
+      "author": "ደራሲ",
+      "category": "ምድብ",
+      "copies": "ቅጂዎች",
+      "status": "ሁኔታ",
+      "no_books": "ምንም መጽሐፍ አልተገኘም"
+    },
+    "status": {
+      "digital": "ዲጂታል",
+      "read_only": "ለንባብ ብቻ",
+      "download_allowed": "ማውረድ ተፈቅዷል",
+      "out_of_stock": "አልቋል",
+      "available": "ይገኛል"
+    },
+    "actions": {
+      "edit": "አስተካክል",
+      "condition": "ሁኔታ",
+      "delete": "ሰርዝ"
+    },
+    "modal": {
+      "add_title": "አዲስ መጽሐፍ ጨምር",
+      "edit_title": "መጽሐፍ አዘምን",
+      "labels": {
+        "title": "የመጽሐፍ ርዕስ",
+        "author": "ደራሲ",
+        "category": "ምድብ",
+        "copies": "ቅጂዎች",
+        "pages": "ገጾች",
+        "publication_year": "የታተመበት ዓመት",
+        "loan_duration": "የብድር ቆይታ (ቀናት)",
+        "rental_price": "የኪራይ ዋጋ (ETB)",
+        "tags": "መለያዎች (በኮማ የተለዩ)",
+        "topics": "ርዕሰ ጉዳዮች (በኮማ የተለዩ)",
+        "pdf_access": "የፒዲኤፍ መዳረሻ ደረጃ",
+        "description": "መግለጫ",
+        "cover_image": "የሽፋን ምስል",
+        "book_gallery": "የመጽሐፍ ማሳያ",
+        "pdf_file": "የፒዲኤፍ ፋይል"
+      },
+      "placeholders": {
+        "author": "ደራሲ ይምረጡ",
+        "category": "ምድብ ይምረጡ",
+        "pdf_access": "የፒዲኤፍ መዳረሻ ይምረጡ"
+      },
+      "drop_image": "የሽፋን ምስል ለመጫን እዚህ ይንኩ",
+      "drop_gallery": "ወደ ማሳያው ምስሎችን ለመጨመር እዚህ ይንኩ",
+      "drop_pdf": "የፒዲኤፍ ሰነድ ለመጫን እዚህ ይንኩ",
+      "submit_add": "መጽሐፍ ወደ ስብስቡ ጨምር",
+      "submit_update": "መጽሐፍ አዘምን",
+      "submitting_add": "በመጨመር ላይ...",
+      "submitting_update": "በማዘመን ላይ..."
+    },
+    "messages": {
+      "delete_success": "መጽሐፉ በተሳካ ሁኔታ ተሰርዟል",
+      "add_physical_success": "አካላዊ መጽሐፍ ተጨምሯል",
+      "update_physical_success": "አካላዊ መጽሐፍ ተዘምኗል",
+      "add_digital_success": "ዲጂታል መጽሐፍ ተጨምሯል",
+      "update_digital_success": "ዲጂታል መጽሐፍ ተዘምኗል",
+      "deleting": "በመሰረዝ ላይ...",
+      "status_update_failed": "ሁኔታውን ማዘመን አልተቻለም"
+    },
+    "condition_modal": {
+      "title": "የመጽሐፍ ሁኔታ አስተዳደር",
+      "all_copies": "ሁሉም ቅጂዎች",
+      "no_copies": "ምንም ቅጂዎች አልተገኙም",
+      "update_title": "ሁኔታውን ያዘምኑ",
+      "select_copy": "ሁኔታውን ለማዘመን ቅጂ ይምረጡ",
+      "selected_copy": "የተመረጠ ቅጂ",
+      "current": "የአሁኑ",
+      "new_condition": "አዲስ ሁኔታ *",
+      "notes_label": "ማስታወሻዎች (አማራጭ)",
+      "notes_placeholder": "ስለ መጽሐፉ ሁኔታ ማስታወሻዎችን ይጨምሩ...",
+      "submit_update": "ሁኔታውን ያዘምኑ",
+      "saving": "በማስቀመጥ ላይ...",
+      "history_title": "የሁኔታ ታሪክ",
+      "no_history": "ገና ምንም ታሪክ የለም። ታሪክን ለማየት ቅጂን ያዘምኑ።",
+      "conditions": {
+        "NEW": "አዲስ",
+        "GOOD": "ጥሩ",
+        "WORN": "ያረጀ",
+        "DAMAGED": "የተጎዳ",
+        "LOST": "የጠፋ"
+      },
+      "status": {
+        "available": "ይገኛል",
+        "checked_out": "ተበድሯል"
+      }
+    }
+  },
+  "admin_authors": {
+    "title": "ደራሲያንን ያስተዳድሩ",
+    "subtitle": "ዝርዝር የደራሲ መገለጫዎችን ያጣሩ፣ ይለዩ እና ይድረሱ",
+    "search_placeholder": "ደራሲ ይፈልጉ",
+    "add_new": "አዲስ ደራሲ ጨምር",
+    "table": {
+      "image": "ምስል",
+      "name": "ስም",
+      "bio": "ስለ ደራሲው",
+      "category": "ምድብ",
+      "books": "መጽሐፍት",
+      "status": "ሁኔታ",
+      "no_authors": "ምንም ደራሲ አልተገኘም"
+    },
+    "status": {
+      "active": "ንቁ"
+    },
+    "modal": {
+      "add_title": "አዲስ ደራሲ ጨምር",
+      "edit_title": "ደራሲ አዘምን",
+      "labels": {
+        "name": "ስም",
+        "bio": "ስለ ደራሲው",
+        "image": "ምስል"
+      },
+      "placeholders": {
+        "name": "የደራሲ ስም",
+        "bio": "የደራሲ የሕይወት ታሪክ"
+      },
+      "drop_image": "የደራሲ ምስል ለመጫን እዚህ ይንኩ",
+      "submit_add": "ደራሲ ወደ ስብስቡ ጨምር",
+      "submit_update": "ደራሲ አዘምን",
+      "submitting_add": "በመጨመር ላይ...",
+      "submitting_update": "በማዘመን ላይ..."
+    },
+    "messages": {
+      "add_success": "ደራሲው በተሳካ ሁኔታ ተፈጥሯል",
+      "update_success": "ደራሲው በተሳካ ሁኔታ ተዘምኗል",
+      "delete_success": "ደራሲው በተሳካ ሁኔታ ተሰርዟል",
+      "add_failed": "ደራሲው መፍጠር አልተቻለም",
+      "update_failed": "ደራሲው ማዘመን አልተቻለም",
+      "delete_failed": "ደራሲው መሰረዝ አልተቻለም"
+    },
+    "confirm": {
+      "delete_title": "ደራሲው ይሰረዝ?",
+      "delete_desc": "{name} ይወገዳል። ይህ ሁኔታ መመለስ አይቻልም።",
+      "delete_confirm": "ደራሲውን ሰርዝ"
+    }
+  },
+  "admin_categories": {
+    "title": "ምድቦችን ያስተዳድሩ",
+    "subtitle": "ለመጽሐፍት ጥቅም ላይ የሚውሉ ምድቦችን ይፍጠሩ፣ ያስተካክሉ እና ያስወግዱ።",
+    "search_placeholder": "ምድብ ይፈልጉ",
+    "add_new": "አዲስ ምድብ ጨምር",
+    "table": {
+      "category": "ምድብ",
+      "physical": "አካላዊ",
+      "digital": "ዲጂታል",
+      "actions": "እርምጃዎች",
+      "no_categories": "ምንም ምድብ አልተገኘም"
+    },
+    "actions": {
+      "edit": "አስተካክል",
+      "delete": "ሰርዝ"
+    },
+    "modal": {
+      "add_title": "ምድብ ጨምር",
+      "edit_title": "ምድብ አስተካክል",
+      "label_name": "የምድብ ስም",
+      "placeholder_name": "የምድብ ስም ያስገቡ",
+      "submit_add": "ምድብ ፍጠር",
+      "submit_update": "ምድብ አዘምን",
+      "submitting": "በማስቀመጥ ላይ..."
+    },
+    "confirm": {
+      "delete_title": "ምድቡ ይሰረዝ?",
+      "delete_desc": "ምንም የተያያዙ መጽሐፍት ከሌሉ {name} ይወገዳል።",
+      "cancel": "አይ",
+      "delete_btn": "ምድቡን ሰርዝ"
+    },
+    "messages": {
+      "add_success": "ምድቡ በተሳካ ሁኔታ ተፈጥሯል",
+      "update_success": "ምድቡ በተሳካ ሁኔታ ተዘምኗል",
+      "delete_success": "ምድቡ በተሳካ ሁኔታ ተሰርዟል"
+    }
+  },
+  "admin_activity_logs": {
+    "title": "የአድሚን እንቅስቃሴ ምዝግብ ማስታወሻዎች",
+    "subtitle": "በስርዓቱ ውስጥ ያሉ አስተዳደራዊ እርምጃዎችን መከታተል ።",
+    "table": {
+      "admin": "አድሚን",
+      "action": "እርምጃ",
+      "description": "መግለጫ",
+      "timestamp": "ጊዜ"
+    }
+  },
+  "admin_alerts": {
+    "title": "ማስጠንቀቂያዎች እና ማሳወቂያዎች",
+    "subtitle": "የዕቃ ዝርዝር ማስጠንቀቂያዎችን እና የስርዓት ማሳወቂያዎችን ይቆጣጠሩ።",
+    "run_scan": "ፍተሻ አሂድ",
+    "scanning": "በመፈተሽ ላይ...",
+    "resolved": "ተፈቷል",
+    "resolve": "መፍትሄ ስጥ",
+    "tabs": {
+      "alerts": "የዕቃ ዝርዝር ማስጠንቀቂያዎች",
+      "notifications": "ማሳወቂያዎች",
+      "inventory": "የዕቃ ዝርዝር ማስጠንቀቂያዎች"
+    },
+    "actions": {
+      "resolve": "መፍትሄ ስጥ",
+      "resolved": "ተፈቷል"
+    },
+    "messages": {
+      "scan_success": "የማስጠንቀቂያ ፍተሻ ተጠናቅቋል",
+      "scan_failed": "ማስጠንቀቂያዎችን መፈተሽ አልተቻለም",
+      "resolve_success": "ማስጠንቀቂያው ተፈቷል",
+      "resolve_failed": "ማስጠንቀቂያውን መፍታት አልተቻለም"
+    }
+  },
+  "admin_borrowings": {
+    "title": "ብድሮች",
+    "subtitle": "ንቁ ኪራዮችን፣ መመለሻዎችን እና ጊዜ ያለፈባቸውን እቃዎች ይከታተሉ።",
+    "search_placeholder": "ብድር ይፈልጉ",
+    "refresh": "አድስ",
+    "table": {
+      "student": "ተማሪ",
+      "book": "መጽሐፍ",
+      "loan_date": "የብድር ቀን",
+      "due_date": "መመለሻ ቀን",
+      "status": "ሁኔታ",
+      "fine": "ቅጣት",
+      "action": "እርምጃ",
+      "no_borrowings": "ምንም ብድር አልተገኘም"
+    },
+    "actions": {
+      "return": "መልስ",
+      "processing": "በማከናወን ላይ...",
+      "working": "በማከናወን ላይ..."
+    },
+    "messages": {
+      "return_success": "መመለሻ በተሳካ ሁኔታ ተከናውኗል",
+      "return_failed": "መመለሻውን ማከናወን አልተቻለም"
+    }
+  },
+  "admin_reports": {
+    "title": "ሪፖርቶች እና ኤክስፖርት",
+    "subtitle": "ከዳታቤዙ ውስጥ የCSV ወይም JSON ሪፖርት መረጃ ያመንጩ ።",
+    "types": {
+      "rentals": "ኪራዮች",
+      "overdue": "ጊዜ ያለፈባቸው",
+      "users": "ተጠቃሚዎች",
+      "inventory": "የዕቃ ዝርዝር",
+      "reservations": "ቦታ ማስያዣዎች"
+    },
+    "download_csv": "CSV አውርድ",
+    "download_excel": "Excel አውርድ",
+    "download_pdf": "PDF አውርድ",
+    "select_preview": "ሪፖርቱን ለማየት አንዱን ይምረጡ",
+    "select_report": "ሪፖርቱን ለማየት አንዱን ይምረጡ",
+    "loading": "በመጫን ላይ...",
+    "messages": {
+      "load_failed": "የሪፖርት ምረጃን ሞካ ደት አልተቻለም"
+    }
+  },
+  "admin_overdue": {
+    "title": "ጊዜ ያለፈባቸው መቆጣጠሪያ",
+    "subtitle": "ጊዜ ያለፈባቸው መዝገቦችን፣ ደረጃዎችን እና የቅጣት መረጃዎችን ይከታተሉ።",
+    "send_reminders": "ማሳሰቢያዎችን ላክ ({count} ተመርጧል)",
+    "send_reminder": "ማሳሰቢያዎችን ላክ ({count} ተመርጧል)",
+    "sending": "በመላክ ላይ...",
+    "days": "ቀናት",
+    "ranking_title": "ጊዜ ያለፈባቸው ደረጃዎች (የቅድሚያ ደረጃ)",
+    "no_ranking": "ምንም የደረጃ መረጃ የለም።",
+    "ranking_item": "#{rank} {name} • {days} ቀናት • {fine} ETB",
+    "table": {
+      "student": "ተማሪ",
+      "book": "መጽሐፍ",
+      "due_date": "መመለሻ ቀን",
+      "days_overdue": "ያለፉ ቀናት",
+      "fine": "የተገመተ ቅጣት",
+      "estimated_fine": "የተገመተ ቅጣት",
+      "no_overdue": "ምንም ጊዜ ያለፈባቸው ብድሮች የሉም"
+    },
+    "messages": {
+      "reminders_success": "ማሳሰቢያዎች በተሳካ ሁኔታ ተልከዋል",
+      "reminders_failed": "ማሳሰቢያዎችን መላክ አልተቻለም"
+    }
+  }
+}

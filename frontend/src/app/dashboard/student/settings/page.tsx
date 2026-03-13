@@ -3,6 +3,7 @@
 import { useCurrentUser } from "@/lib/hooks/useQueries";
 import { ProfileSettings } from "@/components/ProfileSettings";
 import { SecuritySettings } from "@/components/SecuritySettings";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 export type UserData = {
   id: string;
@@ -16,6 +17,7 @@ export type UserData = {
 };
 
 export default function SettingsPage() {
+  const { t } = useLanguage();
   const { data: userData, isLoading, error } = useCurrentUser();
   const user = userData?.data?.user as UserData | undefined;
 
@@ -28,17 +30,16 @@ export default function SettingsPage() {
     <div className="p-6 lg:p-12 space-y-12">
       <div className="space-y-2">
         <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-primary">
-          Account Settings
+          {t("student_settings.title")}
         </h1>
         <p className="text-secondary font-medium">
-          Manage your personal information, notification preferences, and
-          account security.
+          {t("student_settings.subtitle")}
         </p>
       </div>
 
       {error && (
         <div className="rounded-xl bg-red-50 p-4 text-sm text-red-600 border border-red-100">
-          {error instanceof Error ? error.message : "Failed to load user data"}
+          {error instanceof Error ? error.message : t("common.error_occurred")}
         </div>
       )}
 

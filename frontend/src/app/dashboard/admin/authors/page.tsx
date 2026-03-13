@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Search, Plus, ChevronLeft, ChevronRight, X, Upload, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { useAuthors, useCreateAuthor, useUpdateAuthor, useDeleteAuthor, Author } from "@/lib/hooks/useQueries";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 const ITEMS_PER_PAGE = 8;
 
@@ -19,6 +20,7 @@ export default function AdminAuthorsPage() {
   const [openMenuAuthorId, setOpenMenuAuthorId] = useState<string | null>(null);
   const [deleteAuthorCandidate, setDeleteAuthorCandidate] = useState<{ id: string; name: string } | null>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const { t } = useLanguage();
 
   const { data: authorsData, isLoading } = useAuthors();
   const createAuthor = useCreateAuthor();
@@ -82,24 +84,24 @@ export default function AdminAuthorsPage() {
     try {
       if (editingAuthorId) {
         await updateAuthor.mutateAsync({ id: editingAuthorId, formData: fd });
-        toast.success("Author updated successfully");
+        toast.success(t("admin_authors.messages.update_success"));
       } else {
         await createAuthor.mutateAsync(fd);
-        toast.success("Author created successfully");
+        toast.success(t("admin_authors.messages.add_success"));
       }
       resetModal();
     } catch (error) {
-      toast.error(getErrorMessage(error, editingAuthorId ? "Failed to update author" : "Failed to create author"));
+      toast.error(getErrorMessage(error, editingAuthorId ? t("admin_authors.messages.update_failed") || "Failed to update author" : t("admin_authors.messages.add_failed") || "Failed to create author"));
     }
   };
 
   const handleDeleteAuthor = async (candidate: { id: string; name: string }) => {
     try {
       await deleteAuthor.mutateAsync(candidate.id);
-      toast.success("Author deleted successfully");
+      toast.success(t("admin_authors.messages.delete_success"));
       setDeleteAuthorCandidate(null);
     } catch (error) {
-      toast.error(getErrorMessage(error, "Failed to delete author"));
+      toast.error(getErrorMessage(error, t("admin_authors.messages.delete_failed") || "Failed to delete author"));
     }
   };
 
@@ -108,15 +110,15 @@ export default function AdminAuthorsPage() {
       <div className="p-6 lg:p-12 space-y-8">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="space-y-1">
-            <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-[#2B1A10]">Manage Authors</h1>
-            <p className="text-[#AE9E85] font-medium">Filter, sort, and access detailed Author profiles</p>
+            <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-[#2B1A10]">{t("admin_authors.title")}</h1>
+            <p className="text-[#AE9E85] font-medium">{t("admin_authors.subtitle")}</p>
           </div>
           <div className="flex items-center gap-3 mt-2">
             <div className="relative">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#AE9E85]" />
               <input
                 type="text"
-                placeholder="Search author"
+                placeholder={t("admin_authors.search_placeholder")}
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
@@ -130,7 +132,7 @@ export default function AdminAuthorsPage() {
               className="flex items-center gap-2 px-4 py-2.5 bg-[#2B1A10] text-white text-sm font-bold rounded-xl"
             >
               <Plus size={16} />
-              Add new author
+              {t("admin_authors.add_new")}
             </button>
           </div>
         </div>
@@ -143,16 +145,16 @@ export default function AdminAuthorsPage() {
           ) : (
             <>
               <div className="grid grid-cols-[80px_2fr_3fr_1fr_1fr_1fr_auto] gap-4 px-6 py-3 border-b border-[#E1D2BD]/50 bg-[#FDFAF6]">
-                <span className="text-[11px] font-bold text-[#AE9E85] uppercase">IMAGE</span>
-                <span className="text-[11px] font-bold text-[#AE9E85] uppercase">NAME</span>
-                <span className="text-[11px] font-bold text-[#AE9E85] uppercase">BIO</span>
-                <span className="text-[11px] font-bold text-[#AE9E85] uppercase text-center">CATEGORY</span>
-                <span className="text-[11px] font-bold text-[#AE9E85] uppercase text-center">BOOKS</span>
-                <span className="text-[11px] font-bold text-[#AE9E85] uppercase text-center">STATUS</span>
+                <span className="text-[11px] font-bold text-[#AE9E85] uppercase">{t("admin_authors.table.image")}</span>
+                <span className="text-[11px] font-bold text-[#AE9E85] uppercase">{t("admin_authors.table.name")}</span>
+                <span className="text-[11px] font-bold text-[#AE9E85] uppercase">{t("admin_authors.table.bio")}</span>
+                <span className="text-[11px] font-bold text-[#AE9E85] uppercase text-center">{t("admin_authors.table.category")}</span>
+                <span className="text-[11px] font-bold text-[#AE9E85] uppercase text-center">{t("admin_authors.table.books")}</span>
+                <span className="text-[11px] font-bold text-[#AE9E85] uppercase text-center">{t("admin_authors.table.status")}</span>
                 <span className="w-16"></span>
               </div>
               {paginatedAuthors.length === 0 ? (
-                <div className="py-16 text-center text-sm text-[#AE9E85]">No authors found</div>
+                <div className="py-16 text-center text-sm text-[#AE9E85]">{t("admin_authors.table.no_authors")}</div>
               ) : (
                 paginatedAuthors.map((author) => (
                   <div
@@ -182,7 +184,7 @@ export default function AdminAuthorsPage() {
                       {(author._count?.books || 0) + (author._count?.digital_books || 0)}
                     </span>
                     <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-green-50 text-green-700 w-fit mx-auto">
-                      Active
+                      {t("admin_authors.status.active")}
                     </span>
                     <div className="relative flex justify-end" onClick={(event) => event.stopPropagation()}>
                       <button
@@ -204,7 +206,7 @@ export default function AdminAuthorsPage() {
                             }}
                             className="flex w-full items-center px-3 py-2.5 text-left text-sm font-semibold text-[#2B1A10] hover:bg-[#F8F2E9]"
                           >
-                            Edit
+                            {t("admin_authors.modal.submit_update")}
                           </button>
                           <button
                             type="button"
@@ -215,7 +217,7 @@ export default function AdminAuthorsPage() {
                             disabled={deletingAuthorId === author.id}
                             className="flex w-full items-center px-3 py-2.5 text-left text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-40"
                           >
-                            Delete
+                            {t("admin_books.actions.delete")}
                           </button>
                         </div>
                       ) : null}
@@ -235,7 +237,7 @@ export default function AdminAuthorsPage() {
               className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-[#2B1A10]/60 disabled:opacity-30"
             >
               <ChevronLeft size={16} />
-              Previous
+              {t("common.previous")}
             </button>
             <div className="flex items-center gap-1.5">
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
@@ -253,7 +255,7 @@ export default function AdminAuthorsPage() {
               disabled={currentPage === totalPages}
               className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-[#2B1A10]/60 disabled:opacity-30"
             >
-              Next
+              {t("common.next")}
               <ChevronRight size={16} />
             </button>
           </div>
@@ -270,7 +272,7 @@ export default function AdminAuthorsPage() {
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
             <div className="flex items-center justify-between px-8 pt-8 pb-4 border-b border-[#E1D2BD]/50">
               <h2 className="text-xl font-serif font-bold text-[#2B1A10]">
-                {editingAuthorId ? "Update Author" : "Add New Author"}
+                {editingAuthorId ? t("admin_authors.modal.edit_title") : t("admin_authors.modal.add_title")}
               </h2>
               <button
                 onClick={resetModal}
@@ -283,29 +285,29 @@ export default function AdminAuthorsPage() {
             </div>
             <form onSubmit={handleSubmitAuthor} className="px-8 py-6 space-y-4">
               <div>
-                <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">Name</label>
+                <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">{t("admin_authors.modal.labels.name")}</label>
                 <input
                   type="text"
                   value={form.name}
                   onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                   required
-                  placeholder="Author Name"
+                  placeholder={t("admin_authors.modal.placeholders.name")}
                   className="w-full px-3 py-2.5 text-sm border border-[#E1D2BD] rounded-xl text-[#2B1A10]"
                 />
               </div>
               <div>
-                <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">Bio</label>
+                <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">{t("admin_authors.modal.labels.bio")}</label>
                 <textarea
                   rows={4}
                   value={form.bio}
                   onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))}
                   required
-                  placeholder="Author Biography"
+                  placeholder={t("admin_authors.modal.placeholders.bio")}
                   className="w-full px-3 py-2.5 text-sm border border-[#E1D2BD] rounded-xl text-[#2B1A10] resize-none"
                 />
               </div>
               <div>
-                <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">Image</label>
+                <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">{t("admin_authors.modal.labels.image")}</label>
                 <div
                   onClick={() => imageInputRef.current?.click()}
                   className="w-full h-32 border-2 border-dashed border-[#E1D2BD] rounded-2xl flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-[#8B6B4A] overflow-hidden relative"
@@ -315,7 +317,7 @@ export default function AdminAuthorsPage() {
                   ) : (
                     <>
                       <Upload size={24} className="text-[#AE9E85]" />
-                      <p className="text-xs text-[#AE9E85]">Click to upload author image</p>
+                      <p className="text-xs text-[#AE9E85]">{t("admin_authors.modal.drop_image")}</p>
                     </>
                   )}
                 </div>
@@ -334,12 +336,10 @@ export default function AdminAuthorsPage() {
                 className="w-full py-3 bg-[#2B1A10] text-white text-sm font-bold rounded-xl disabled:opacity-50 mt-2"
               >
                 {isSubmitting
-                  ? editingAuthorId
-                    ? "Updating..."
-                    : "Adding..."
+                  ? t("admin_authors.modal.submitting_add")
                   : editingAuthorId
-                    ? "Update Author"
-                    : "Add Author to Collection"}
+                    ? t("admin_authors.modal.submit_update")
+                    : t("admin_authors.modal.submit_add")}
               </button>
             </form>
           </div>
@@ -356,10 +356,9 @@ export default function AdminAuthorsPage() {
             className="w-full max-w-md rounded-[28px] border border-[#E1D2BD] bg-[#FFF9F1] p-6 shadow-2xl"
           >
             <div className="space-y-2">
-              <h3 className="text-2xl font-serif font-black text-[#2B1A10]">Delete Author?</h3>
+              <h3 className="text-2xl font-serif font-black text-[#2B1A10]">{t("admin_authors.confirm.delete_title")}</h3>
               <p className="text-sm text-[#7B6853] leading-6">
-                This will remove <span className="font-bold text-[#2B1A10]">{deleteAuthorCandidate.name}</span>. This
-                action cannot be undone.
+                {t("admin_authors.confirm.delete_desc", { name: deleteAuthorCandidate.name })}
               </p>
             </div>
             <div className="mt-6 flex items-center justify-end gap-3">
@@ -369,7 +368,7 @@ export default function AdminAuthorsPage() {
                 disabled={deleteAuthor.isPending}
                 className="px-4 py-2.5 rounded-xl border border-[#D9C8B3] text-sm font-bold text-[#6C5236] disabled:opacity-40"
               >
-                Cancel
+                {t("common.cancel")}
               </button>
               <button
                 type="button"
@@ -377,7 +376,7 @@ export default function AdminAuthorsPage() {
                 disabled={deleteAuthor.isPending}
                 className="px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-red-700 disabled:opacity-40"
               >
-                {deleteAuthor.isPending ? "Deleting..." : "Delete Author"}
+                {deleteAuthor.isPending ? t("admin_authors.modal.submitting_add") : t("admin_authors.confirm.delete_confirm")}
               </button>
             </div>
           </div>

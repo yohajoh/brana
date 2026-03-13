@@ -4,6 +4,7 @@ import { useState } from "react";
 import { X, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { useChangePassword } from "@/lib/hooks/useQueries";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 interface ChangePasswordModalProps {
   isOpen: boolean;
@@ -14,6 +15,7 @@ export const ChangePasswordModal = ({
   isOpen,
   onClose,
 }: ChangePasswordModalProps) => {
+  const { t } = useLanguage();
   const changePassword = useChangePassword();
   const [showOld, setShowOld] = useState(false);
   const [showNew, setShowNew] = useState(false);
@@ -30,17 +32,17 @@ export const ChangePasswordModal = ({
 
     // Validation
     if (!oldPassword || !newPassword || !confirmPassword) {
-      setMessage({ type: "error", text: "All fields are required" });
+      setMessage({ type: "error", text: t("change_password.messages.required") });
       return;
     }
 
     if (newPassword.length < 6) {
-      setMessage({ type: "error", text: "New password must be at least 6 characters" });
+      setMessage({ type: "error", text: t("change_password.messages.length") });
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setMessage({ type: "error", text: "New passwords do not match" });
+      setMessage({ type: "error", text: t("change_password.messages.match") });
       return;
     }
 
@@ -50,8 +52,8 @@ export const ChangePasswordModal = ({
         newPassword,
       });
 
-      toast.success("Password changed successfully");
-      setMessage({ type: "success", text: "Password changed successfully!" });
+      toast.success(t("change_password.messages.success"));
+      setMessage({ type: "success", text: t("change_password.messages.success") });
       
       // Reset form and close after 2 seconds
       setTimeout(() => {
@@ -64,9 +66,9 @@ export const ChangePasswordModal = ({
     } catch (e) {
       setMessage({
         type: "error",
-        text: e instanceof Error ? e.message : "Failed to change password",
+        text: e instanceof Error ? e.message : t("change_password.messages.failed"),
       });
-      toast.error(e instanceof Error ? e.message : "Failed to change password");
+      toast.error(e instanceof Error ? e.message : t("change_password.messages.failed"));
     }
   };
 
@@ -98,10 +100,10 @@ export const ChangePasswordModal = ({
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
             <h3 className="text-xl font-serif font-extrabold text-primary">
-              Change Password
+              {t("change_password.title")}
             </h3>
             <p className="text-sm text-secondary">
-              Enter your current password and choose a new one
+              {t("change_password.subtitle")}
             </p>
           </div>
 
@@ -120,14 +122,14 @@ export const ChangePasswordModal = ({
           <div className="space-y-4">
             <div className="space-y-2">
               <label className="text-[10px] font-bold text-secondary uppercase tracking-[0.2em] px-1">
-                Old Password
+                {t("change_password.labels.old")}
               </label>
               <div className="relative">
                 <input
                   type={showOld ? "text" : "password"}
                   value={oldPassword}
                   onChange={(e) => setOldPassword(e.target.value)}
-                  placeholder="Enter old Password"
+                  placeholder={t("change_password.placeholders.old")}
                   disabled={loading}
                   className="w-full px-5 py-3.5 rounded-xl border border-border bg-card text-sm text-primary focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all placeholder:text-secondary/30 pr-12 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
@@ -143,14 +145,14 @@ export const ChangePasswordModal = ({
 
             <div className="space-y-2">
               <label className="text-[10px] font-bold text-secondary uppercase tracking-[0.2em] px-1">
-                New Password
+                {t("change_password.labels.new")}
               </label>
               <div className="relative">
                 <input
                   type={showNew ? "text" : "password"}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Enter New Password"
+                  placeholder={t("change_password.placeholders.new")}
                   disabled={loading}
                   className="w-full px-5 py-3.5 rounded-xl border border-border bg-card text-sm text-primary focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all placeholder:text-secondary/30 pr-12 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
@@ -166,14 +168,14 @@ export const ChangePasswordModal = ({
 
             <div className="space-y-2">
               <label className="text-[10px] font-bold text-secondary uppercase tracking-[0.2em] px-1">
-                Confirm New Password
+                {t("change_password.labels.confirm")}
               </label>
               <div className="relative">
                 <input
                   type={showConfirm ? "text" : "password"}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Confirm New Password"
+                  placeholder={t("change_password.placeholders.confirm")}
                   disabled={loading}
                   className="w-full px-5 py-3.5 rounded-xl border border-border bg-card text-sm text-primary focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all placeholder:text-secondary/30 pr-12 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
@@ -193,7 +195,7 @@ export const ChangePasswordModal = ({
             disabled={loading}
             className="w-full py-4 rounded-xl bg-accent text-background text-sm font-extrabold hover:bg-primary transition-all active:scale-[0.98] shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? "Changing Password..." : "Change Password"}
+            {loading ? t("change_password.actions.submitting") : t("change_password.actions.submit")}
           </button>
         </form>
       </div>

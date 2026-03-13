@@ -3,6 +3,7 @@
 import React from "react";
 import Image from "next/image";
 import type { Rental } from "@/lib/hooks/useQueries";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 type Props = {
   rental: Rental | null;
@@ -18,6 +19,8 @@ const formatDate = (d: string) =>
   });
 
 export const CurrentlyBorrowed = ({ rental, loading }: Props) => {
+  const { t } = useLanguage();
+
   if (loading) {
     return (
       <div className="bg-card rounded-3xl p-6 border border-border/50 shadow-sm animate-pulse">
@@ -29,8 +32,8 @@ export const CurrentlyBorrowed = ({ rental, loading }: Props) => {
   if (!rental) {
     return (
       <div className="bg-card rounded-3xl p-8 border border-border/50 shadow-sm text-center">
-        <p className="text-secondary font-medium">You have no borrowed books.</p>
-        <p className="text-sm text-secondary/70 mt-2">Visit the Books page to borrow a book.</p>
+        <p className="text-secondary font-medium">{t("student_dashboard.borrowed.none")}</p>
+        <p className="text-sm text-secondary/70 mt-2">{t("student_dashboard.borrowed.explore")}</p>
       </div>
     );
   }
@@ -70,11 +73,11 @@ export const CurrentlyBorrowed = ({ rental, loading }: Props) => {
 
             <div className="flex flex-wrap gap-3">
               <div className="bg-muted/50 rounded-xl px-4 py-2 space-y-0.5 border border-border/30">
-                <p className="text-[10px] uppercase tracking-widest text-secondary font-bold">Borrowed on</p>
+                <p className="text-[10px] uppercase tracking-widest text-secondary font-bold">{t("student_dashboard.borrowed.loan_date")}</p>
                 <p className="text-sm font-bold text-primary">{loanDate}</p>
               </div>
               <div className="bg-muted/50 rounded-xl px-4 py-2 space-y-0.5 border border-border/30">
-                <p className="text-[10px] uppercase tracking-widest text-secondary font-bold">Due date</p>
+                <p className="text-[10px] uppercase tracking-widest text-secondary font-bold">{t("student_dashboard.borrowed.due_date")}</p>
                 <p className="text-sm font-bold text-primary">{dueDate}</p>
               </div>
               <div
@@ -91,16 +94,18 @@ export const CurrentlyBorrowed = ({ rental, loading }: Props) => {
                       : "text-[10px] uppercase tracking-widest text-orange-600 font-bold"
                   }
                 >
-                  {isOverdue ? "Days overdue" : "Days remaining"}
+                  {isOverdue ? t("student_dashboard.borrowed.overdue_label") : t("student_dashboard.borrowed.remaining_label")}
                 </p>
                 <p className={isOverdue ? "text-sm font-bold text-red-700" : "text-sm font-bold text-orange-700"}>
-                  {isOverdue ? `${daysOverdue} days` : `${daysLeft} days left`}
+                  {isOverdue 
+                    ? t("shared.amount_owed.days", { count: daysOverdue }) 
+                    : t("student_dashboard.borrowed.days_left", { count: daysLeft })}
                 </p>
               </div>
             </div>
           </div>
 
-          <p className="text-xs text-secondary">Return this book to a librarian to complete the return.</p>
+          <p className="text-xs text-secondary">{t("student_dashboard.borrowed.return_instruction")}</p>
         </div>
       </div>
     </div>

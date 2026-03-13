@@ -4,6 +4,7 @@ import { Suspense, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useNotifications, useMarkAsRead, useMarkAllAsRead, Notification } from "@/lib/hooks/useNotifications";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 import { LoadingList } from "@/components/ui/Loading";
 import { NotificationOverlay } from "@/components/notifications/NotificationOverlay";
 
@@ -40,6 +41,7 @@ function NotificationItem({ notification, onClick }: { notification: Notificatio
 }
 
 function NotificationsContent() {
+  const { t } = useLanguage();
   const router = useRouter();
   const searchParams = useSearchParams();
   const notificationId = searchParams.get("notification");
@@ -58,9 +60,9 @@ function NotificationsContent() {
   const handleMarkAll = async () => {
     try {
       await markAllAsReadMutation.mutateAsync();
-      toast.success("All notifications marked as read");
+      toast.success(t("student_notifications.success_mark_all"));
     } catch {
-      toast.error("Failed to mark all as read");
+      toast.error(t("student_notifications.failed_mark_all"));
     }
   };
 
@@ -83,8 +85,8 @@ function NotificationsContent() {
     <div className="p-6 lg:p-12 space-y-8">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="space-y-2">
-          <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-primary">Notifications</h1>
-          <p className="text-secondary font-medium">Stay updated with due reminders and library updates.</p>
+          <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-primary">{t("student_notifications.title")}</h1>
+          <p className="text-secondary font-medium">{t("student_notifications.subtitle")}</p>
         </div>
         {data && data.unreadCount > 0 && (
           <button
@@ -92,7 +94,7 @@ function NotificationsContent() {
             disabled={markAllAsReadMutation.isPending}
             className="px-4 py-2.5 bg-primary text-background text-sm font-bold rounded-xl hover:bg-accent transition-colors disabled:opacity-50"
           >
-            {markAllAsReadMutation.isPending ? "Marking..." : "Mark All Read"}
+            {markAllAsReadMutation.isPending ? t("student_notifications.marking") : t("student_notifications.mark_all")}
           </button>
         )}
       </div>
@@ -112,7 +114,7 @@ function NotificationsContent() {
           </div>
         ) : (
           <div className="py-16 text-center text-secondary text-sm bg-[#FDF9F0] rounded-2xl">
-            No notifications found.
+            {t("student_notifications.no_notifications")}
           </div>
         )}
       </div>

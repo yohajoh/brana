@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronDown, Trash2 } from "lucide-react";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 type WishlistItem = {
   id: string;
@@ -36,12 +37,13 @@ type Props = {
 };
 
 export const WishlistGrid = ({ wishlist, loading, filter, onFilterChange, onRemove }: Props) => {
+  const { t } = useLanguage();
   if (loading) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h3 className="text-xl font-serif font-extrabold text-primary">
-            Books You Want to Read
+            {t("student_wishlist.grid_title")}
           </h3>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
@@ -61,17 +63,17 @@ export const WishlistGrid = ({ wishlist, loading, filter, onFilterChange, onRemo
     return (
       <div className="space-y-6">
         <h3 className="text-xl font-serif font-extrabold text-primary">
-          Books You Want to Read
+          {t("student_wishlist.grid_title")}
         </h3>
         <div className="rounded-3xl border border-border/40 bg-card/50 p-12 text-center">
           <p className="text-secondary">
-            Your wishlist is empty. Browse books and add them to your wishlist!
+            {t("student_wishlist.empty_message")}
           </p>
           <Link
             href="/books"
             className="inline-block mt-4 px-6 py-3 rounded-xl bg-primary text-background text-sm font-bold hover:bg-accent transition-all"
           >
-            Browse Books
+            {t("student_wishlist.browse_books")}
           </Link>
         </div>
       </div>
@@ -82,7 +84,7 @@ export const WishlistGrid = ({ wishlist, loading, filter, onFilterChange, onRemo
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h3 className="text-xl font-serif font-extrabold text-primary">
-          Books You Want to Read
+          {t("student_wishlist.grid_title")}
         </h3>
         <div className="relative">
           <select
@@ -90,9 +92,9 @@ export const WishlistGrid = ({ wishlist, loading, filter, onFilterChange, onRemo
             onChange={(e) => onFilterChange(e.target.value as "all" | "physical" | "digital")}
             className="appearance-none flex items-center gap-2 px-4 py-2 pr-8 rounded-lg border border-border bg-card text-xs font-bold text-secondary hover:text-primary hover:border-primary transition-all cursor-pointer"
           >
-            <option value="all">All Books</option>
-            <option value="physical">Physical Only</option>
-            <option value="digital">Digital Only</option>
+            <option value="all">{t("student_wishlist.filters.all")}</option>
+            <option value="physical">{t("student_wishlist.filters.physical")}</option>
+            <option value="digital">{t("student_wishlist.filters.digital")}</option>
           </select>
           <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-secondary" />
         </div>
@@ -122,7 +124,7 @@ export const WishlistGrid = ({ wishlist, loading, filter, onFilterChange, onRemo
                   />
                   {isDeleted && (
                     <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                      <span className="text-white text-xs font-bold">No Longer Available</span>
+                      <span className="text-white text-xs font-bold">{t("student_wishlist.status.no_longer_available")}</span>
                     </div>
                   )}
                   {!isDeleted && (
@@ -131,7 +133,7 @@ export const WishlistGrid = ({ wishlist, loading, filter, onFilterChange, onRemo
                         ? "bg-green-500/90 text-white" 
                         : "bg-orange-500/90 text-white"
                     }`}>
-                      {isAvailable ? "Available" : "Unavailable"}
+                      {isAvailable ? t("student_wishlist.status.available") : t("student_wishlist.status.unavailable")}
                     </div>
                   )}
                   <div className="absolute top-2 left-2 px-2 py-1 rounded-md bg-background/90 backdrop-blur-sm text-[8px] font-extrabold text-primary uppercase tracking-widest">
@@ -152,7 +154,7 @@ export const WishlistGrid = ({ wishlist, loading, filter, onFilterChange, onRemo
               <button
                 onClick={() => onRemove(item.id)}
                 className="absolute top-2 right-2 p-2 rounded-full bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 z-10"
-                title="Remove from wishlist"
+                title={t("student_wishlist.status.remove_title")}
               >
                 <Trash2 size={14} />
               </button>

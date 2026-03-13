@@ -9,6 +9,7 @@ import { SearchBar } from "@/components/SearchBar";
 import { BookCardGrid } from "@/components/BookCardGrid";
 import { Pagination } from "@/components/Pagination";
 import { useBooks, useDigitalBooks, useCategories, useAuthors } from "@/lib/hooks/useQueries";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 export type CatalogBook = {
   id: string;
@@ -41,6 +42,7 @@ export default function BooksPage() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { t } = useLanguage();
 
   const page = parsePositiveInt(searchParams.get("page"), 1);
   const selectedCategory = searchParams.get("category") || null;
@@ -207,18 +209,18 @@ export default function BooksPage() {
             <div className="flex flex-col md:flex-row items-center justify-between gap-6">
               <SearchBar onSearch={handleSearch} />
               <div className="flex items-center gap-2 text-sm font-bold text-secondary">
-                <span className="text-primary">Sort by:</span>
+                <span className="text-primary">{t("books_page.sort_by")}</span>
                 <select
                   value={sortBy}
                   onChange={(e) => handleSortChange(e.target.value)}
                   className="bg-transparent border-none focus:ring-0 cursor-pointer hover:text-primary"
                 >
-                  <option value="title">Title (A-Z)</option>
-                  <option value="-title">Title (Z-A)</option>
-                  <option value="-available">Most Available</option>
-                  <option value="available">Least Available</option>
-                  <option value="pages">Shortest</option>
-                  <option value="-pages">Longest</option>
+                  <option value="title">{t("books_page.sort_options.title_asc")}</option>
+                  <option value="-title">{t("books_page.sort_options.title_desc")}</option>
+                  <option value="-available">{t("books_page.sort_options.most_available")}</option>
+                  <option value="available">{t("books_page.sort_options.least_available")}</option>
+                  <option value="pages">{t("books_page.sort_options.shortest")}</option>
+                  <option value="-pages">{t("books_page.sort_options.longest")}</option>
                 </select>
               </div>
             </div>
@@ -229,17 +231,22 @@ export default function BooksPage() {
                   onClick={() => updateQuery({ mode: item }, true)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${mode === item ? "bg-primary text-background" : "bg-muted/50 text-secondary hover:text-primary"}`}
                 >
-                  {item === "all" ? "All" : item === "physical" ? "Physical" : "Digital"}
+                  {t(`books_page.modes.${item}`)}
                 </button>
               ))}
             </div>
             <div className="flex items-center justify-between border-b border-border/50 pb-4">
               <p className="text-sm text-secondary font-medium">
                 {booksLoading
-                  ? "Loading..."
+                  ? t("books_page.status.loading")
                   : total > 0
-                    ? `Showing ${startIndex}-${endIndex} of ${total} ${mode === "all" ? "" : mode + " "}books`
-                    : "No books found"}
+                    ? t("books_page.status.showing", {
+                        start: startIndex,
+                        end: endIndex,
+                        total: total,
+                        mode: mode === "all" ? "" : t(`books_page.modes.${mode}`) + " ",
+                      })
+                    : t("books_page.status.no_books")}
               </p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
@@ -248,7 +255,7 @@ export default function BooksPage() {
                 onChange={(e) => updateQuery({ author: e.target.value || null }, true)}
                 className="px-3 py-2 rounded-xl border border-border bg-white text-sm"
               >
-                <option value="">All Authors</option>
+                <option value="">{t("books_page.filters.all_authors")}</option>
                 {authors.map((a) => (
                   <option key={a.id} value={a.name}>
                     {a.name}
@@ -260,9 +267,9 @@ export default function BooksPage() {
                 onChange={(e) => updateQuery({ availability: e.target.value || null }, true)}
                 className="px-3 py-2 rounded-xl border border-border bg-white text-sm"
               >
-                <option value="">Availability</option>
-                <option value="true">Available</option>
-                <option value="false">Unavailable</option>
+                <option value="">{t("books_page.filters.availability")}</option>
+                <option value="true">{t("books_page.filters.available")}</option>
+                <option value="false">{t("books_page.filters.unavailable")}</option>
               </select>
               <input
                 type="number"
@@ -271,28 +278,28 @@ export default function BooksPage() {
                 step="0.1"
                 value={minRating}
                 onChange={(e) => updateQuery({ minRating: e.target.value || null }, true)}
-                placeholder="Min rating (e.g. 4)"
+                placeholder={t("books_page.filters.min_rating_placeholder")}
                 className="px-3 py-2 rounded-xl border border-border bg-white text-sm"
               />
               <input
                 type="number"
                 value={year}
                 onChange={(e) => updateQuery({ year: e.target.value || null }, true)}
-                placeholder="Publication year"
+                placeholder={t("books_page.filters.year_placeholder")}
                 className="px-3 py-2 rounded-xl border border-border bg-white text-sm"
               />
               <input
                 type="text"
                 value={tags}
                 onChange={(e) => updateQuery({ tags: e.target.value || null }, true)}
-                placeholder="Tags (comma separated)"
+                placeholder={t("books_page.filters.tags_placeholder")}
                 className="px-3 py-2 rounded-xl border border-border bg-white text-sm"
               />
               <input
                 type="text"
                 value={topics}
                 onChange={(e) => updateQuery({ topics: e.target.value || null }, true)}
-                placeholder="Topics (comma separated)"
+                placeholder={t("books_page.filters.topics_placeholder")}
                 className="px-3 py-2 rounded-xl border border-border bg-white text-sm"
               />
             </div>

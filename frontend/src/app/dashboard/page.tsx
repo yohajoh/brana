@@ -3,9 +3,11 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { fetchCurrentUser } from "@/lib/api";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { t } = useLanguage();
 
   useEffect(() => {
     async function checkUserAndRedirect() {
@@ -36,7 +38,7 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-background flex items-center justify-center">
       <div className="text-center space-y-4">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-        <p className="text-secondary">Redirecting to your dashboard...</p>
+        <p className="text-secondary">{t("common.dashboard_redirect")}</p>
       </div>
     </div>
   );

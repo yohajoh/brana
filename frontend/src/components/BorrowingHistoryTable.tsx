@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 import type { Rental } from "@/lib/hooks/useQueries";
 
 type Props = {
@@ -23,6 +24,7 @@ const daysBetween = (start: string, end: string) =>
   );
 
 export const BorrowingHistoryTable = ({ rentals, loading }: Props) => {
+  const { t } = useLanguage();
   const rows = rentals.map((r) => {
     const returned = r.return_date ? formatDate(r.return_date) : "—";
     const days =
@@ -35,8 +37,8 @@ export const BorrowingHistoryTable = ({ rentals, loading }: Props) => {
       title: r.physical_book?.title || r.book?.title || "Unknown",
       borrowedDate: r.loan_date ? formatDate(r.loan_date) : "—",
       returnedDate: returned,
-      daysKept: r.return_date ? `${days} days` : "—",
-      amountPaid: amount > 0 ? `${Number(amount).toFixed(1)} birr` : "0 birr",
+      daysKept: r.return_date ? t("shared.amount_owed.days", { count: days }) : "—",
+      amountPaid: t("shared.amount_owed.birr", { amount: Number(amount).toFixed(1) }),
     };
   });
 
@@ -44,13 +46,13 @@ export const BorrowingHistoryTable = ({ rentals, loading }: Props) => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h3 className="text-xl font-serif font-extrabold text-primary">
-          Borrowing History
+          {t("student_dashboard.history.title")}
         </h3>
         <Link
           href="/dashboard/student/history"
           className="flex items-center gap-1 text-sm font-bold text-secondary hover:text-primary transition-colors group"
         >
-          See all
+          {t("student_dashboard.history.see_all")}
           <ChevronRight
             size={16}
             className="group-hover:translate-x-0.5 transition-transform"
@@ -70,26 +72,26 @@ export const BorrowingHistoryTable = ({ rentals, loading }: Props) => {
           </div>
         ) : rows.length === 0 ? (
           <div className="p-8 text-center text-secondary">
-            No borrowing history yet.
+            {t("student_dashboard.history.none")}
           </div>
         ) : (
           <table className="w-full text-left border-collapse min-w-[600px]">
             <thead>
               <tr className="border-b border-border/50">
                 <th className="px-6 py-5 text-[10px] uppercase tracking-widest font-extrabold text-secondary/60">
-                  Title
+                  {t("student_dashboard.history.table.title")}
                 </th>
                 <th className="px-6 py-5 text-[10px] uppercase tracking-widest font-extrabold text-secondary/60">
-                  Borrowed Date
+                  {t("student_dashboard.history.table.borrowed")}
                 </th>
                 <th className="px-6 py-5 text-[10px] uppercase tracking-widest font-extrabold text-secondary/60">
-                  Returned Date
+                  {t("student_dashboard.history.table.returned")}
                 </th>
                 <th className="px-6 py-5 text-[10px] uppercase tracking-widest font-extrabold text-secondary/60">
-                  Days Kept
+                  {t("student_dashboard.history.table.days_kept")}
                 </th>
                 <th className="px-6 py-5 text-[10px] uppercase tracking-widest font-extrabold text-secondary/60">
-                  Amount Paid
+                  {t("student_dashboard.history.table.amount_paid")}
                 </th>
               </tr>
             </thead>

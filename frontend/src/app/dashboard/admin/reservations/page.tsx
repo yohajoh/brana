@@ -11,6 +11,7 @@ import {
   useReservationHighDemand,
   type HighDemandReservationBook,
 } from "@/lib/hooks/useQueries";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 type Reservation = {
   id: string;
@@ -26,6 +27,7 @@ type Reservation = {
 };
 
 export default function AdminReservationsPage() {
+  const { t } = useLanguage();
   const [openMenuReservationId, setOpenMenuReservationId] = useState<string | null>(null);
   const [issueModalReservation, setIssueModalReservation] = useState<Reservation | null>(null);
   const [issueCopyCode, setIssueCopyCode] = useState("");
@@ -47,13 +49,13 @@ export default function AdminReservationsPage() {
       });
       const count = Number(result?.data?.expiredCount ?? 0);
       if (count === 0) {
-        toast.info("No reservations were cancelled");
+        toast.info(t("admin_reservations.messages.no_cancelled"));
         return;
       }
-      toast.success(`Successfully cancelled ${count} reservation(s)`);
+      toast.success(t("admin_reservations.messages.cancel_success", { count }));
       setSelectedIds(new Set()); // Clear selection after success
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to cancel reservations");
+      toast.error(error instanceof Error ? error.message : t("admin_reservations.messages.default_error") || "Failed to cancel reservations");
     }
   };
 
@@ -77,9 +79,9 @@ export default function AdminReservationsPage() {
   const handleMoveToTop = async (id: string) => {
     try {
       await moveToTop.mutateAsync(id);
-      toast.success("Reservation moved to top of queue");
+      toast.success(t("admin_reservations.messages.move_success"));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to move reservation");
+      toast.error(error instanceof Error ? error.message : t("admin_reservations.messages.default_error") || "Failed to move reservation");
     }
   };
 
@@ -91,16 +93,16 @@ export default function AdminReservationsPage() {
   const handleConfirmIssue = async () => {
     if (!issueModalReservation) return;
     if (!issueCopyCode.trim()) {
-      toast.error("Copy code is required");
+      toast.error(t("admin_reservations.messages.copy_code_required"));
       return;
     }
     try {
       await issueReservation.mutateAsync({ id: issueModalReservation.id, copy_code: issueCopyCode.trim() });
-      toast.success("Reservation issued and converted to rental");
+      toast.success(t("admin_reservations.messages.issue_success"));
       setIssueModalReservation(null);
       setIssueCopyCode("");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to issue reservation");
+      toast.error(error instanceof Error ? error.message : t("admin_reservations.messages.default_error") || "Failed to issue reservation");
     }
   };
 
@@ -112,15 +114,15 @@ export default function AdminReservationsPage() {
     <div className="p-6 lg:p-12 space-y-8">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-[#2B1A10]">Reservations</h1>
-          <p className="text-[#AE9E85] font-medium">Queue management and reservation windows.</p>
+          <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-[#2B1A10]">{t("admin_reservations.title")}</h1>
+          <p className="text-[#AE9E85] font-medium">{t("admin_reservations.subtitle")}</p>
         </div>
         <div className="flex gap-3">
           <button
             onClick={handleRefresh}
             className="flex items-center gap-2 px-4 py-2.5 bg-white border border-[#E1D2BD] rounded-xl text-sm font-bold text-[#2B1A10]"
           >
-            <RefreshCcw size={15} /> Refresh
+            <RefreshCcw size={15} /> {t("admin_reservations.refresh")}
           </button>
           {selectedIds.size > 0 && (
             <button
@@ -128,7 +130,7 @@ export default function AdminReservationsPage() {
               disabled={expireReservations.isPending}
               className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white text-sm font-bold rounded-xl animate-in fade-in slide-in-from-right-2 duration-300"
             >
-              {expireReservations.isPending ? "Cancelling..." : `Cancel Reservation (${selectedIds.size} Selected)`}
+              {expireReservations.isPending ? t("admin_reservations.cancelling") : t("admin_reservations.cancel_selected", { count: selectedIds.size })}
             </button>
           )}
         </div>
@@ -136,23 +138,23 @@ export default function AdminReservationsPage() {
 
       <div className="bg-white rounded-2xl border border-[#E1D2BD]/50 overflow-visible">
         <div className="px-6 py-4 border-b border-[#E1D2BD]/50 bg-[#FFFAF3]">
-          <h2 className="text-sm font-bold text-[#2B1A10] uppercase tracking-wide">Books Under High Demand</h2>
+          <h2 className="text-sm font-bold text-[#2B1A10] uppercase tracking-wide">{t("admin_reservations.high_demand.title")}</h2>
           {highDemandLoading ? (
-            <p className="text-xs text-[#AE9E85] mt-2">Loading demand insights...</p>
+            <p className="text-xs text-[#AE9E85] mt-2">{t("admin_reservations.high_demand.loading")}</p>
           ) : highDemand.length === 0 ? (
-            <p className="text-xs text-[#AE9E85] mt-2">No high-demand pressure detected.</p>
+            <p className="text-xs text-[#AE9E85] mt-2">{t("admin_reservations.high_demand.no_demand")}</p>
           ) : (
             <div className="mt-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {highDemand.map((item) => (
                 <div key={item.book.id} className="rounded-xl border border-[#EADCC8] bg-white p-3">
                   <p className="text-sm font-bold text-[#2B1A10] truncate">{item.book.title}</p>
                   <p className="text-xs text-[#AE9E85] mt-1">
-                    Queue: {item.queueCount} • Copies: {item.book.copies} • Available: {item.book.available}
+                    {t("admin_reservations.high_demand.queue")}: {item.queueCount} • {t("admin_reservations.high_demand.copies")}: {item.book.copies} • {t("admin_reservations.high_demand.available")}: {item.book.available}
                   </p>
-                  <p className="text-xs text-[#8B6B4A] mt-1">Pressure ratio: {item.pressureRatio}</p>
+                  <p className="text-xs text-[#8B6B4A] mt-1">{t("admin_reservations.high_demand.pressure")}: {item.pressureRatio}</p>
                   {item.needsInventoryAction ? (
                     <p className="text-[11px] font-bold text-red-700 mt-1">
-                      Inventory action recommended (10+ queue, &lt;=2 copies)
+                      {t("admin_reservations.high_demand.recommendation")}
                     </p>
                   ) : null}
                 </div>
@@ -170,14 +172,14 @@ export default function AdminReservationsPage() {
               className="w-4 h-4 rounded border-[#E1D2BD] text-[#2B1A10] focus:ring-[#2B1A10]"
             />
           </span>
-          <span>Student</span>
-          <span>Book</span>
-          <span>Queue</span>
-          <span>Status</span>
-          <span>Debt</span>
-          <span>Reserved</span>
-          <span>Expires</span>
-          <span className="text-right">Action</span>
+          <span>{t("admin_reservations.table.student")}</span>
+          <span>{t("admin_reservations.table.book")}</span>
+          <span>{t("admin_reservations.table.queue")}</span>
+          <span>{t("admin_reservations.table.status")}</span>
+          <span>{t("admin_reservations.table.debt")}</span>
+          <span>{t("admin_reservations.table.reserved")}</span>
+          <span>{t("admin_reservations.table.expires")}</span>
+          <span className="text-right">{t("admin_reservations.table.action")}</span>
         </div>
 
         {isLoading ? (
@@ -212,7 +214,7 @@ export default function AdminReservationsPage() {
               <span
                 className={`text-sm ${Number(item.user_debt_total || 0) > 0 ? "text-red-700 font-bold" : "text-[#2B1A10]/70"}`}
               >
-                {Number(item.user_debt_total || 0) > 0 ? `${Number(item.user_debt_total).toFixed(2)} ETB` : "Clear"}
+                {Number(item.user_debt_total || 0) > 0 ? `${Number(item.user_debt_total).toFixed(2)} ETB` : t("admin_reservations.table.clear")}
               </span>
               <span className="text-sm text-[#2B1A10]/70">{new Date(item.reserved_at).toLocaleDateString()}</span>
               <span className="text-sm text-[#2B1A10]/70">
@@ -239,7 +241,7 @@ export default function AdminReservationsPage() {
                       }}
                       className="flex w-full items-center px-3 py-2.5 text-left text-sm font-semibold text-[#2B1A10] hover:bg-[#F8F2E9] disabled:opacity-40"
                     >
-                      Move to Top
+                      {t("admin_reservations.actions.move_to_top")}
                     </button>
                     <button
                       type="button"
@@ -255,7 +257,7 @@ export default function AdminReservationsPage() {
                       }}
                       className="flex w-full items-center px-3 py-2.5 text-left text-sm font-semibold text-[#2B1A10] hover:bg-[#F8F2E9] disabled:opacity-40"
                     >
-                      Issue Book
+                      {t("admin_reservations.actions.issue_book")}
                     </button>
                   </div>
                 ) : null}
@@ -279,11 +281,11 @@ export default function AdminReservationsPage() {
             className="w-full max-w-md rounded-2xl border border-[#E1D2BD] bg-white p-6 shadow-2xl"
             onClick={(event) => event.stopPropagation()}
           >
-            <h3 className="text-xl font-serif font-extrabold text-[#2B1A10]">Issue Reserved Book</h3>
+            <h3 className="text-xl font-serif font-extrabold text-[#2B1A10]">{t("admin_reservations.modal.title")}</h3>
             <p className="mt-1 text-sm text-[#AE9E85]">{issueModalReservation.book.title}</p>
 
             <div className="mt-4">
-              <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">Copy Code</label>
+              <label className="block text-sm font-bold text-[#2B1A10] mb-1.5">{t("admin_reservations.modal.copy_code")}</label>
               <input
                 type="text"
                 value={issueCopyCode}
@@ -303,7 +305,7 @@ export default function AdminReservationsPage() {
                 }}
                 className="px-4 py-2.5 rounded-xl border border-[#D9C8B3] text-sm font-bold text-[#6C5236] disabled:opacity-40"
               >
-                Cancel
+                {t("admin_reservations.modal.cancel")}
               </button>
               <button
                 type="button"
@@ -311,7 +313,7 @@ export default function AdminReservationsPage() {
                 onClick={() => void handleConfirmIssue()}
                 className="px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-[#2B1A10] disabled:opacity-40"
               >
-                {issueReservation.isPending ? "Issuing..." : "Issue Book"}
+                {issueReservation.isPending ? t("admin_reservations.modal.issuing") : t("admin_reservations.actions.issue_book")}
               </button>
             </div>
           </div>

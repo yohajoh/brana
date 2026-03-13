@@ -1,6 +1,7 @@
 "use client";
 
 import { BookOpen, Wallet, Calculator, Calendar } from "lucide-react";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 type RentalItem = {
   id: string;
@@ -27,6 +28,7 @@ const daysBetween = (start: string, end: string) =>
   Math.ceil((new Date(end).getTime() - new Date(start).getTime()) / (1000 * 60 * 60 * 24));
 
 export const HistorySummary = ({ rentals, config, loading }: Props) => {
+  const { t } = useLanguage();
   void config;
   if (loading) {
     return (
@@ -68,23 +70,23 @@ export const HistorySummary = ({ rentals, config, loading }: Props) => {
 
   const stats = [
     {
-      label: "Total Books Borrowed",
+      label: t("student_history.summary.total_borrowed"),
       value: totalBorrowed.toString(),
       icon: <BookOpen className="text-secondary" size={24} />,
     },
     {
-      label: "Total Amount Paid",
-      value: `${totalPaid.toFixed(1)} birr`,
+      label: t("student_history.summary.total_paid"),
+      value: t("student_history.summary.birr", { amount: totalPaid.toFixed(1) }),
       icon: <Wallet className="text-secondary" size={24} />,
     },
     {
-      label: "Average Cost Per Book",
-      value: `${avgCost.toFixed(1)} birr`,
+      label: t("student_history.summary.avg_cost"),
+      value: t("student_history.summary.birr", { amount: avgCost.toFixed(1) }),
       icon: <Calculator className="text-secondary" size={24} />,
     },
     {
-      label: "Total Days of Reading",
-      value: `${totalDays} days`,
+      label: t("student_history.summary.total_reading_days"),
+      value: t("student_history.summary.days_suffix", { count: totalDays }),
       icon: <Calendar className="text-secondary" size={24} />,
     },
   ];
