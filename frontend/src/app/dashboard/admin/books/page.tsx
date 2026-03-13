@@ -494,6 +494,7 @@ function BookTable({
   deletingId?: string;
   onCondition: (id: string, title: string) => void;
 }) {
+  const { t } = useLanguage();
   const [openMenuBookId, setOpenMenuBookId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -600,6 +601,7 @@ function CategoryTable({
   onDelete: (id: string) => void;
   deletingId?: string;
 }) {
+  const { t } = useLanguage();
   if (categories.length === 0)
     return <div className="py-16 text-center text-sm text-[#AE9E85]">{t("admin_categories.table.no_categories")}</div>;
   return (
