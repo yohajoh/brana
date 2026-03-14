@@ -26,6 +26,7 @@ import { API_BASE_URL, invalidateCurrentUserCache } from "@/lib/api";
 import { toast } from "sonner";
 import { usePersona } from "@/components/providers/PersonaProvider";
 import { useLanguage } from "@/components/providers/LanguageProvider";
+import { useDashboardShell } from "@/components/providers/DashboardShellProvider";
 
 interface DashboardSidebarProps {
   variant?: "default" | "admin";
@@ -36,6 +37,7 @@ export const DashboardSidebar = ({ variant = "default" }: DashboardSidebarProps)
   const router = useRouter();
   const { t } = useLanguage();
   const { user, activePersona, isLoading: loading, clearSession } = usePersona();
+  const { isMobileSidebarOpen, closeMobileSidebar } = useDashboardShell();
 
   const isAdminVariant = variant === "admin";
 
@@ -151,7 +153,8 @@ export const DashboardSidebar = ({ variant = "default" }: DashboardSidebarProps)
 
   const navItems = isAdmin ? adminNavItems : studentNavItems;
 
-  const activeClass = "bg-white/18 text-white font-bold border border-[#FFD602]/45 shadow-[0_10px_26px_rgba(0,0,0,0.22)]";
+  const activeClass =
+    "bg-white/18 text-white font-bold border border-[#FFD602]/45 shadow-[0_10px_26px_rgba(0,0,0,0.22)]";
 
   const inactiveClass = "text-white/75 hover:bg-white/10 hover:text-white";
 
@@ -191,48 +194,64 @@ export const DashboardSidebar = ({ variant = "default" }: DashboardSidebarProps)
   };
 
   return (
-    <aside
-      className={`fixed left-0 top-0 h-screen w-full lg:w-64 flex flex-col ${bgClass} border-r px-5 py-8 z-40`}
-    >
-      <div className="border-b border-white/15 pb-5">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full flex items-center justify-center font-bold text-sm bg-white/20 text-white">
-            {user?.name ? getInitials(user.name) : loading ? ".." : "?"}
-          </div>
-          <div className="min-w-0 space-y-0.5">
-            <p className={`text-sm font-bold truncate ${textClass}`}>{user?.name || "User"}</p>
-            <p className={`text-[11px] truncate ${secondaryTextClass}`}>{user?.email || ""}</p>
+    <>
+      {isMobileSidebarOpen ? (
+        <button
+          type="button"
+          aria-label="Close menu"
+          className="sidebar-backdrop fixed top-0 right-0 bottom-0 left-0 z-2147483645 bg-black/40 lg:hidden"
+          onClick={closeMobileSidebar}
+        />
+      ) : null}
+
+      <aside
+        className={`fixed left-0 top-0 h-screen w-[84vw] max-w-[320px] lg:w-64 flex flex-col ${bgClass} border-r px-4 lg:px-5 py-6 lg:py-8 z-2147483646 transform transition-transform duration-300 lg:translate-x-0 ${isMobileSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
+      >
+        <div className="border-b border-white/15 pb-4 lg:pb-5">
+          <div className="flex items-center justify-start gap-3">
+            <div className="h-10 w-10 rounded-full flex items-center justify-center font-bold text-sm bg-white/20 text-white shrink-0">
+              {user?.name ? getInitials(user.name) : loading ? ".." : "?"}
+            </div>
+            <div className="min-w-0 space-y-0.5">
+              <p className={`text-sm font-bold truncate ${textClass}`}>{user?.name || "User"}</p>
+              <p className={`text-[11px] truncate ${secondaryTextClass}`}>{user?.email || ""}</p>
+            </div>
           </div>
         </div>
-      </div>
 
-      <nav className="mt-5 flex-1 space-y-2 overflow-y-auto pr-1">
-        {navItems.map((item) => {
-          const isActive = pathname === item.href;
-          return (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={`flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all group ${
-                isActive ? activeClass : inactiveClass
-              }`}
-            >
-              <span className={isActive ? iconActiveClass : iconInactiveClass}>{item.icon}</span>
-              <span className="text-sm font-medium">{item.name}</span>
-            </Link>
-          );
-        })}
-      </nav>
+        <nav className="mt-4 lg:mt-5 flex-1 space-y-2 overflow-y-auto pr-1">
+          {navItems.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                onClick={closeMobileSidebar}
+                className={`flex items-center justify-start gap-4 px-4 py-3 rounded-xl transition-all group ${
+                  isActive ? activeClass : inactiveClass
+                }`}
+                title={item.name}
+                aria-label={item.name}
+              >
+                <span className={isActive ? iconActiveClass : iconInactiveClass}>{item.icon}</span>
+                <span className="text-sm font-medium">{item.name}</span>
+              </Link>
+            );
+          })}
+        </nav>
 
-      <div className="mt-4 border-t border-white/15 pt-4">
-        <button
-          onClick={handleLogout}
-          className="flex w-full cursor-pointer items-center gap-3 rounded-xl px-3.5 py-2.5 transition-all group text-white/80 hover:text-white hover:bg-white/10"
-        >
-          <LogOut size={18} className="group-hover:text-white" />
-          <span className="text-sm font-medium">{t("sidebar.logout")}</span>
-        </button>
-      </div>
-    </aside>
+        <div className="mt-4 border-t border-white/15 pt-4">
+          <button
+            onClick={handleLogout}
+            className="flex w-full cursor-pointer items-center justify-start gap-3 rounded-xl px-3.5 py-2.5 transition-all group text-white/80 hover:text-white hover:bg-white/10"
+            title={t("sidebar.logout")}
+            aria-label={t("sidebar.logout")}
+          >
+            <LogOut size={18} className="group-hover:text-white" />
+            <span className="text-sm font-medium">{t("sidebar.logout")}</span>
+          </button>
+        </div>
+      </aside>
+    </>
   );
 };

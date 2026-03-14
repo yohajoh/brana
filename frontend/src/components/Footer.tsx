@@ -83,7 +83,9 @@ export const Footer = () => {
           </div>
 
           <div className="space-y-6">
-            <h3 className="text-base font-bold uppercase tracking-widest text-[#142B6F]">{t("footer.contact_title")}</h3>
+            <h3 className="text-base font-bold uppercase tracking-widest text-[#142B6F]">
+              {t("footer.contact_title")}
+            </h3>
             <div className="flex flex-col gap-4">
               <div className="flex items-center gap-3 text-sm text-[#111111]">
                 <Phone size={16} className="text-[#FFD602]" />
@@ -98,7 +100,9 @@ export const Footer = () => {
         </div>
 
         <div className="mt-8 flex flex-col items-center justify-between gap-4 border-t border-[#E1DEE5] pt-5 md:flex-row">
-          <p className="text-xs text-[#142B6F]">&copy; {new Date().getFullYear()} Birana. {t("footer.rights")}</p>
+          <p className="text-xs text-[#142B6F]">
+            &copy; {new Date().getFullYear()} Birana. {t("footer.rights")}
+          </p>
           <div className="flex gap-6">
             <a href="#" className="text-xs text-[#142B6F] hover:text-[#111111] transition-colors">
               {t("footer.privacy")}

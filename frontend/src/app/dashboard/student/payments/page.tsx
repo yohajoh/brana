@@ -4,6 +4,8 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useMyPayments, useMyRentals, useMyDebtSummary, api } from "@/lib/hooks/useQueries";
 import { useLanguage } from "@/components/providers/LanguageProvider";
+import { ColumnDef } from "@tanstack/react-table";
+import { TanStackTable } from "@/components/ui/TanStackTable";
 
 type Payment = {
   id: string;
@@ -95,12 +97,50 @@ function PaymentsContent() {
 
   const actionablePayments = payments.filter((p) => p.status === "PENDING" || p.status === "FAILED");
 
+  const historyColumns: ColumnDef<Payment, unknown>[] = [
+    {
+      id: "book",
+      header: t("admin_reservations.table.book"),
+      cell: ({ row }) => (
+        <span className="text-sm text-primary">{row.original.rental?.physical_book?.title || "Book"}</span>
+      ),
+    },
+    {
+      id: "amount",
+      header: t("dashboard.stats.revenue"),
+      cell: ({ row }) => <span className="text-sm text-primary/80">{Number(row.original.amount).toFixed(2)} ETB</span>,
+    },
+    {
+      id: "method",
+      header: t("admin_reservations.table.method") || "Method",
+      cell: ({ row }) => <span className="text-sm text-primary/80">{row.original.method}</span>,
+    },
+    {
+      id: "status",
+      header: t("admin_reservations.table.status"),
+      cell: ({ row }) => (
+        <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-muted text-primary w-fit block">
+          {row.original.status}
+        </span>
+      ),
+    },
+    {
+      id: "paid_at",
+      header: t("admin_reservations.table.reserved"),
+      cell: ({ row }) => (
+        <span className="text-sm text-primary/70">{new Date(row.original.paid_at).toLocaleDateString()}</span>
+      ),
+    },
+  ];
+
   return (
     <div className="p-6 lg:p-12 space-y-8">
       <div className="space-y-2">
         <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-primary">{t("student_payments.title")}</h1>
         <p className="text-secondary font-medium">{t("student_payments.subtitle")}</p>
-        {verifyingTx && <p className="text-sm text-secondary">{t("student_payments.verifying", { ref: verifyingTx })}</p>}
+        {verifyingTx && (
+          <p className="text-sm text-secondary">{t("student_payments.verifying", { ref: verifyingTx })}</p>
+        )}
         {verifyMessage && <p className="text-sm text-primary">{verifyMessage}</p>}
       </div>
 
@@ -117,7 +157,9 @@ function PaymentsContent() {
               </p>
             ))}
             {debtSummary.overdueFines.length > 4 ? (
-              <p className="text-xs text-[#142B6F]">{t("student_payments.more_overdue", { count: debtSummary.overdueFines.length - 4 })}</p>
+              <p className="text-xs text-[#142B6F]">
+                {t("student_payments.more_overdue", { count: debtSummary.overdueFines.length - 4 })}
+              </p>
             ) : null}
           </div>
         </section>
@@ -138,7 +180,9 @@ function PaymentsContent() {
               >
                 <div>
                   <p className="text-sm font-bold text-primary">{r.physical_book.title}</p>
-                  <p className="text-xs text-secondary">{t("admin_reservations.table.debt")}: {Number(r.fine || 0).toFixed(2)} ETB</p>
+                  <p className="text-xs text-secondary">
+                    {t("admin_reservations.table.debt")}: {Number(r.fine || 0).toFixed(2)} ETB
+                  </p>
                 </div>
                 <button
                   onClick={() => payFine(r.id)}
@@ -168,7 +212,8 @@ function PaymentsContent() {
                 <div>
                   <p className="text-sm font-bold text-primary">{p.rental?.physical_book?.title || "Book"}</p>
                   <p className="text-xs text-secondary">
-                    {t("dashboard.stats.revenue")}: {Number(p.amount || 0).toFixed(2)} ETB - {t("admin_reservations.table.status")}: {p.status}
+                    {t("dashboard.stats.revenue")}: {Number(p.amount || 0).toFixed(2)} ETB -{" "}
+                    {t("admin_reservations.table.status")}: {p.status}
                   </p>
                 </div>
                 <button
@@ -186,31 +231,13 @@ function PaymentsContent() {
       <section className="space-y-4">
         <h2 className="text-xl font-serif font-bold text-primary">{t("student_payments.history")}</h2>
         <div className="bg-white rounded-2xl border border-border/60 overflow-hidden">
-          <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr] gap-4 px-6 py-3 border-b border-border/50 bg-[#FFFFFF]">
-            <span className="text-[11px] font-bold text-secondary uppercase">{t("admin_reservations.table.book")}</span>
-            <span className="text-[11px] font-bold text-secondary uppercase">{t("dashboard.stats.revenue")}</span>
-            <span className="text-[11px] font-bold text-secondary uppercase">{t("admin_reservations.table.method") || "Method"}</span>
-            <span className="text-[11px] font-bold text-secondary uppercase">{t("admin_reservations.table.status")}</span>
-            <span className="text-[11px] font-bold text-secondary uppercase">{t("admin_reservations.table.reserved")}</span>
-          </div>
-          {loading ? (
-            <div className="py-16 text-center text-secondary text-sm">{t("student_payments.loading_payments")}</div>
-          ) : payments.length === 0 ? (
-            <div className="py-16 text-center text-secondary text-sm">{t("student_payments.no_history")}</div>
-          ) : (
-            payments.map((p) => (
-              <div
-                key={p.id}
-                className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr] gap-4 items-center px-6 py-4 border-b border-border/30"
-              >
-                <span className="text-sm text-primary">{p.rental?.physical_book?.title || "Book"}</span>
-                <span className="text-sm text-primary/80">{Number(p.amount).toFixed(2)} ETB</span>
-                <span className="text-sm text-primary/80">{p.method}</span>
-                <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-muted text-primary w-fit">{p.status}</span>
-                <span className="text-sm text-primary/70">{new Date(p.paid_at).toLocaleDateString()}</span>
-              </div>
-            ))
-          )}
+          <TanStackTable
+            data={payments}
+            columns={historyColumns}
+            isLoading={loading}
+            emptyText={t("student_payments.no_history")}
+            skeletonRows={5}
+          />
         </div>
       </section>
     </div>

@@ -6,6 +6,8 @@ import { Search, Plus, ChevronLeft, ChevronRight, X, Upload, MoreHorizontal } fr
 import { toast } from "sonner";
 import { useAuthors, useCreateAuthor, useUpdateAuthor, useDeleteAuthor, Author } from "@/lib/hooks/useQueries";
 import { useLanguage } from "@/components/providers/LanguageProvider";
+import { ColumnDef } from "@tanstack/react-table";
+import { TanStackTable } from "@/components/ui/TanStackTable";
 
 const ITEMS_PER_PAGE = 8;
 
@@ -91,7 +93,14 @@ export default function AdminAuthorsPage() {
       }
       resetModal();
     } catch (error) {
-      toast.error(getErrorMessage(error, editingAuthorId ? t("admin_authors.messages.update_failed") || "Failed to update author" : t("admin_authors.messages.add_failed") || "Failed to create author"));
+      toast.error(
+        getErrorMessage(
+          error,
+          editingAuthorId
+            ? t("admin_authors.messages.update_failed") || "Failed to update author"
+            : t("admin_authors.messages.add_failed") || "Failed to create author",
+        ),
+      );
     }
   };
 
@@ -105,16 +114,140 @@ export default function AdminAuthorsPage() {
     }
   };
 
+  const authorColumns: ColumnDef<Author, unknown>[] = [
+    {
+      id: "image",
+      header: t("admin_authors.table.image"),
+      cell: ({ row }) => {
+        const author = row.original;
+        return (
+          <div className="w-12 h-12 rounded-full overflow-hidden bg-[#E1DEE5] border border-[#E1DEE5]/50">
+            {author.image ? (
+              <Image
+                src={author.image}
+                alt={author.name}
+                width={48}
+                height={48}
+                className="w-full h-full object-cover"
+                unoptimized
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-[#142B6F] text-xs">
+                {author.name.charAt(0)}
+              </div>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      id: "name",
+      header: t("admin_authors.table.name"),
+      cell: ({ row }) => <span className="text-sm font-bold text-[#111111]">{row.original.name}</span>,
+    },
+    {
+      id: "bio",
+      header: t("admin_authors.table.bio"),
+      cell: ({ row }) => <p className="text-sm text-[#142B6F] line-clamp-1">{row.original.bio}</p>,
+    },
+    {
+      id: "category",
+      header: t("admin_authors.table.category"),
+      meta: {
+        headerClassName: "text-left",
+        cellClassName: "text-left",
+      },
+      cell: () => <span className="text-sm text-[#111111]/70 block">Mixed</span>,
+    },
+    {
+      id: "books",
+      header: t("admin_authors.table.books"),
+      meta: {
+        headerClassName: "text-left",
+        cellClassName: "text-left",
+      },
+      cell: ({ row }) => (
+        <span className="text-sm text-[#111111]/70 font-bold block">
+          {(row.original._count?.books || 0) + (row.original._count?.digital_books || 0)}
+        </span>
+      ),
+    },
+    {
+      id: "status",
+      header: t("admin_authors.table.status"),
+      meta: {
+        headerClassName: "text-left",
+        cellClassName: "text-left",
+      },
+      cell: () => (
+        <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-green-50 text-green-700 w-fit block">
+          {t("admin_authors.status.active")}
+        </span>
+      ),
+    },
+    {
+      id: "actions",
+      header: "",
+      meta: {
+        headerClassName: "text-left w-[88px]",
+        cellClassName: "text-left w-[88px]",
+      },
+      cell: ({ row }) => {
+        const author = row.original;
+        return (
+          <div className="relative flex justify-start" onClick={(event) => event.stopPropagation()}>
+            <button
+              type="button"
+              onClick={() => setOpenMenuAuthorId((current) => (current === author.id ? null : author.id))}
+              className="h-9 w-9 rounded-full border border-[#E1DEE5] bg-[#FFFFFF] text-[#142B6F] flex items-center justify-center"
+              aria-label={`Open actions for ${author.name}`}
+            >
+              <MoreHorizontal size={16} />
+            </button>
+
+            {openMenuAuthorId === author.id ? (
+              <div className="absolute right-0 top-11 z-2147483646 min-w-48 overflow-hidden sm:left-0 sm:right-auto sm:min-w-56 rounded-xl border border-[#E1DEE5] bg-white shadow-[0_18px_40px_rgba(0,0,0,0.18)]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpenMenuAuthorId(null);
+                    openEditModal(author);
+                  }}
+                  className="flex w-full items-center px-3 py-2.5 text-left text-sm font-semibold text-[#111111] hover:bg-[#FFFFFF]"
+                >
+                  {t("admin_authors.modal.submit_update")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpenMenuAuthorId(null);
+                    setDeleteAuthorCandidate({ id: author.id, name: author.name });
+                  }}
+                  disabled={deletingAuthorId === author.id}
+                  className="flex w-full items-center px-3 py-2.5 text-left text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-40"
+                >
+                  {t("admin_books.actions.delete")}
+                </button>
+              </div>
+            ) : null}
+          </div>
+        );
+      },
+    },
+  ];
+
   return (
     <>
-      <div className="p-6 lg:p-12 space-y-8">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
+      <div className="p-4 sm:p-6 lg:p-12 space-y-8">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-1">
-            <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-[#111111]">{t("admin_authors.title")}</h1>
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-extrabold text-[#111111]">
+              {t("admin_authors.title")}
+            </h1>
             <p className="text-[#142B6F] font-medium">{t("admin_authors.subtitle")}</p>
           </div>
-          <div className="flex items-center gap-3 mt-2">
-            <div className="relative">
+          <div className="flex w-full flex-col gap-3 sm:mt-2 sm:w-auto sm:flex-row sm:items-center">
+            <div className="relative w-full sm:w-auto">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#142B6F]" />
               <input
                 type="text"
@@ -124,12 +257,12 @@ export default function AdminAuthorsPage() {
                   setSearch(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="pl-9 pr-4 py-2.5 text-sm bg-white border border-[#E1DEE5] rounded-xl text-[#111111] placeholder:text-[#E1DEE5] w-52"
+                className="w-full sm:w-52 pl-9 pr-4 py-2.5 text-sm bg-white border border-[#E1DEE5] rounded-xl text-[#111111] placeholder:text-[#E1DEE5]"
               />
             </div>
             <button
               onClick={openCreateModal}
-              className="flex items-center gap-2 px-4 py-2.5 bg-[#142B6F] text-white text-sm font-bold rounded-xl"
+              className="flex w-full sm:w-auto justify-center items-center gap-2 px-4 py-2.5 bg-[#142B6F] text-white text-sm font-bold rounded-xl"
             >
               <Plus size={16} />
               {t("admin_authors.add_new")}
@@ -137,110 +270,16 @@ export default function AdminAuthorsPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-[#E1DEE5]/50 overflow-visible">
-          {isLoading ? (
-            <div className="p-6 space-y-3">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="grid grid-cols-[80px_2fr_3fr_1fr_1fr_1fr_auto] gap-4 items-center py-2">
-                  <div className="h-10 w-10 rounded-full bg-[#E1DEE5]/70 animate-pulse" />
-                  <div className="h-4 rounded-lg bg-[#E1DEE5]/70 animate-pulse" />
-                  <div className="h-4 rounded-lg bg-[#E1DEE5]/70 animate-pulse" />
-                  <div className="h-4 w-20 mx-auto rounded-lg bg-[#E1DEE5]/70 animate-pulse" />
-                  <div className="h-4 w-16 mx-auto rounded-lg bg-[#E1DEE5]/70 animate-pulse" />
-                  <div className="h-4 w-16 mx-auto rounded-lg bg-[#E1DEE5]/70 animate-pulse" />
-                  <div className="h-8 w-8 ml-auto rounded-full bg-[#E1DEE5]/70 animate-pulse" />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-[80px_2fr_3fr_1fr_1fr_1fr_auto] gap-4 px-6 py-3 border-b border-[#E1DEE5]/50 bg-[#FFFFFF]">
-                <span className="text-[11px] font-bold text-[#142B6F] uppercase">{t("admin_authors.table.image")}</span>
-                <span className="text-[11px] font-bold text-[#142B6F] uppercase">{t("admin_authors.table.name")}</span>
-                <span className="text-[11px] font-bold text-[#142B6F] uppercase">{t("admin_authors.table.bio")}</span>
-                <span className="text-[11px] font-bold text-[#142B6F] uppercase text-center">{t("admin_authors.table.category")}</span>
-                <span className="text-[11px] font-bold text-[#142B6F] uppercase text-center">{t("admin_authors.table.books")}</span>
-                <span className="text-[11px] font-bold text-[#142B6F] uppercase text-center">{t("admin_authors.table.status")}</span>
-                <span className="w-16"></span>
-              </div>
-              {paginatedAuthors.length === 0 ? (
-                <div className="py-16 text-center text-sm text-[#142B6F]">{t("admin_authors.table.no_authors")}</div>
-              ) : (
-                paginatedAuthors.map((author) => (
-                  <div
-                    key={author.id}
-                    className="grid grid-cols-[80px_2fr_3fr_1fr_1fr_1fr_auto] gap-4 items-center px-6 py-4 border-b border-[#E1DEE5]/30 hover:bg-[#FFFFFF]"
-                  >
-                    <div className="w-12 h-12 rounded-full overflow-hidden bg-[#E1DEE5] border border-[#E1DEE5]/50">
-                      {author.image ? (
-                        <Image
-                          src={author.image}
-                          alt={author.name}
-                          width={48}
-                          height={48}
-                          className="w-full h-full object-cover"
-                          unoptimized
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-[#142B6F] text-xs">
-                          {author.name.charAt(0)}
-                        </div>
-                      )}
-                    </div>
-                    <span className="text-sm font-bold text-[#111111]">{author.name}</span>
-                    <p className="text-sm text-[#142B6F] line-clamp-1">{author.bio}</p>
-                    <span className="text-sm text-[#111111]/70 text-center">Mixed</span>
-                    <span className="text-sm text-[#111111]/70 text-center font-bold">
-                      {(author._count?.books || 0) + (author._count?.digital_books || 0)}
-                    </span>
-                    <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-green-50 text-green-700 w-fit mx-auto">
-                      {t("admin_authors.status.active")}
-                    </span>
-                    <div className="relative flex justify-end" onClick={(event) => event.stopPropagation()}>
-                      <button
-                        type="button"
-                        onClick={() => setOpenMenuAuthorId((current) => (current === author.id ? null : author.id))}
-                        className="h-9 w-9 rounded-full border border-[#E1DEE5] bg-[#FFFFFF] text-[#142B6F] flex items-center justify-center"
-                        aria-label={`Open actions for ${author.name}`}
-                      >
-                        <MoreHorizontal size={16} />
-                      </button>
-
-                      {openMenuAuthorId === author.id ? (
-                        <div className="absolute right-0 top-11 z-2147483646 min-w-56 overflow-hidden rounded-xl border border-[#E1DEE5] bg-white shadow-[0_18px_40px_rgba(0,0,0,0.18)]">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setOpenMenuAuthorId(null);
-                              openEditModal(author);
-                            }}
-                            className="flex w-full items-center px-3 py-2.5 text-left text-sm font-semibold text-[#111111] hover:bg-[#FFFFFF]"
-                          >
-                            {t("admin_authors.modal.submit_update")}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setOpenMenuAuthorId(null);
-                              setDeleteAuthorCandidate({ id: author.id, name: author.name });
-                            }}
-                            disabled={deletingAuthorId === author.id}
-                            className="flex w-full items-center px-3 py-2.5 text-left text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-40"
-                          >
-                            {t("admin_books.actions.delete")}
-                          </button>
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
-                ))
-              )}
-            </>
-          )}
-        </div>
+        <TanStackTable
+          data={paginatedAuthors}
+          columns={authorColumns}
+          isLoading={isLoading}
+          emptyText={t("admin_authors.table.no_authors")}
+          skeletonRows={5}
+        />
 
         {!isLoading && totalPages > 1 && (
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
@@ -249,12 +288,12 @@ export default function AdminAuthorsPage() {
               <ChevronLeft size={16} />
               {t("common.previous")}
             </button>
-            <div className="flex items-center gap-1.5">
+            <div className="flex w-full items-center justify-center gap-1.5 overflow-x-auto sm:w-auto sm:justify-start">
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                 <button
                   key={page}
                   onClick={() => setCurrentPage(page)}
-                  className={`w-8 h-8 rounded-lg text-sm font-bold ${page === currentPage ? "bg-[#142B6F] text-white" : "text-[#111111]/60 hover:bg-[#E1DEE5]"}`}
+                  className={`w-8 h-8 shrink-0 rounded-lg text-sm font-bold ${page === currentPage ? "bg-[#142B6F] text-white" : "text-[#111111]/60 hover:bg-[#E1DEE5]"}`}
                 >
                   {page}
                 </button>
@@ -280,7 +319,7 @@ export default function AdminAuthorsPage() {
           }}
         >
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="flex items-center justify-between px-8 pt-8 pb-4 border-b border-[#E1DEE5]/50">
+            <div className="flex items-center justify-between px-5 sm:px-8 pt-6 sm:pt-8 pb-4 border-b border-[#E1DEE5]/50">
               <h2 className="text-xl font-serif font-bold text-[#111111]">
                 {editingAuthorId ? t("admin_authors.modal.edit_title") : t("admin_authors.modal.add_title")}
               </h2>
@@ -293,9 +332,11 @@ export default function AdminAuthorsPage() {
                 <X size={18} />
               </button>
             </div>
-            <form onSubmit={handleSubmitAuthor} className="px-8 py-6 space-y-4">
+            <form onSubmit={handleSubmitAuthor} className="px-5 sm:px-8 py-5 sm:py-6 space-y-4">
               <div>
-                <label className="block text-sm font-bold text-[#111111] mb-1.5">{t("admin_authors.modal.labels.name")}</label>
+                <label className="block text-sm font-bold text-[#111111] mb-1.5">
+                  {t("admin_authors.modal.labels.name")}
+                </label>
                 <input
                   type="text"
                   value={form.name}
@@ -306,7 +347,9 @@ export default function AdminAuthorsPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-bold text-[#111111] mb-1.5">{t("admin_authors.modal.labels.bio")}</label>
+                <label className="block text-sm font-bold text-[#111111] mb-1.5">
+                  {t("admin_authors.modal.labels.bio")}
+                </label>
                 <textarea
                   rows={4}
                   value={form.bio}
@@ -317,7 +360,9 @@ export default function AdminAuthorsPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-bold text-[#111111] mb-1.5">{t("admin_authors.modal.labels.image")}</label>
+                <label className="block text-sm font-bold text-[#111111] mb-1.5">
+                  {t("admin_authors.modal.labels.image")}
+                </label>
                 <div
                   onClick={() => imageInputRef.current?.click()}
                   className="w-full h-32 border-2 border-dashed border-[#E1DEE5] rounded-2xl flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-[#142B6F] overflow-hidden relative"
@@ -363,15 +408,17 @@ export default function AdminAuthorsPage() {
         >
           <div
             onClick={(event) => event.stopPropagation()}
-            className="w-full max-w-md rounded-[28px] border border-[#E1DEE5] bg-[#FFFFFF] p-6 shadow-2xl"
+            className="w-full max-w-md rounded-[28px] border border-[#E1DEE5] bg-[#FFFFFF] p-5 sm:p-6 shadow-2xl"
           >
             <div className="space-y-2">
-              <h3 className="text-2xl font-serif font-black text-[#111111]">{t("admin_authors.confirm.delete_title")}</h3>
+              <h3 className="text-2xl font-serif font-black text-[#111111]">
+                {t("admin_authors.confirm.delete_title")}
+              </h3>
               <p className="text-sm text-[#142B6F] leading-6">
                 {t("admin_authors.confirm.delete_desc", { name: deleteAuthorCandidate.name })}
               </p>
             </div>
-            <div className="mt-6 flex items-center justify-end gap-3">
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
               <button
                 type="button"
                 onClick={() => setDeleteAuthorCandidate(null)}
@@ -386,7 +433,9 @@ export default function AdminAuthorsPage() {
                 disabled={deleteAuthor.isPending}
                 className="px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-red-700 disabled:opacity-40"
               >
-                {deleteAuthor.isPending ? t("admin_authors.modal.submitting_add") : t("admin_authors.confirm.delete_confirm")}
+                {deleteAuthor.isPending
+                  ? t("admin_authors.modal.submitting_add")
+                  : t("admin_authors.confirm.delete_confirm")}
               </button>
             </div>
           </div>

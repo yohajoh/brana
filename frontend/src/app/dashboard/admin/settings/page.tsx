@@ -8,15 +8,17 @@ export default function AdminSettingsPage() {
   const { data: configData, isLoading } = useSystemConfig();
   const updateConfig = useUpdateSystemConfig();
 
-  const config = configData?.data?.config as {
-    max_loan_days?: number;
-    daily_fine?: number;
-    max_books_per_user?: number;
-    reservation_window_hr?: number;
-    low_stock_threshold?: number;
-    never_returned_days?: number;
-    enable_notifications?: boolean;
-  } | undefined;
+  const config = configData?.data?.config as
+    | {
+        max_loan_days?: number;
+        daily_fine?: number;
+        max_books_per_user?: number;
+        reservation_window_hr?: number;
+        low_stock_threshold?: number;
+        never_returned_days?: number;
+        enable_notifications?: boolean;
+      }
+    | undefined;
 
   const [form, setForm] = useState({
     max_loan_days: String(config?.max_loan_days ?? 14),
@@ -65,9 +67,11 @@ export default function AdminSettingsPage() {
   };
 
   return (
-    <div className="p-6 lg:p-12 space-y-8 max-w-3xl">
+    <div className="p-4 sm:p-6 lg:p-12 space-y-8 max-w-3xl mx-auto">
       <div>
-        <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-[#111111]">System Settings</h1>
+        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-extrabold text-[#111111]">
+          System Settings
+        </h1>
         <p className="text-[#142B6F] font-medium">Configure global rental and inventory rules.</p>
       </div>
 
@@ -76,12 +80,36 @@ export default function AdminSettingsPage() {
           <p className="text-sm text-[#142B6F]">Loading...</p>
         ) : (
           <>
-            <Field label="Max Loan Days" value={form.max_loan_days} onChange={(value) => setForm((p) => ({ ...p, max_loan_days: value }))} />
-            <Field label="Daily Fine (ETB)" value={form.daily_fine} onChange={(value) => setForm((p) => ({ ...p, daily_fine: value }))} />
-            <Field label="Max Books Per User" value={form.max_books_per_user} onChange={(value) => setForm((p) => ({ ...p, max_books_per_user: value }))} />
-            <Field label="Reservation Window (Hours)" value={form.reservation_window_hr} onChange={(value) => setForm((p) => ({ ...p, reservation_window_hr: value }))} />
-            <Field label="Low Stock Threshold" value={form.low_stock_threshold} onChange={(value) => setForm((p) => ({ ...p, low_stock_threshold: value }))} />
-            <Field label="Never Returned Alert (Days)" value={form.never_returned_days} onChange={(value) => setForm((p) => ({ ...p, never_returned_days: value }))} />
+            <Field
+              label="Max Loan Days"
+              value={form.max_loan_days}
+              onChange={(value) => setForm((p) => ({ ...p, max_loan_days: value }))}
+            />
+            <Field
+              label="Daily Fine (ETB)"
+              value={form.daily_fine}
+              onChange={(value) => setForm((p) => ({ ...p, daily_fine: value }))}
+            />
+            <Field
+              label="Max Books Per User"
+              value={form.max_books_per_user}
+              onChange={(value) => setForm((p) => ({ ...p, max_books_per_user: value }))}
+            />
+            <Field
+              label="Reservation Window (Hours)"
+              value={form.reservation_window_hr}
+              onChange={(value) => setForm((p) => ({ ...p, reservation_window_hr: value }))}
+            />
+            <Field
+              label="Low Stock Threshold"
+              value={form.low_stock_threshold}
+              onChange={(value) => setForm((p) => ({ ...p, low_stock_threshold: value }))}
+            />
+            <Field
+              label="Never Returned Alert (Days)"
+              value={form.never_returned_days}
+              onChange={(value) => setForm((p) => ({ ...p, never_returned_days: value }))}
+            />
 
             <label className="flex items-center gap-3 text-sm font-medium text-[#111111]">
               <input
@@ -92,7 +120,11 @@ export default function AdminSettingsPage() {
               Enable Notifications
             </label>
 
-            <button type="submit" disabled={updateConfig.isPending} className="px-4 py-2.5 bg-[#142B6F] text-white rounded-xl text-sm font-bold disabled:opacity-50">
+            <button
+              type="submit"
+              disabled={updateConfig.isPending}
+              className="w-full sm:w-auto px-4 py-2.5 bg-[#142B6F] text-white rounded-xl text-sm font-bold disabled:opacity-50"
+            >
               {updateConfig.isPending ? "Saving..." : "Save Settings"}
             </button>
           </>

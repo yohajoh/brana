@@ -33,7 +33,10 @@ export function NotificationOverlay({ notification, isOpen, onClose, refetch }: 
   return (
     <div className="fixed inset-0 z-2147483646 flex justify-end">
       {/* Backdrop: Clicking once calls onClose, which clears the URL */}
-      <div className="absolute inset-0 bg-black/40 transition-opacity animate-in fade-in duration-200" onClick={onClose} />
+      <div
+        className="absolute inset-0 bg-black/40 transition-opacity animate-in fade-in duration-200"
+        onClick={onClose}
+      />
 
       {/* Overlay Panel */}
       <div
@@ -43,7 +46,12 @@ export function NotificationOverlay({ notification, isOpen, onClose, refetch }: 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-[#FFFFFF]">
           <h2 className="text-lg font-bold text-[#111111]">{t("student_notifications.detail_title")}</h2>
-          <button onClick={onClose} title="Close" aria-label="Close" className="p-2 rounded-full hover:bg-[#E1DEE5] transition-colors">
+          <button
+            onClick={onClose}
+            title="Close"
+            aria-label="Close"
+            className="p-2 rounded-full hover:bg-[#E1DEE5] transition-colors"
+          >
             <X size={24} className="text-[#142B6F]" />
           </button>
         </div>
@@ -70,7 +78,9 @@ export function NotificationOverlay({ notification, isOpen, onClose, refetch }: 
               disabled={markAsReadMutation.isPending}
               className="w-full py-3 bg-[#142B6F] text-white font-bold rounded-xl hover:opacity-90 disabled:opacity-50 transition-all"
             >
-              {markAsReadMutation.isPending ? t("student_notifications.marking") : t("student_notifications.mark_as_read")}
+              {markAsReadMutation.isPending
+                ? t("student_notifications.marking")
+                : t("student_notifications.mark_as_read")}
             </button>
           ) : (
             <div className="flex items-center justify-center gap-2 text-green-600 py-2">

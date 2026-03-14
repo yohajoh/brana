@@ -31,6 +31,8 @@ import {
   useUpdateCondition,
 } from "@/lib/hooks/useQueries";
 import { useLanguage } from "@/components/providers/LanguageProvider";
+import { ColumnDef } from "@tanstack/react-table";
+import { TanStackTable } from "@/components/ui/TanStackTable";
 
 type Tab = "all" | "physical" | "digital" | "categories";
 
@@ -244,14 +246,16 @@ export default function AdminBooksPage() {
 
   return (
     <>
-      <div className="p-6 lg:p-12 space-y-8">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
+      <div className="p-4 sm:p-6 lg:p-12 space-y-8">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-1">
-            <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-[#111111]">{t("admin_books.title")}</h1>
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-extrabold text-[#111111]">
+              {t("admin_books.title")}
+            </h1>
             <p className="text-[#142B6F] font-medium">{t("admin_books.subtitle")}</p>
           </div>
-          <div className="flex items-center gap-3 mt-2">
-            <div className="relative">
+          <div className="flex w-full flex-col gap-3 sm:mt-2 sm:w-auto sm:flex-row sm:items-center">
+            <div className="relative w-full sm:w-auto">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#142B6F]" />
               <input
                 type="text"
@@ -262,12 +266,12 @@ export default function AdminBooksPage() {
                   setCurrentPage(1);
                 }}
                 disabled={activeTab === "categories"}
-                className="pl-9 pr-4 py-2.5 text-sm bg-white border border-[#E1DEE5] rounded-xl text-[#111111] placeholder:text-[#E1DEE5] w-52 disabled:opacity-40"
+                className="w-full sm:w-52 pl-9 pr-4 py-2.5 text-sm bg-white border border-[#E1DEE5] rounded-xl text-[#111111] placeholder:text-[#E1DEE5] disabled:opacity-40"
               />
             </div>
             <button
               onClick={() => (activeTab === "categories" ? setShowCategoryModal(true) : openCreateBookModal())}
-              className="flex items-center gap-2 px-4 py-2.5 bg-[#142B6F] text-white text-sm font-bold rounded-xl"
+              className="flex w-full justify-center items-center gap-2 px-4 py-2.5 bg-[#142B6F] text-white text-sm font-bold rounded-xl sm:w-auto"
             >
               <Plus size={16} />
               {activeTab === "categories" ? t("admin_categories.add_new") : t("admin_books.add_new")}
@@ -275,7 +279,7 @@ export default function AdminBooksPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-6 border-b border-[#E1DEE5]/50">
+        <div className="flex items-center gap-4 overflow-x-auto whitespace-nowrap border-b border-[#E1DEE5]/50">
           {TABS.map((tab) => (
             <button
               key={tab.key}
@@ -287,58 +291,45 @@ export default function AdminBooksPage() {
           ))}
         </div>
 
-        <div className="bg-white rounded-2xl border border-[#E1DEE5]/50 overflow-visible">
-          {loading ? (
-            <div className="p-6 space-y-3">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="grid grid-cols-[2.5fr_2fr_1.5fr_1fr_1fr_auto] gap-4 items-center py-2">
-                  <div className="h-4 rounded-lg bg-[#E1DEE5]/70 animate-pulse" />
-                  <div className="h-4 rounded-lg bg-[#E1DEE5]/70 animate-pulse" />
-                  <div className="h-4 rounded-lg bg-[#E1DEE5]/70 animate-pulse" />
-                  <div className="h-4 w-16 rounded-lg bg-[#E1DEE5]/70 animate-pulse" />
-                  <div className="h-4 w-20 rounded-lg bg-[#E1DEE5]/70 animate-pulse" />
-                  <div className="h-8 w-8 ml-auto rounded-full bg-[#E1DEE5]/70 animate-pulse" />
-                </div>
-              ))}
-            </div>
-          ) : activeTab === "categories" ? (
-            <CategoryTable
-              categories={paginatedCategories}
-              onEdit={openCategoryModal}
-              onDelete={handleDeleteCategory}
-              deletingId={deletingCategoryId}
-            />
-          ) : (
-            <BookTable
-              books={paginatedBooks}
-              onDelete={(candidate) => setDeleteBookCandidate(candidate)}
-              onEdit={openEditBookModal}
-              deletingId={deletingBookId}
-              onCondition={(id, title) => {
-                setConditionBookId(id);
-                setConditionBookTitle(title);
-                setShowConditionModal(true);
-              }}
-            />
-          )}
-        </div>
+        {activeTab === "categories" ? (
+          <CategoryTable
+            categories={paginatedCategories}
+            onEdit={openCategoryModal}
+            onDelete={handleDeleteCategory}
+            deletingId={deletingCategoryId}
+            isLoading={loading}
+          />
+        ) : (
+          <BookTable
+            books={paginatedBooks}
+            onDelete={(candidate) => setDeleteBookCandidate(candidate)}
+            onEdit={openEditBookModal}
+            deletingId={deletingBookId}
+            isLoading={loading}
+            onCondition={(id, title) => {
+              setConditionBookId(id);
+              setConditionBookTitle(title);
+              setShowConditionModal(true);
+            }}
+          />
+        )}
 
         {!loading && totalPages > 1 && (
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
               className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-[#111111]/60 disabled:opacity-30"
             >
-            <ChevronLeft size={16} />
-            {t("common.previous")}
-          </button>
-            <div className="flex items-center gap-1.5">
+              <ChevronLeft size={16} />
+              {t("common.previous")}
+            </button>
+            <div className="flex w-full items-center justify-center gap-1.5 overflow-x-auto sm:w-auto sm:justify-start">
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                 <button
                   key={page}
                   onClick={() => setCurrentPage(page)}
-                  className={`w-8 h-8 rounded-lg text-sm font-bold ${page === currentPage ? "bg-[#142B6F] text-white" : "text-[#111111]/60 hover:bg-[#E1DEE5]"}`}
+                  className={`w-8 h-8 shrink-0 rounded-lg text-sm font-bold ${page === currentPage ? "bg-[#142B6F] text-white" : "text-[#111111]/60 hover:bg-[#E1DEE5]"}`}
                 >
                   {page}
                 </button>
@@ -393,7 +384,7 @@ export default function AdminBooksPage() {
           }}
         >
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="flex items-center justify-between px-8 pt-7 pb-4 border-b border-[#E1DEE5]/50">
+            <div className="flex items-center justify-between px-5 sm:px-8 pt-6 sm:pt-7 pb-4 border-b border-[#E1DEE5]/50">
               <h3 className="text-xl font-serif font-extrabold text-[#111111]">
                 {editingCategoryId ? t("admin_categories.modal.edit_title") : t("admin_categories.modal.add_title")}
               </h3>
@@ -409,10 +400,12 @@ export default function AdminBooksPage() {
                 e.preventDefault();
                 handleSaveCategory();
               }}
-              className="px-8 py-6 space-y-4"
+              className="px-5 sm:px-8 py-5 sm:py-6 space-y-4"
             >
               <div>
-                <label className="block text-sm font-bold text-[#111111] mb-1.5">{t("admin_categories.modal.label_name")}</label>
+                <label className="block text-sm font-bold text-[#111111] mb-1.5">
+                  {t("admin_categories.modal.label_name")}
+                </label>
                 <input
                   type="text"
                   required
@@ -457,15 +450,17 @@ export default function AdminBooksPage() {
         >
           <div
             onClick={(event) => event.stopPropagation()}
-            className="w-full max-w-md rounded-[28px] border border-[#E1DEE5] bg-[#FFFFFF] p-6 shadow-2xl"
+            className="w-full max-w-md rounded-[28px] border border-[#E1DEE5] bg-[#FFFFFF] p-5 sm:p-6 shadow-2xl"
           >
             <div className="space-y-2">
-              <h3 className="text-2xl font-serif font-black text-[#111111]">{t("admin_categories.confirm.delete_title")}</h3>
+              <h3 className="text-2xl font-serif font-black text-[#111111]">
+                {t("admin_categories.confirm.delete_title")}
+              </h3>
               <p className="text-sm text-[#142B6F] leading-6">
                 {t("admin_categories.confirm.delete_desc", { name: deleteBookCandidate.title })}
               </p>
             </div>
-            <div className="mt-6 flex items-center justify-end gap-3">
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
               <button
                 type="button"
                 onClick={() => setDeleteBookCandidate(null)}
@@ -480,7 +475,9 @@ export default function AdminBooksPage() {
                 disabled={deleteBook.isPending}
                 className="px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-red-700 disabled:opacity-40"
               >
-                {deleteBook.isPending ? t("admin_books.messages.deleting") || "Deleting..." : t("admin_books.actions.delete")}
+                {deleteBook.isPending
+                  ? t("admin_books.messages.deleting") || "Deleting..."
+                  : t("admin_books.actions.delete")}
               </button>
             </div>
           </div>
@@ -495,12 +492,14 @@ function BookTable({
   onDelete,
   onEdit,
   deletingId,
+  isLoading,
   onCondition,
 }: {
   books: Book[];
   onDelete: (candidate: { id: string; type: "physical" | "digital"; title: string }) => void;
   onEdit: (book: Book) => void;
   deletingId?: string;
+  isLoading: boolean;
   onCondition: (id: string, title: string) => void;
 }) {
   const { t } = useLanguage();
@@ -514,38 +513,74 @@ function BookTable({
     };
   }, []);
 
-  if (books.length === 0) return <div className="py-16 text-center text-sm text-[#142B6F]">{t("admin_books.table.no_books")}</div>;
-  return (
-    <>
-      <div className="grid grid-cols-[2.5fr_2fr_1.5fr_1fr_1fr_auto] gap-4 px-6 py-3 border-b border-[#E1DEE5]/50 bg-[#FFFFFF]">
-        <span className="text-[11px] font-bold text-[#142B6F] uppercase">{t("admin_books.table.title")}</span>
-        <span className="text-[11px] font-bold text-[#142B6F] uppercase">{t("admin_books.table.author")}</span>
-        <span className="text-[11px] font-bold text-[#142B6F] uppercase">{t("admin_books.table.category")}</span>
-        <span className="text-[11px] font-bold text-[#142B6F] uppercase text-center">{t("admin_books.table.copies")}</span>
-        <span className="text-[11px] font-bold text-[#142B6F] uppercase">{t("admin_books.table.status")}</span>
-        <span className="w-16"></span>
-      </div>
-      {books.map((book) => (
-        <div
-          key={book.id}
-          className="grid grid-cols-[2.5fr_2fr_1.5fr_1fr_1fr_auto] gap-4 items-center px-6 py-4 border-b border-[#E1DEE5]/30 hover:bg-[#FFFFFF]"
-        >
-          <span className="text-sm font-bold text-[#111111] truncate">{book.title}</span>
-          <span className="text-sm text-[#142B6F] truncate">{book.author?.name || "—"}</span>
-          <span className="text-sm text-[#111111]/70">{book.category?.name || "—"}</span>
-          <span className="text-sm text-[#111111]/70 text-center">
-            {book.type === "digital" ? t("admin_books.status.digital") : (book.total ?? "—")}
+  const bookColumns: ColumnDef<Book, unknown>[] = [
+    {
+      id: "title",
+      header: t("admin_books.table.title"),
+      cell: ({ row }) => <span className="text-sm font-bold text-[#111111] truncate block">{row.original.title}</span>,
+    },
+    {
+      id: "author",
+      header: t("admin_books.table.author"),
+      cell: ({ row }) => (
+        <span className="text-sm text-[#142B6F] truncate block">{row.original.author?.name || "-"}</span>
+      ),
+    },
+    {
+      id: "category",
+      header: t("admin_books.table.category"),
+      cell: ({ row }) => <span className="text-sm text-[#111111]/70">{row.original.category?.name || "-"}</span>,
+    },
+    {
+      id: "copies",
+      header: t("admin_books.table.copies"),
+      meta: {
+        headerClassName: "text-left",
+        cellClassName: "text-left",
+      },
+      cell: ({ row }) => {
+        const book = row.original;
+        return (
+          <span className="text-sm text-[#111111]/70 block">
+            {book.type === "digital" ? t("admin_books.status.digital") : (book.total ?? "-")}
           </span>
+        );
+      },
+    },
+    {
+      id: "status",
+      header: t("admin_books.table.status"),
+      meta: {
+        headerClassName: "text-left",
+        cellClassName: "text-left",
+      },
+      cell: ({ row }) => {
+        const book = row.original;
+        return (
           <span
-            className={`text-xs font-bold px-2.5 py-1 rounded-lg w-fit ${book.type === "digital" ? "bg-[#E1DEE5] text-[#111111]" : book.available === 0 || book.status === "BORROWED" ? "bg-red-50 text-red-600" : "bg-green-50 text-green-700"}`}
+            className={`text-xs font-bold px-2.5 py-1 rounded-lg w-fit block ${book.type === "digital" ? "bg-[#E1DEE5] text-[#111111]" : book.available === 0 || book.status === "BORROWED" ? "bg-red-50 text-red-600" : "bg-green-50 text-green-700"}`}
           >
             {book.type === "digital"
               ? book.pdf_access === "RESTRICTED"
                 ? t("admin_books.status.read_only")
                 : t("admin_books.status.download_allowed")
-              : book.status || (book.available === 0 ? t("admin_books.status.out_of_stock") : t("admin_books.status.available"))}
+              : book.status ||
+                (book.available === 0 ? t("admin_books.status.out_of_stock") : t("admin_books.status.available"))}
           </span>
-          <div className="relative flex justify-end" onClick={(event) => event.stopPropagation()}>
+        );
+      },
+    },
+    {
+      id: "actions",
+      header: "",
+      meta: {
+        headerClassName: "text-left w-[96px]",
+        cellClassName: "text-left w-[96px]",
+      },
+      cell: ({ row }) => {
+        const book = row.original;
+        return (
+          <div className="relative flex justify-start" onClick={(event) => event.stopPropagation()}>
             <button
               type="button"
               onClick={() => setOpenMenuBookId((current) => (current === book.id ? null : book.id))}
@@ -556,7 +591,7 @@ function BookTable({
             </button>
 
             {openMenuBookId === book.id ? (
-              <div className="absolute right-0 top-11 z-2147483646 min-w-56 overflow-hidden rounded-xl border border-[#E1DEE5] bg-white shadow-[0_18px_40px_rgba(0,0,0,0.18)]">
+              <div className="absolute right-0 top-11 z-2147483646 min-w-48 overflow-hidden sm:left-0 sm:right-auto sm:min-w-56 rounded-xl border border-[#E1DEE5] bg-white shadow-[0_18px_40px_rgba(0,0,0,0.18)]">
                 <button
                   type="button"
                   onClick={() => {
@@ -593,9 +628,19 @@ function BookTable({
               </div>
             ) : null}
           </div>
-        </div>
-      ))}
-    </>
+        );
+      },
+    },
+  ];
+
+  return (
+    <TanStackTable
+      data={books}
+      columns={bookColumns}
+      isLoading={isLoading}
+      emptyText={t("admin_books.table.no_books")}
+      skeletonRows={5}
+    />
   );
 }
 
@@ -604,49 +649,77 @@ function CategoryTable({
   onEdit,
   onDelete,
   deletingId,
+  isLoading,
 }: {
   categories: Category[];
   onEdit: (category: Category) => void;
   onDelete: (id: string) => void;
   deletingId?: string;
+  isLoading: boolean;
 }) {
   const { t } = useLanguage();
-  if (categories.length === 0)
-    return <div className="py-16 text-center text-sm text-[#142B6F]">{t("admin_categories.table.no_categories")}</div>;
-  return (
-    <>
-      <div className="grid grid-cols-[3fr_1fr_auto] gap-4 px-6 py-3 border-b border-[#E1DEE5]/50 bg-[#FFFFFF]">
-        <span className="text-[11px] font-bold text-[#142B6F] uppercase">{t("admin_categories.table.category")}</span>
-        <span className="text-[11px] font-bold text-[#142B6F] uppercase">{t("admin_categories.table.physical")} / {t("admin_categories.table.digital")}</span>
-        <span className="w-16"></span>
-      </div>
-      {categories.map((cat) => (
-        <div
-          key={cat.id}
-          className="grid grid-cols-[3fr_1fr_auto] gap-4 items-center px-6 py-4 border-b border-[#E1DEE5]/30 hover:bg-[#FFFFFF]"
-        >
-          <span className="text-sm font-bold text-[#111111]">{cat.name}</span>
-          <span className="text-sm text-[#111111]/70">
-            {(cat._count?.books || 0) + (cat._count?.digital_books || 0)}
-          </span>
+
+  const categoryColumns: ColumnDef<Category, unknown>[] = [
+    {
+      id: "category",
+      header: t("admin_categories.table.category"),
+      cell: ({ row }) => <span className="text-sm font-bold text-[#111111]">{row.original.name}</span>,
+    },
+    {
+      id: "book_counts",
+      header: `${t("admin_categories.table.physical")} / ${t("admin_categories.table.digital")}`,
+      meta: {
+        headerClassName: "text-left",
+        cellClassName: "text-left",
+      },
+      cell: ({ row }) => (
+        <span className="text-sm text-[#111111]/70">
+          {(row.original._count?.books || 0) + (row.original._count?.digital_books || 0)}
+        </span>
+      ),
+    },
+    {
+      id: "actions",
+      header: "",
+      meta: {
+        headerClassName: "text-left w-[96px]",
+        cellClassName: "text-left w-[96px]",
+      },
+      cell: ({ row }) => {
+        const category = row.original;
+        return (
           <div className="flex items-center gap-2">
             <button
-              onClick={() => onEdit(cat)}
+              onClick={() => onEdit(category)}
+              title={`Edit ${category.name}`}
+              aria-label={`Edit ${category.name}`}
               className="w-8 h-8 flex items-center justify-center rounded-lg text-[#142B6F] hover:text-[#111111] hover:bg-[#E1DEE5]"
             >
               <Pencil size={15} />
             </button>
             <button
-              onClick={() => onDelete(cat.id)}
-              disabled={deletingId === cat.id}
+              onClick={() => onDelete(category.id)}
+              disabled={deletingId === category.id}
+              title={`Delete ${category.name}`}
+              aria-label={`Delete ${category.name}`}
               className="w-8 h-8 flex items-center justify-center rounded-lg text-[#142B6F] hover:text-red-500 hover:bg-red-50 disabled:opacity-40"
             >
               <Trash2 size={15} />
             </button>
           </div>
-        </div>
-      ))}
-    </>
+        );
+      },
+    },
+  ];
+
+  return (
+    <TanStackTable
+      data={categories}
+      columns={categoryColumns}
+      isLoading={isLoading}
+      emptyText={t("admin_categories.table.no_categories")}
+      skeletonRows={5}
+    />
   );
 }
 
@@ -1041,10 +1114,12 @@ function AddBookModal({
             <X size={18} />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="px-8 py-6 space-y-4 max-h-[80vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} className="px-5 sm:px-8 py-5 sm:py-6 space-y-4 max-h-[85vh] overflow-y-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-bold text-[#111111] mb-1.5">{t("admin_books.modal.labels.title")} *</label>
+              <label className="block text-sm font-bold text-[#111111] mb-1.5">
+                {t("admin_books.modal.labels.title")} *
+              </label>
               <input
                 type="text"
                 value={form.title}
@@ -1082,9 +1157,11 @@ function AddBookModal({
               createLabel={t("admin_categories.modal.submit_add")}
               isCreating={createCategoryFn.isPending}
             />
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-bold text-[#111111] mb-1.5">{t("admin_books.modal.labels.rental_price")} *</label>
+                <label className="block text-sm font-bold text-[#111111] mb-1.5">
+                  {t("admin_books.modal.labels.rental_price")} *
+                </label>
                 <input
                   type="number"
                   min="0.01"
@@ -1095,7 +1172,9 @@ function AddBookModal({
                 />
               </div>
               <div>
-                <label className="block text-sm font-bold text-[#111111] mb-1.5">{t("admin_books.modal.labels.loan_duration")}</label>
+                <label className="block text-sm font-bold text-[#111111] mb-1.5">
+                  {t("admin_books.modal.labels.loan_duration")}
+                </label>
                 <input
                   type="number"
                   min="1"
@@ -1111,7 +1190,9 @@ function AddBookModal({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {modalTab === "physical" ? (
               <div>
-                <label className="block text-sm font-bold text-[#111111] mb-1.5">{t("admin_books.modal.labels.copies")} *</label>
+                <label className="block text-sm font-bold text-[#111111] mb-1.5">
+                  {t("admin_books.modal.labels.copies")} *
+                </label>
                 <input
                   type="number"
                   min="1"
@@ -1133,7 +1214,9 @@ function AddBookModal({
                   {pdfFile ? (
                     <p className="text-xs text-[#111111] truncate px-2">{pdfFile.name}</p>
                   ) : (
-                    <p className="text-xs text-[#142B6F]">{editingBook ? t("admin_books.modal.drop_pdf_edit") : t("admin_books.modal.drop_pdf")}</p>
+                    <p className="text-xs text-[#142B6F]">
+                      {editingBook ? t("admin_books.modal.drop_pdf_edit") : t("admin_books.modal.drop_pdf")}
+                    </p>
                   )}
                 </div>
                 <input
@@ -1146,7 +1229,9 @@ function AddBookModal({
               </div>
             )}
             <div>
-              <label className="block text-sm font-bold text-[#111111] mb-1.5">{t("admin_books.modal.labels.publication_year")}</label>
+              <label className="block text-sm font-bold text-[#111111] mb-1.5">
+                {t("admin_books.modal.labels.publication_year")}
+              </label>
               <input
                 type="text"
                 value={form.publication_year}
@@ -1156,7 +1241,9 @@ function AddBookModal({
               />
             </div>
             <div>
-              <label className="block text-sm font-bold text-[#111111] mb-1.5">{t("admin_books.modal.labels.pages")}</label>
+              <label className="block text-sm font-bold text-[#111111] mb-1.5">
+                {t("admin_books.modal.labels.pages")}
+              </label>
               <input
                 type="number"
                 min="1"
@@ -1167,9 +1254,11 @@ function AddBookModal({
               />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-bold text-[#111111] mb-1.5">{t("admin_books.modal.labels.tags")}</label>
+              <label className="block text-sm font-bold text-[#111111] mb-1.5">
+                {t("admin_books.modal.labels.tags")}
+              </label>
               <input
                 type="text"
                 value={form.tags}
@@ -1179,7 +1268,9 @@ function AddBookModal({
               />
             </div>
             <div>
-              <label className="block text-sm font-bold text-[#111111] mb-1.5">{t("admin_books.modal.labels.topics")}</label>
+              <label className="block text-sm font-bold text-[#111111] mb-1.5">
+                {t("admin_books.modal.labels.topics")}
+              </label>
               <input
                 type="text"
                 value={form.topics}
@@ -1190,7 +1281,9 @@ function AddBookModal({
             </div>
           </div>
           <div>
-            <label className="block text-sm font-bold text-[#111111] mb-1.5">{t("admin_books.modal.labels.description")}</label>
+            <label className="block text-sm font-bold text-[#111111] mb-1.5">
+              {t("admin_books.modal.labels.description")}
+            </label>
             <textarea
               rows={3}
               value={form.description}
@@ -1200,7 +1293,9 @@ function AddBookModal({
           </div>
           {modalTab === "digital" && (
             <div>
-              <label className="block text-sm font-bold text-[#111111] mb-1.5">{t("admin_books.modal.labels.pdf_access")}</label>
+              <label className="block text-sm font-bold text-[#111111] mb-1.5">
+                {t("admin_books.modal.labels.pdf_access")}
+              </label>
               <select
                 value={form.pdf_access}
                 onChange={(e) =>
@@ -1215,7 +1310,9 @@ function AddBookModal({
             </div>
           )}
           <div>
-            <label className="block text-sm font-bold text-[#111111] mb-1.5">{t("admin_books.modal.labels.cover_image")}</label>
+            <label className="block text-sm font-bold text-[#111111] mb-1.5">
+              {t("admin_books.modal.labels.cover_image")}
+            </label>
             <div
               onClick={() => imageInputRef.current?.click()}
               className="w-full h-24 border-2 border-dashed border-[#E1DEE5] rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-[#142B6F]"
@@ -1238,7 +1335,9 @@ function AddBookModal({
             />
           </div>
           <div>
-            <label className="block text-sm font-bold text-[#111111] mb-1.5">{t("admin_books.modal.labels.book_gallery")}</label>
+            <label className="block text-sm font-bold text-[#111111] mb-1.5">
+              {t("admin_books.modal.labels.book_gallery")}
+            </label>
             <div
               onClick={() => galleryInputRef.current?.click()}
               className="w-full h-20 border-2 border-dashed border-[#E1DEE5] rounded-2xl flex items-center justify-center cursor-pointer hover:border-[#142B6F]"
@@ -1335,7 +1434,7 @@ function ConditionModal({
       }}
     >
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden">
-        <div className="flex items-center justify-between px-8 pt-7 pb-4 border-b border-[#E1DEE5]/50">
+        <div className="flex items-center justify-between px-5 sm:px-8 pt-6 sm:pt-7 pb-4 border-b border-[#E1DEE5]/50">
           <div>
             <h3 className="text-xl font-serif font-extrabold text-[#111111]">Book Condition Management</h3>
             <p className="text-sm text-[#142B6F]">{title}</p>
@@ -1416,7 +1515,7 @@ function ConditionModal({
 
                 <div>
                   <label className="block text-sm font-bold text-[#111111] mb-2">New Condition *</label>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {["NEW", "GOOD", "WORN", "DAMAGED", "LOST"].map((cond) => (
                       <button
                         key={cond}

@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Search, Plus, ChevronLeft, ChevronRight, X, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory } from "@/lib/hooks/useQueries";
+import { ColumnDef } from "@tanstack/react-table";
+import { TanStackTable } from "@/components/ui/TanStackTable";
 
 interface Category {
   id: string;
@@ -77,16 +79,95 @@ export default function AdminCategoriesPage() {
     }
   };
 
+  const categoryColumns: ColumnDef<Category, unknown>[] = [
+    {
+      id: "category",
+      header: "Category",
+      cell: ({ row }) => <span className="text-sm font-bold text-[#111111]">{row.original.name}</span>,
+    },
+    {
+      id: "physical",
+      header: "Physical",
+      meta: {
+        headerClassName: "text-left",
+        cellClassName: "text-left",
+      },
+      cell: ({ row }) => <span className="text-sm text-[#111111]/70 block">{row.original._count?.books || 0}</span>,
+    },
+    {
+      id: "digital",
+      header: "Digital",
+      meta: {
+        headerClassName: "text-left",
+        cellClassName: "text-left",
+      },
+      cell: ({ row }) => (
+        <span className="text-sm text-[#111111]/70 block">{row.original._count?.digital_books || 0}</span>
+      ),
+    },
+    {
+      id: "actions",
+      header: "",
+      meta: {
+        headerClassName: "text-left w-[88px]",
+        cellClassName: "text-left w-[88px]",
+      },
+      cell: ({ row }) => {
+        const category = row.original;
+        return (
+          <div className="relative flex justify-start" onClick={(event) => event.stopPropagation()}>
+            <button
+              type="button"
+              onClick={() => setOpenMenuCategoryId((current) => (current === category.id ? null : category.id))}
+              className="h-9 w-9 rounded-full border border-[#E1DEE5] bg-[#FFFFFF] text-[#142B6F] flex items-center justify-center"
+              aria-label={`Open actions for ${category.name}`}
+            >
+              <MoreHorizontal size={16} />
+            </button>
+
+            {openMenuCategoryId === category.id ? (
+              <div className="absolute right-0 top-11 z-2147483646 min-w-48 overflow-hidden sm:left-0 sm:right-auto sm:min-w-56 rounded-xl border border-[#E1DEE5] bg-white shadow-[0_18px_40px_rgba(0,0,0,0.18)]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpenMenuCategoryId(null);
+                    openEdit(category);
+                  }}
+                  className="flex w-full items-center px-3 py-2.5 text-left text-sm font-semibold text-[#111111] hover:bg-[#FFFFFF]"
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpenMenuCategoryId(null);
+                    setDeleteCategoryCandidate({ id: category.id, name: category.name });
+                  }}
+                  disabled={deletingCategoryId === category.id}
+                  className="flex w-full items-center px-3 py-2.5 text-left text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-40"
+                >
+                  Delete
+                </button>
+              </div>
+            ) : null}
+          </div>
+        );
+      },
+    },
+  ];
+
   return (
     <>
-      <div className="p-6 lg:p-12 space-y-8">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
+      <div className="p-4 sm:p-6 lg:p-12 space-y-8">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-1">
-            <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-[#111111]">Manage Categories</h1>
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-extrabold text-[#111111]">
+              Manage Categories
+            </h1>
             <p className="text-[#142B6F] font-medium">Create, edit and remove categories used by books.</p>
           </div>
-          <div className="flex items-center gap-3 mt-2">
-            <div className="relative">
+          <div className="flex w-full flex-col gap-3 sm:mt-2 sm:w-auto sm:flex-row sm:items-center">
+            <div className="relative w-full sm:w-auto">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#142B6F]" />
               <input
                 type="text"
@@ -96,12 +177,12 @@ export default function AdminCategoriesPage() {
                   setSearch(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="pl-9 pr-4 py-2.5 text-sm bg-white border border-[#E1DEE5] rounded-xl text-[#111111] placeholder:text-[#E1DEE5] w-52"
+                className="w-full sm:w-52 pl-9 pr-4 py-2.5 text-sm bg-white border border-[#E1DEE5] rounded-xl text-[#111111] placeholder:text-[#E1DEE5]"
               />
             </div>
             <button
               onClick={openCreate}
-              className="flex items-center gap-2 px-4 py-2.5 bg-[#142B6F] text-white text-sm font-bold rounded-xl"
+              className="flex w-full sm:w-auto justify-center items-center gap-2 px-4 py-2.5 bg-[#142B6F] text-white text-sm font-bold rounded-xl"
             >
               <Plus size={16} />
               Add new category
@@ -109,79 +190,16 @@ export default function AdminCategoriesPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-[#E1DEE5]/50 overflow-visible">
-          {isLoading ? (
-            <div className="py-8 px-6 space-y-3">
-              <div className="h-10 rounded-xl bg-[#E1DEE5] animate-pulse" />
-              <div className="h-10 rounded-xl bg-[#E1DEE5] animate-pulse" />
-              <div className="h-10 rounded-xl bg-[#E1DEE5] animate-pulse" />
-            </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-[3fr_1fr_1fr_auto] gap-4 px-6 py-3 border-b border-[#E1DEE5]/50 bg-[#FFFFFF]">
-                <span className="text-[11px] font-bold text-[#142B6F] uppercase">Category</span>
-                <span className="text-[11px] font-bold text-[#142B6F] uppercase text-center">Physical</span>
-                <span className="text-[11px] font-bold text-[#142B6F] uppercase text-center">Digital</span>
-                <span className="w-16" />
-              </div>
-              {paginated.length === 0 ? (
-                <div className="py-16 text-center text-sm text-[#142B6F]">No categories found</div>
-              ) : (
-                paginated.map((category) => (
-                  <div
-                    key={category.id}
-                    className="grid grid-cols-[3fr_1fr_1fr_auto] gap-4 items-center px-6 py-4 border-b border-[#E1DEE5]/30 hover:bg-[#FFFFFF]"
-                  >
-                    <span className="text-sm font-bold text-[#111111]">{category.name}</span>
-                    <span className="text-sm text-[#111111]/70 text-center">{category._count?.books || 0}</span>
-                    <span className="text-sm text-[#111111]/70 text-center">{category._count?.digital_books || 0}</span>
-                    <div className="relative flex justify-end" onClick={(event) => event.stopPropagation()}>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setOpenMenuCategoryId((current) => (current === category.id ? null : category.id))
-                        }
-                        className="h-9 w-9 rounded-full border border-[#E1DEE5] bg-[#FFFFFF] text-[#142B6F] flex items-center justify-center"
-                        aria-label={`Open actions for ${category.name}`}
-                      >
-                        <MoreHorizontal size={16} />
-                      </button>
-
-                      {openMenuCategoryId === category.id ? (
-                        <div className="absolute right-0 top-11 z-2147483646 min-w-56 overflow-hidden rounded-xl border border-[#E1DEE5] bg-white shadow-[0_18px_40px_rgba(0,0,0,0.18)]">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setOpenMenuCategoryId(null);
-                              openEdit(category);
-                            }}
-                            className="flex w-full items-center px-3 py-2.5 text-left text-sm font-semibold text-[#111111] hover:bg-[#FFFFFF]"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setOpenMenuCategoryId(null);
-                              setDeleteCategoryCandidate({ id: category.id, name: category.name });
-                            }}
-                            disabled={deletingCategoryId === category.id}
-                            className="flex w-full items-center px-3 py-2.5 text-left text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-40"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
-                ))
-              )}
-            </>
-          )}
-        </div>
+        <TanStackTable
+          data={paginated}
+          columns={categoryColumns}
+          isLoading={isLoading}
+          emptyText="No categories found"
+          skeletonRows={4}
+        />
 
         {!isLoading && totalPages > 1 && (
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
@@ -190,12 +208,12 @@ export default function AdminCategoriesPage() {
               <ChevronLeft size={16} />
               Previous
             </button>
-            <div className="flex items-center gap-1.5">
+            <div className="flex w-full items-center justify-center gap-1.5 overflow-x-auto sm:w-auto sm:justify-start">
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                 <button
                   key={page}
                   onClick={() => setCurrentPage(page)}
-                  className={`w-8 h-8 rounded-lg text-sm font-bold ${page === currentPage ? "bg-[#142B6F] text-white" : "text-[#111111]/60 hover:bg-[#E1DEE5]"}`}
+                  className={`w-8 h-8 shrink-0 rounded-lg text-sm font-bold ${page === currentPage ? "bg-[#142B6F] text-white" : "text-[#111111]/60 hover:bg-[#E1DEE5]"}`}
                 >
                   {page}
                 </button>
@@ -221,7 +239,7 @@ export default function AdminCategoriesPage() {
           }}
         >
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="flex items-center justify-between px-8 pt-7 pb-4 border-b border-[#E1DEE5]/50">
+            <div className="flex items-center justify-between px-5 sm:px-8 pt-6 sm:pt-7 pb-4 border-b border-[#E1DEE5]/50">
               <h3 className="text-xl font-serif font-extrabold text-[#111111]">
                 {editingId ? "Edit Category" : "Add Category"}
               </h3>
@@ -234,7 +252,7 @@ export default function AdminCategoriesPage() {
                 <X size={18} />
               </button>
             </div>
-            <form onSubmit={handleSave} className="px-8 py-6 space-y-4">
+            <form onSubmit={handleSave} className="px-5 sm:px-8 py-5 sm:py-6 space-y-4">
               <div>
                 <label className="block text-sm font-bold text-[#111111] mb-1.5">Category Name</label>
                 <input
@@ -269,7 +287,7 @@ export default function AdminCategoriesPage() {
         >
           <div
             onClick={(event) => event.stopPropagation()}
-            className="w-full max-w-md rounded-[28px] border border-[#E1DEE5] bg-[#FFFFFF] p-6 shadow-2xl"
+            className="w-full max-w-md rounded-[28px] border border-[#E1DEE5] bg-[#FFFFFF] p-5 sm:p-6 shadow-2xl"
           >
             <div className="space-y-2">
               <h3 className="text-2xl font-serif font-black text-[#111111]">Delete Category?</h3>
@@ -278,7 +296,7 @@ export default function AdminCategoriesPage() {
                 linked books depend on it.
               </p>
             </div>
-            <div className="mt-6 flex items-center justify-end gap-3">
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
               <button
                 type="button"
                 onClick={() => setDeleteCategoryCandidate(null)}

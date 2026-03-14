@@ -60,6 +60,14 @@ body {
   min-height: 100vh;
 }
 
+img,
+video,
+canvas,
+svg {
+  max-width: 100%;
+  height: auto;
+}
+
 main {
   position: relative;
   isolation: isolate;
@@ -280,7 +288,7 @@ a.bg-primary::after,
 }
 
 /* Keep dashboard modals above sidebar and fixed navbar, always full-screen. */
-.dashboard-shell [class*="fixed"][class*="inset-0"] {
+.dashboard-shell [class*="fixed"][class*="inset-0"]:not(.sidebar-backdrop) {
   position: fixed !important;
   inset: 0 !important;
   z-index: 2147483645 !important;
@@ -294,5 +302,30 @@ a.bg-primary::after,
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+@media (max-width: 1024px) {
+  .dashboard-shell [class*="grid-cols-["] {
+    min-width: 760px;
+  }
+
+  .dashboard-shell [class*="overflow-hidden"] {
+    overflow-x: auto;
+  }
+
+  .dashboard-shell h1 {
+    font-size: clamp(1.5rem, 4vw, 2.2rem);
+    line-height: 1.2;
+  }
+}
+
+@media (max-width: 640px) {
+  .dashboard-shell [class*="p-6"] {
+    padding: 1rem !important;
+  }
+
+  .dashboard-shell [class*="lg:p-12"] {
+    padding: 1rem !important;
   }
 }

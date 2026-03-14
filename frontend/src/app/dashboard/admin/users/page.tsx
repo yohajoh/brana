@@ -15,15 +15,17 @@ import {
 } from "@/lib/hooks/useQueries";
 import { usePersona } from "@/components/providers/PersonaProvider";
 import { useLanguage } from "@/components/providers/LanguageProvider";
+import { ColumnDef } from "@tanstack/react-table";
+import { TanStackTable } from "@/components/ui/TanStackTable";
 
 interface User {
   id: string;
   name: string;
   email: string;
   role: string;
-  student_id?: string;
-  year?: number | string;
-  phone?: string;
+  student_id?: string | null;
+  year?: number | string | null;
+  phone?: string | null;
   is_blocked?: boolean;
   is_super_admin?: boolean;
 }
@@ -303,23 +305,118 @@ export default function AdminUsersPage() {
     return actions;
   };
 
+  const userColumns: ColumnDef<User, unknown>[] = [
+    {
+      id: "name",
+      header: t("admin_users.table.name"),
+      cell: ({ row }) => <span className="text-sm font-bold text-[#111111] truncate block">{row.original.name}</span>,
+    },
+    {
+      id: "email",
+      header: t("admin_users.table.email"),
+      cell: ({ row }) => <span className="text-sm text-[#142B6F] truncate block">{row.original.email}</span>,
+    },
+    {
+      id: "id_no",
+      header: t("admin_users.table.id_no"),
+      cell: ({ row }) => <span className="text-sm text-[#111111]/70">{row.original.student_id || "-"}</span>,
+    },
+    {
+      id: "year",
+      header: t("admin_users.table.year"),
+      cell: ({ row }) => <span className="text-sm text-[#111111]/70">{row.original.year || "-"}</span>,
+    },
+    {
+      id: "phone_no",
+      header: t("admin_users.table.phone_no"),
+      cell: ({ row }) => <span className="text-sm text-[#111111]/70">{row.original.phone || "-"}</span>,
+    },
+    {
+      id: "status",
+      header: t("admin_users.table.status"),
+      meta: {
+        headerClassName: "text-left",
+        cellClassName: "text-left",
+      },
+      cell: ({ row }) => {
+        const user = row.original;
+        return (
+          <span className={`text-xs font-bold px-2.5 py-1 rounded-lg w-fit block ${getRoleBadgeClassName(user)}`}>
+            {getRoleLabel(user)}
+          </span>
+        );
+      },
+    },
+    {
+      id: "actions",
+      header: t("admin_users.table.actions"),
+      meta: {
+        headerClassName: "text-left w-[96px]",
+        cellClassName: "text-left w-[96px]",
+      },
+      cell: ({ row }) => {
+        const user = row.original;
+        const actions = getUserActions(user);
+
+        return (
+          <div className="flex items-center justify-start">
+            <div className="relative" onClick={(event) => event.stopPropagation()}>
+              <button
+                type="button"
+                onClick={() => setOpenMenuUserId((current) => (current === user.id ? null : user.id))}
+                disabled={actions.length === 0}
+                className="h-9 w-9 rounded-full border border-[#E1DEE5] bg-[#FFFFFF] text-[#142B6F] flex items-center justify-center disabled:opacity-40"
+                aria-label={`Open actions for ${user.name}`}
+              >
+                <MoreHorizontal size={16} />
+              </button>
+              {openMenuUserId === user.id && actions.length > 0 ? (
+                <div className="absolute right-0 top-11 z-2147483646 min-w-48 overflow-hidden sm:left-0 sm:right-auto sm:min-w-56 rounded-xl border border-[#E1DEE5] bg-white shadow-[0_18px_40px_rgba(0,0,0,0.18)]">
+                  {actions.map((action) => (
+                    <button
+                      key={action.key}
+                      type="button"
+                      onClick={action.onClick}
+                      disabled={action.disabled}
+                      className={`flex w-full items-center px-3 py-2.5 text-left text-sm font-semibold transition-colors disabled:opacity-40 ${
+                        action.tone === "danger"
+                          ? "text-red-700 hover:bg-red-50"
+                          : action.tone === "amber"
+                            ? "text-amber-700 hover:bg-amber-50"
+                            : "text-[#111111] hover:bg-[#FFFFFF]"
+                      }`}
+                    >
+                      {action.label}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          </div>
+        );
+      },
+    },
+  ];
+
   return (
-    <div className="p-6 lg:p-12 space-y-8">
-      <div className="flex items-start justify-between gap-4">
+    <div className="p-4 sm:p-6 lg:p-12 space-y-8">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">
-          <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-[#111111]">{t("admin_users.title")}</h1>
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-extrabold text-[#111111]">
+            {t("admin_users.title")}
+          </h1>
           <p className="text-[#142B6F] font-medium">
             {isSuperAdminViewer ? t("admin_users.subtitle_super") : t("admin_users.subtitle_admin")}
           </p>
           {isSuperAdminViewer ? (
-            <div className="mt-4 inline-flex rounded-xl border border-[#E1DEE5] bg-white p-1">
+            <div className="mt-4 flex w-full sm:w-fit overflow-x-auto rounded-xl border border-[#E1DEE5] bg-white p-1">
               <button
                 type="button"
                 onClick={() => {
                   setActiveTab("STUDENTS");
                   setCurrentPage(1);
                 }}
-                className={`px-4 py-2 text-xs font-bold rounded-lg ${
+                className={`whitespace-nowrap px-4 py-2 text-xs font-bold rounded-lg ${
                   activeTab === "STUDENTS" ? "bg-[#142B6F] text-white" : "text-[#142B6F]"
                 }`}
               >
@@ -331,7 +428,7 @@ export default function AdminUsersPage() {
                   setActiveTab("ADMINS");
                   setCurrentPage(1);
                 }}
-                className={`px-4 py-2 text-xs font-bold rounded-lg ${
+                className={`whitespace-nowrap px-4 py-2 text-xs font-bold rounded-lg ${
                   activeTab === "ADMINS" ? "bg-[#142B6F] text-white" : "text-[#142B6F]"
                 }`}
               >
@@ -340,7 +437,7 @@ export default function AdminUsersPage() {
             </div>
           ) : null}
         </div>
-        <div className="relative mt-2">
+        <div className="relative mt-2 w-full sm:w-auto">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#142B6F]" />
           <input
             type="text"
@@ -350,103 +447,25 @@ export default function AdminUsersPage() {
               setSearch(e.target.value);
               setCurrentPage(1);
             }}
-            className="pl-9 pr-4 py-2.5 text-sm bg-white border border-[#E1DEE5] rounded-xl text-[#111111] placeholder:text-[#E1DEE5] w-56"
+            className="w-full sm:w-56 pl-9 pr-4 py-2.5 text-sm bg-white border border-[#E1DEE5] rounded-xl text-[#111111] placeholder:text-[#E1DEE5]"
           />
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-[#E1DEE5]/50 overflow-visible">
-        {isLoading ? (
-          <div className="p-6 space-y-3">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="grid grid-cols-[2fr_2fr_1.5fr_0.8fr_1.2fr_1fr_2fr] gap-4 items-center py-2">
-                <div className="h-4 rounded-lg bg-[#E1DEE5]/70 animate-pulse" />
-                <div className="h-4 rounded-lg bg-[#E1DEE5]/70 animate-pulse" />
-                <div className="h-4 rounded-lg bg-[#E1DEE5]/70 animate-pulse" />
-                <div className="h-4 rounded-lg bg-[#E1DEE5]/70 animate-pulse" />
-                <div className="h-4 rounded-lg bg-[#E1DEE5]/70 animate-pulse" />
-                <div className="h-4 w-20 rounded-lg bg-[#E1DEE5]/70 animate-pulse" />
-                <div className="h-8 w-8 ml-auto rounded-full bg-[#E1DEE5]/70 animate-pulse" />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <>
-            <div className="grid grid-cols-[2fr_2fr_1.5fr_0.8fr_1.2fr_1fr_2fr] gap-4 px-6 py-3 border-b border-[#E1DEE5]/50 bg-[#FFFFFF]">
-              <span className="text-[11px] font-bold text-[#142B6F] uppercase">{t("admin_users.table.name")}</span>
-              <span className="text-[11px] font-bold text-[#142B6F] uppercase">{t("admin_users.table.email")}</span>
-              <span className="text-[11px] font-bold text-[#142B6F] uppercase">{t("admin_users.table.id_no")}</span>
-              <span className="text-[11px] font-bold text-[#142B6F] uppercase">{t("admin_users.table.year")}</span>
-              <span className="text-[11px] font-bold text-[#142B6F] uppercase">{t("admin_users.table.phone_no")}</span>
-              <span className="text-[11px] font-bold text-[#142B6F] uppercase">{t("admin_users.table.status")}</span>
-              <span className="text-[11px] font-bold text-[#142B6F] uppercase">{t("admin_users.table.actions")}</span>
-            </div>
-            {paginated.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-[#142B6F]">
-                <p className="text-sm font-medium">{t("admin_users.table.no_users")}</p>
-              </div>
-            ) : (
-              paginated.map((user) => {
-                const actions = getUserActions(user);
-
-                return (
-                  <div
-                    key={user.id}
-                    onClick={() => setSelectedUser(user)}
-                    className="grid grid-cols-[2fr_2fr_1.5fr_0.8fr_1.2fr_1fr_2fr] gap-4 items-center px-6 py-4 border-b border-[#E1DEE5]/30 hover:bg-[#FFFFFF] transition-colors cursor-pointer"
-                  >
-                    <span className="text-sm font-bold text-[#111111] truncate">{user.name}</span>
-                    <span className="text-sm text-[#142B6F] truncate">{user.email}</span>
-                    <span className="text-sm text-[#111111]/70">{user.student_id || "—"}</span>
-                    <span className="text-sm text-[#111111]/70">{user.year || "—"}</span>
-                    <span className="text-sm text-[#111111]/70">{user.phone || "—"}</span>
-                    <span className={`text-xs font-bold px-2.5 py-1 rounded-lg w-fit ${getRoleBadgeClassName(user)}`}>
-                      {getRoleLabel(user)}
-                    </span>
-                    <div className="flex items-center justify-end">
-                      <div className="relative" onClick={(event) => event.stopPropagation()}>
-                        <button
-                          type="button"
-                          onClick={() => setOpenMenuUserId((current) => (current === user.id ? null : user.id))}
-                          disabled={actions.length === 0}
-                          className="h-9 w-9 rounded-full border border-[#E1DEE5] bg-[#FFFFFF] text-[#142B6F] flex items-center justify-center disabled:opacity-40"
-                          aria-label={`Open actions for ${user.name}`}
-                        >
-                          <MoreHorizontal size={16} />
-                        </button>
-                        {openMenuUserId === user.id && actions.length > 0 ? (
-                          <div className="absolute right-0 top-11 z-2147483646 min-w-56 overflow-hidden rounded-xl border border-[#E1DEE5] bg-white shadow-[0_18px_40px_rgba(0,0,0,0.18)]">
-                            {actions.map((action) => (
-                              <button
-                                key={action.key}
-                                type="button"
-                                onClick={action.onClick}
-                                disabled={action.disabled}
-                                className={`flex w-full items-center px-3 py-2.5 text-left text-sm font-semibold transition-colors disabled:opacity-40 ${
-                                  action.tone === "danger"
-                                    ? "text-red-700 hover:bg-red-50"
-                                    : action.tone === "amber"
-                                      ? "text-amber-700 hover:bg-amber-50"
-                                      : "text-[#111111] hover:bg-[#FFFFFF]"
-                                }`}
-                              >
-                                {action.label}
-                              </button>
-                            ))}
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </>
-        )}
+      <div onClick={() => setOpenMenuUserId(null)}>
+        <TanStackTable
+          data={paginated}
+          columns={userColumns}
+          isLoading={isLoading}
+          emptyText={t("admin_users.table.no_users")}
+          skeletonRows={5}
+          rowClassName="cursor-pointer"
+          onRowClick={(row) => setSelectedUser(row)}
+        />
       </div>
 
       {!isLoading && totalPages > 1 && (
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <button
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
             disabled={currentPage === 1}
@@ -455,12 +474,12 @@ export default function AdminUsersPage() {
             <ChevronLeft size={16} />
             {t("common.previous")}
           </button>
-          <div className="flex items-center gap-1.5">
+          <div className="flex w-full items-center justify-center gap-1.5 overflow-x-auto sm:w-auto sm:justify-start">
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
               <button
                 key={page}
                 onClick={() => setCurrentPage(page)}
-                className={`w-8 h-8 rounded-lg text-sm font-bold ${page === currentPage ? "bg-[#142B6F] text-white" : "text-[#111111]/60 hover:bg-[#E1DEE5]"}`}
+                className={`w-8 h-8 shrink-0 rounded-lg text-sm font-bold ${page === currentPage ? "bg-[#142B6F] text-white" : "text-[#111111]/60 hover:bg-[#E1DEE5]"}`}
               >
                 {page}
               </button>
@@ -481,7 +500,7 @@ export default function AdminUsersPage() {
         <div className="fixed inset-0 z-50 bg-black/20" onClick={() => setSelectedUser(null)}>
           <aside
             onClick={(e) => e.stopPropagation()}
-            className="absolute right-0 top-0 h-full w-full md:w-[40%] bg-[#FFFFFF] border-l border-[#E1DEE5] p-6 overflow-y-auto"
+            className="absolute right-0 top-0 h-full w-full sm:w-[78%] lg:w-[40%] bg-[#FFFFFF] border-l border-[#E1DEE5] p-4 sm:p-6 overflow-y-auto"
           >
             <div className="flex items-start justify-between mb-5">
               <div>
@@ -499,14 +518,16 @@ export default function AdminUsersPage() {
             </div>
             {insights ? (
               <div className="space-y-5">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <Card label={t("admin_users.insights.total_rentals")} value={String(insights.stats.totalRentals)} />
                   <Card label={t("admin_users.insights.on_time_rate")} value={`${insights.stats.onTimeRate}%`} />
                   <Card label={t("admin_users.insights.active_overdue")} value={String(insights.stats.activeOverdue)} />
                   <Card label={t("admin_users.insights.wishlist")} value={String(insights.stats.wishlistCount)} />
                 </div>
                 <div className="bg-white rounded-2xl border border-[#E1DEE5]/50 p-4">
-                  <h3 className="text-sm font-bold text-[#111111] mb-3">{t("admin_users.insights.favorite_categories")}</h3>
+                  <h3 className="text-sm font-bold text-[#111111] mb-3">
+                    {t("admin_users.insights.favorite_categories")}
+                  </h3>
                   {insights.favoriteCategories.length === 0 ? (
                     <p className="text-xs text-[#142B6F]">{t("admin_users.insights.no_category_data")}</p>
                   ) : (
@@ -530,11 +551,12 @@ export default function AdminUsersPage() {
                         <div key={item.id} className="p-4 border-b border-[#E1DEE5]/30 last:border-0">
                           <p className="text-sm font-bold text-[#111111]">{item.bookTitle}</p>
                           <p className="text-xs text-[#142B6F]">
-                            {t("admin_users.insights.due", { date: new Date(item.dueDate).toLocaleDateString() })} • {item.status}
+                            {t("admin_users.insights.due", { date: new Date(item.dueDate).toLocaleDateString() })} •{" "}
+                            {item.status}
                           </p>
                           <p className={`text-xs mt-1 ${item.isLate ? "text-red-700" : "text-green-700"}`}>
-                            {item.isLate 
-                              ? t("admin_users.insights.late", { count: item.daysLate }) 
+                            {item.isLate
+                              ? t("admin_users.insights.late", { count: item.daysLate })
                               : t("admin_users.insights.on_time")}
                           </p>
                         </div>
@@ -557,18 +579,18 @@ export default function AdminUsersPage() {
         >
           <div
             onClick={(event) => event.stopPropagation()}
-            className="w-full max-w-md rounded-[28px] border border-[#E1DEE5] bg-[#FFFFFF] p-6 shadow-2xl"
+            className="w-full max-w-md rounded-[28px] border border-[#E1DEE5] bg-[#FFFFFF] p-5 sm:p-6 shadow-2xl"
           >
             <div className="space-y-2">
               <h3 className="text-2xl font-serif font-black text-[#111111]">{confirmDialog.title}</h3>
               <p className="text-sm text-[#142B6F] leading-6">{confirmDialog.description}</p>
             </div>
-            <div className="mt-6 flex items-center justify-end gap-3">
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
               <button
                 type="button"
                 onClick={() => setConfirmDialog(null)}
                 disabled={isConfirming}
-                className="px-4 py-2.5 rounded-xl border border-[#E1DEE5] text-sm font-bold text-[#142B6F] disabled:opacity-40"
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-[#E1DEE5] text-sm font-bold text-[#142B6F] disabled:opacity-40"
               >
                 {t("common.cancel")}
               </button>
@@ -576,7 +598,7 @@ export default function AdminUsersPage() {
                 type="button"
                 onClick={submitConfirmDialog}
                 disabled={isConfirming}
-                className={`px-4 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-40 ${
+                className={`w-full sm:w-auto px-4 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-40 ${
                   confirmDialog.tone === "danger"
                     ? "bg-red-700"
                     : confirmDialog.tone === "amber"

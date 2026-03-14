@@ -1,9 +1,11 @@
 "use client";
 
 import React from "react";
+import { ColumnDef } from "@tanstack/react-table";
 import { useOverdueRentals, useOverdueRanking, useSendReminders } from "@/lib/hooks/useQueries";
 import { toast } from "sonner";
 import { useLanguage } from "@/components/providers/LanguageProvider";
+import { TanStackTable } from "@/components/ui/TanStackTable";
 
 type OverdueRental = {
   id: string;
@@ -29,7 +31,8 @@ export default function AdminOverduePage() {
   const { t } = useLanguage();
 
   const rows: OverdueRental[] = (overdueData?.rentals || []) as unknown as OverdueRental[];
-  const ranking: OverdueRank[] = ((rankingData as unknown as { ranking?: OverdueRank[] })?.ranking || []) as OverdueRank[];
+  const ranking: OverdueRank[] = ((rankingData as unknown as { ranking?: OverdueRank[] })?.ranking ||
+    []) as OverdueRank[];
 
   const maxDays = Math.max(1, ...ranking.map((r) => r.totalDaysOverdue));
 
@@ -60,20 +63,94 @@ export default function AdminOverduePage() {
     }
   };
 
-  return (
-    <div className="p-6 lg:p-12 space-y-8">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
+  const columns: ColumnDef<OverdueRental, unknown>[] = [
+    {
+      id: "select",
+      header: () => (
+        <div className="flex justify-center">
+          <input
+            type="checkbox"
+            checked={rows.length > 0 && selectedIds.size === rows.length}
+            onChange={(e) => handleSelectAll(e.target.checked)}
+            aria-label={t("admin_overdue.select_all") || "Select all overdue rows"}
+            title={t("admin_overdue.select_all") || "Select all overdue rows"}
+            className="w-4 h-4 rounded border-[#E1DEE5] text-[#111111] focus:ring-[#111111]"
+          />
+        </div>
+      ),
+      cell: ({ row }) => (
+        <div className="flex justify-center">
+          <input
+            type="checkbox"
+            checked={selectedIds.has(row.original.id)}
+            onChange={() => handleToggleSelect(row.original.id)}
+            aria-label={
+              t("admin_overdue.select_row", { name: row.original.user.name }) ||
+              `Select overdue row for ${row.original.user.name}`
+            }
+            title={
+              t("admin_overdue.select_row", { name: row.original.user.name }) ||
+              `Select overdue row for ${row.original.user.name}`
+            }
+            className="w-4 h-4 rounded border-[#E1DEE5] text-[#111111] focus:ring-[#111111]"
+          />
+        </div>
+      ),
+    },
+    {
+      id: "student",
+      header: t("admin_overdue.table.student"),
+      cell: ({ row }) => (
         <div>
-          <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-[#111111]">{t("admin_overdue.title")}</h1>
+          <p className="text-sm font-bold text-[#111111]">{row.original.user.name}</p>
+          <p className="text-xs text-[#142B6F]">{row.original.user.email}</p>
+        </div>
+      ),
+    },
+    {
+      id: "book",
+      header: t("admin_overdue.table.book"),
+      cell: ({ row }) => (
+        <span className="text-sm text-[#111111] truncate block">{row.original.physical_book.title}</span>
+      ),
+    },
+    {
+      id: "due_date",
+      header: t("admin_overdue.table.due_date"),
+      cell: ({ row }) => (
+        <span className="text-sm text-[#111111]/70">{new Date(row.original.due_date).toLocaleDateString()}</span>
+      ),
+    },
+    {
+      id: "days_overdue",
+      header: t("admin_overdue.table.days_overdue"),
+      cell: ({ row }) => <span className="text-sm font-bold text-red-700">{row.original.daysOverdue}</span>,
+    },
+    {
+      id: "estimated_fine",
+      header: t("admin_overdue.table.estimated_fine"),
+      cell: ({ row }) => (
+        <span className="text-sm text-[#111111]/70">{Number(row.original.estimatedFine).toFixed(2)} ETB</span>
+      ),
+    },
+  ];
+
+  return (
+    <div className="p-4 sm:p-6 lg:p-12 space-y-8">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-extrabold text-[#111111]">
+            {t("admin_overdue.title")}
+          </h1>
           <p className="text-[#142B6F] font-medium">{t("admin_overdue.subtitle")}</p>
         </div>
-        <button 
-          onClick={handleSendReminders} 
-          disabled={sendReminders.isPending || selectedIds.size === 0} 
-          className="px-4 py-2.5 bg-[#142B6F] text-white text-sm font-bold rounded-xl disabled:opacity-50 transition-opacity"
+        <button
+          onClick={handleSendReminders}
+          disabled={sendReminders.isPending || selectedIds.size === 0}
+          className="w-full sm:w-auto px-4 py-2.5 bg-[#142B6F] text-white text-sm font-bold rounded-xl disabled:opacity-50 transition-opacity"
         >
-          {sendReminders.isPending 
-            ? t("admin_overdue.sending") 
+          {sendReminders.isPending
+            ? t("admin_overdue.sending")
             : t("admin_overdue.send_reminder", { count: selectedIds.size })}
         </button>
       </div>
@@ -85,9 +162,13 @@ export default function AdminOverduePage() {
         ) : (
           ranking.map((item, idx) => (
             <div key={item.user.id} className="space-y-1">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-[#111111]">#{idx + 1} {item.user.name}</span>
-                <span className="text-[#142B6F]">{item.totalDaysOverdue} {t("admin_overdue.days")} • {item.totalEstimatedFine.toFixed(2)} ETB</span>
+              <div className="flex flex-col gap-1 text-xs sm:flex-row sm:items-center sm:justify-between">
+                <span className="font-bold text-[#111111]">
+                  #{idx + 1} {item.user.name}
+                </span>
+                <span className="text-[#142B6F]">
+                  {item.totalDaysOverdue} {t("admin_overdue.days")} • {item.totalEstimatedFine.toFixed(2)} ETB
+                </span>
               </div>
               <div className="w-full h-2 rounded-full bg-[#E1DEE5] overflow-hidden">
                 <div className="h-full bg-[#142B6F]" style={{ width: `${(item.totalDaysOverdue / maxDays) * 100}%` }} />
@@ -97,46 +178,14 @@ export default function AdminOverduePage() {
         )}
       </div>
 
-      <div className="bg-white rounded-2xl border border-[#E1DEE5]/50 overflow-hidden">
-        <div className="grid grid-cols-[0.4fr_2fr_2fr_1fr_1fr_1fr] gap-4 px-6 py-3 border-b border-[#E1DEE5]/50 bg-[#FFFFFF] text-[11px] font-bold text-[#142B6F] uppercase">
-          <span className="flex justify-center">
-            <input
-              type="checkbox"
-              checked={rows.length > 0 && selectedIds.size === rows.length}
-              onChange={(e) => handleSelectAll(e.target.checked)}
-              className="w-4 h-4 rounded border-[#E1DEE5] text-[#111111] focus:ring-[#111111]"
-            />
-          </span>
-          <span>{t("admin_overdue.table.student")}</span>
-          <span>{t("admin_overdue.table.book")}</span>
-          <span>{t("admin_overdue.table.due_date")}</span>
-          <span>{t("admin_overdue.table.days_overdue")}</span>
-          <span>{t("admin_overdue.table.estimated_fine")}</span>
-        </div>
-
-        {overdueLoading ? (
-          <div className="py-16 text-center text-[#142B6F] text-sm">{t("common.loading")}</div>
-        ) : rows.length === 0 ? (
-          <div className="py-16 text-center text-[#142B6F] text-sm">{t("admin_overdue.table.no_overdue")}</div>
-        ) : (
-          rows.map((item) => (
-            <div key={item.id} className="grid grid-cols-[0.4fr_2fr_2fr_1fr_1fr_1fr] gap-4 items-center px-6 py-4 border-b border-[#E1DEE5]/30 last:border-0 hover:bg-[#FFFFFF] transition-colors">
-              <div className="flex justify-center">
-                <input
-                  type="checkbox"
-                  checked={selectedIds.has(item.id)}
-                  onChange={() => handleToggleSelect(item.id)}
-                  className="w-4 h-4 rounded border-[#E1DEE5] text-[#111111] focus:ring-[#111111]"
-                />
-              </div>
-              <div><p className="text-sm font-bold text-[#111111]">{item.user.name}</p><p className="text-xs text-[#142B6F]">{item.user.email}</p></div>
-              <span className="text-sm text-[#111111] truncate">{item.physical_book.title}</span>
-              <span className="text-sm text-[#111111]/70">{new Date(item.due_date).toLocaleDateString()}</span>
-              <span className="text-sm font-bold text-red-700">{item.daysOverdue}</span>
-              <span className="text-sm text-[#111111]/70">{Number(item.estimatedFine).toFixed(2)} ETB</span>
-            </div>
-          ))
-        )}
+      <div className="bg-white rounded-2xl border border-[#E1DEE5]/50 overflow-visible">
+        <TanStackTable
+          data={rows}
+          columns={columns}
+          isLoading={overdueLoading}
+          skeletonRows={5}
+          emptyText={t("admin_overdue.table.no_overdue")}
+        />
       </div>
     </div>
   );

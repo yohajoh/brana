@@ -47,11 +47,17 @@ export default function ConfirmEmailPage({ params }: { params: Promise<{ token: 
             <div className="h-3 w-1/2 mx-auto rounded-full bg-[#E1DEE5] animate-pulse" />
           </div>
         )}
-        
+
         {status === "success" && (
           <div className="flex flex-col items-center space-y-4">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-8 w-8"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
@@ -67,7 +73,13 @@ export default function ConfirmEmailPage({ params }: { params: Promise<{ token: 
         {status === "error" && (
           <div className="flex flex-col items-center space-y-4">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-100 text-red-600">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-8 w-8"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </div>

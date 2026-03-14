@@ -1,7 +1,15 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useMyRentals, useSystemConfig, useStudentOverview, useRecommendations, usePopularity, Rental, SystemConfig } from "@/lib/hooks/useQueries";
+import {
+  useMyRentals,
+  useSystemConfig,
+  useStudentOverview,
+  useRecommendations,
+  usePopularity,
+  Rental,
+  SystemConfig,
+} from "@/lib/hooks/useQueries";
 import { CurrentlyBorrowed } from "@/components/CurrentlyBorrowed";
 import { AmountOwed } from "@/components/AmountOwed";
 import { BorrowingHistoryTable } from "@/components/BorrowingHistoryTable";
@@ -37,10 +45,12 @@ export default function DashboardPage() {
   const config: SystemConfig | null = configData?.data?.config as unknown as SystemConfig | null;
 
   const overviewStats = useMemo(() => {
-    const data = overviewData?.data as {
-      stats?: { reservationCount?: number; unreadNotifications?: number; onTimeRate?: number; dueSoon?: number };
-      topCategories?: Array<{ name: string; count: number }>;
-    } | undefined;
+    const data = overviewData?.data as
+      | {
+          stats?: { reservationCount?: number; unreadNotifications?: number; onTimeRate?: number; dueSoon?: number };
+          topCategories?: Array<{ name: string; count: number }>;
+        }
+      | undefined;
     return {
       reservationCount: data?.stats?.reservationCount || 0,
       unreadNotifications: data?.stats?.unreadNotifications || 0,
@@ -51,7 +61,9 @@ export default function DashboardPage() {
   }, [overviewData]);
 
   const recommendations = useMemo(() => {
-    const data = recommendationsData?.data as { physical?: Array<{ id: string; title: string; author?: { name: string }; available: number }> };
+    const data = recommendationsData?.data as {
+      physical?: Array<{ id: string; title: string; author?: { name: string }; available: number }>;
+    };
     return data?.physical || [];
   }, [recommendationsData]);
 
@@ -72,18 +84,22 @@ export default function DashboardPage() {
   const currentBook = borrowed[0] ?? null;
   const returnedOrCompleted = rentals.filter((r) => r.status === "RETURNED" || r.status === "COMPLETED");
 
-  const pendingFine = rentals.filter((r) => r.status === "PENDING" && r.fine != null).reduce((sum, r) => sum + Number(r.fine), 0);
-  const overdueEstimated = borrowed.filter((r) => r.isOverdue && r.daysOverdue != null).reduce((sum, r) => {
-    const days = r.daysOverdue ?? 0;
-    const rate = config?.daily_fine ? Number(config.daily_fine) : 0;
-    return sum + days * rate;
-  }, 0);
+  const pendingFine = rentals
+    .filter((r) => r.status === "PENDING" && r.fine != null)
+    .reduce((sum, r) => sum + Number(r.fine), 0);
+  const overdueEstimated = borrowed
+    .filter((r) => r.isOverdue && r.daysOverdue != null)
+    .reduce((sum, r) => {
+      const days = r.daysOverdue ?? 0;
+      const rate = config?.daily_fine ? Number(config.daily_fine) : 0;
+      return sum + days * rate;
+    }, 0);
   const totalOwed = pendingFine + overdueEstimated;
 
   return (
-    <div className="p-6 lg:p-12 space-y-12">
+    <div className="p-4 sm:p-6 lg:p-12 space-y-8 sm:space-y-10 lg:space-y-12">
       <div className="space-y-2">
-        <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-primary">
+        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-extrabold text-primary leading-tight">
           {t("student_dashboard.welcome", { name: loading ? "..." : (user?.name ?? "Guest") })}
         </h1>
         <p className="text-secondary font-medium">{t("student_dashboard.subtitle")}</p>
@@ -95,7 +111,11 @@ export default function DashboardPage() {
         <div className="xl:col-span-2 space-y-8">
           <div className="space-y-6">
             <h2 className="text-xl font-serif font-bold text-primary">{t("student_dashboard.currently_borrowed")}</h2>
-            <CurrentlyBorrowed rental={currentBook} dailyFine={config?.daily_fine ? Number(config.daily_fine) : undefined} loading={loading} />
+            <CurrentlyBorrowed
+              rental={currentBook}
+              dailyFine={config?.daily_fine ? Number(config.daily_fine) : undefined}
+              loading={loading}
+            />
           </div>
         </div>
         <div className="xl:col-span-1">
@@ -109,19 +129,27 @@ export default function DashboardPage() {
         <h2 className="text-xl font-serif font-bold text-primary">{t("student_dashboard.snapshot.title")}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           <div className="bg-white border border-border/50 rounded-2xl p-4">
-            <p className="text-xs uppercase tracking-wider font-bold text-secondary">{t("student_dashboard.snapshot.due_soon")}</p>
+            <p className="text-xs uppercase tracking-wider font-bold text-secondary">
+              {t("student_dashboard.snapshot.due_soon")}
+            </p>
             <p className="text-2xl font-black text-primary">{overviewStats.dueSoon}</p>
           </div>
           <div className="bg-white border border-border/50 rounded-2xl p-4">
-            <p className="text-xs uppercase tracking-wider font-bold text-secondary">{t("student_dashboard.snapshot.on_time_rate")}</p>
+            <p className="text-xs uppercase tracking-wider font-bold text-secondary">
+              {t("student_dashboard.snapshot.on_time_rate")}
+            </p>
             <p className="text-2xl font-black text-primary">{overviewStats.onTimeRate}%</p>
           </div>
           <div className="bg-white border border-border/50 rounded-2xl p-4">
-            <p className="text-xs uppercase tracking-wider font-bold text-secondary">{t("student_dashboard.snapshot.reservations")}</p>
+            <p className="text-xs uppercase tracking-wider font-bold text-secondary">
+              {t("student_dashboard.snapshot.reservations")}
+            </p>
             <p className="text-2xl font-black text-primary">{overviewStats.reservationCount}</p>
           </div>
           <div className="bg-white border border-border/50 rounded-2xl p-4">
-            <p className="text-xs uppercase tracking-wider font-bold text-secondary">{t("student_dashboard.snapshot.unread_alerts")}</p>
+            <p className="text-xs uppercase tracking-wider font-bold text-secondary">
+              {t("student_dashboard.snapshot.unread_alerts")}
+            </p>
             <p className="text-2xl font-black text-primary">{overviewStats.unreadNotifications}</p>
           </div>
         </div>
@@ -138,8 +166,8 @@ export default function DashboardPage() {
                 <p className="text-sm font-bold text-primary line-clamp-1">{book.title}</p>
                 <p className="text-xs text-secondary">{book.author?.name ?? t("sidebar.authors")}</p>
                 <p className="text-xs mt-2 font-semibold text-primary/80">
-                  {book.available > 0 
-                    ? t("student_dashboard.recommendations.available", { count: book.available }) 
+                  {book.available > 0
+                    ? t("student_dashboard.recommendations.available", { count: book.available })
                     : t("student_dashboard.recommendations.unavailable")}
                 </p>
               </div>
@@ -155,13 +183,18 @@ export default function DashboardPage() {
         ) : (
           <div className="flex flex-wrap gap-2">
             {overviewStats.topCategories.map((cat) => (
-              <span key={cat.name} className="px-3 py-1.5 rounded-full bg-white border border-border text-sm text-primary">{cat.name} ({cat.count})</span>
+              <span
+                key={cat.name}
+                className="px-3 py-1.5 rounded-full bg-white border border-border text-sm text-primary"
+              >
+                {cat.name} ({cat.count})
+              </span>
             ))}
           </div>
         )}
       </section>
 
-      <section className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <section className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
         <div className="space-y-3">
           <h2 className="text-xl font-serif font-bold text-primary">{t("student_dashboard.trending.title")}</h2>
           <div className="space-y-2">
@@ -169,9 +202,17 @@ export default function DashboardPage() {
               <div className="text-sm text-secondary">{t("student_dashboard.trending.none")}</div>
             ) : (
               popularity.trending.map((item) => (
-                <div key={item.book.id} className="bg-white border border-border/50 rounded-xl p-3 flex items-center justify-between">
-                  <div><p className="text-sm font-bold text-primary">{item.book.title}</p><p className="text-xs text-secondary">{item.book.author?.name ?? t("sidebar.authors")}</p></div>
-                  <span className="text-xs font-bold text-primary">{t("student_dashboard.trending.rentals", { count: item.rentalCount })}</span>
+                <div
+                  key={item.book.id}
+                  className="bg-white border border-border/50 rounded-xl p-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div>
+                    <p className="text-sm font-bold text-primary">{item.book.title}</p>
+                    <p className="text-xs text-secondary">{item.book.author?.name ?? t("sidebar.authors")}</p>
+                  </div>
+                  <span className="text-xs font-bold text-primary">
+                    {t("student_dashboard.trending.rentals", { count: item.rentalCount })}
+                  </span>
                 </div>
               ))
             )}
@@ -184,8 +225,14 @@ export default function DashboardPage() {
               <div className="text-sm text-secondary">{t("student_dashboard.top_rated.none")}</div>
             ) : (
               popularity.topRated.map((item) => (
-                <div key={item.book.id} className="bg-white border border-border/50 rounded-xl p-3 flex items-center justify-between">
-                  <div><p className="text-sm font-bold text-primary">{item.book.title}</p><p className="text-xs text-secondary">{item.book.author?.name ?? t("sidebar.authors")}</p></div>
+                <div
+                  key={item.book.id}
+                  className="bg-white border border-border/50 rounded-xl p-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div>
+                    <p className="text-sm font-bold text-primary">{item.book.title}</p>
+                    <p className="text-xs text-secondary">{item.book.author?.name ?? t("sidebar.authors")}</p>
+                  </div>
                   <span className="text-xs font-bold text-primary">{item.avgRating.toFixed(1)} ★</span>
                 </div>
               ))

@@ -40,13 +40,16 @@ export function useResolveAlert() {
         queryKey: ["inventory-alerts"],
       });
 
-      queryClient.setQueriesData<{ alerts?: Alert[]; data?: { alerts?: Alert[] } }>({ queryKey: ["inventory-alerts"] }, (old) => {
-        if (!old) return old;
-        const alerts = old.alerts || old.data?.alerts || [];
-        const updated = alerts.map((a) => (a.id === id ? { ...a, is_resolved: true } : a));
-        if (old.alerts) return { ...old, alerts: updated };
-        return { ...old, data: { ...(old.data || {}), alerts: updated } };
-      });
+      queryClient.setQueriesData<{ alerts?: Alert[]; data?: { alerts?: Alert[] } }>(
+        { queryKey: ["inventory-alerts"] },
+        (old) => {
+          if (!old) return old;
+          const alerts = old.alerts || old.data?.alerts || [];
+          const updated = alerts.map((a) => (a.id === id ? { ...a, is_resolved: true } : a));
+          if (old.alerts) return { ...old, alerts: updated };
+          return { ...old, data: { ...(old.data || {}), alerts: updated } };
+        },
+      );
 
       return { previousAlertsQueries };
     },
@@ -143,22 +146,24 @@ function AlertsContent() {
   const alerts: Alert[] = alertsData?.alerts || alertsData?.data?.alerts || [];
 
   return (
-    <div className="p-6 lg:p-12 space-y-8">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
+    <div className="p-4 sm:p-6 lg:p-12 space-y-8">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
-          <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-[#111111]">{t("admin_alerts.title")}</h1>
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-extrabold text-[#111111]">
+            {t("admin_alerts.title")}
+          </h1>
           <p className="text-[#142B6F] font-medium">{t("admin_alerts.subtitle")}</p>
         </div>
         <button
           onClick={handleScanAlerts}
           disabled={scanAlerts.isPending}
-          className="px-4 py-2.5 bg-[#142B6F] text-white text-sm font-bold rounded-xl disabled:opacity-50"
+          className="w-full sm:w-auto px-4 py-2.5 bg-[#142B6F] text-white text-sm font-bold rounded-xl disabled:opacity-50"
         >
           {scanAlerts.isPending ? t("admin_alerts.scanning") : t("admin_alerts.run_scan")}
         </button>
       </div>
 
-      <div className="flex gap-2 border-b border-[#E1DEE5]/50">
+      <div className="flex gap-2 overflow-x-auto border-b border-[#E1DEE5]/50">
         <button
           onClick={() => handleTabChange("alerts")}
           className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === "alerts" ? "border-[#111111] text-[#111111]" : "border-transparent text-[#142B6F]"}`}
@@ -184,7 +189,10 @@ function AlertsContent() {
             <LoadingList count={3} />
           ) : (
             alerts.map((item) => (
-              <div key={item.id} className="flex items-center justify-between px-6 py-4 border-b border-[#E1DEE5]/30">
+              <div
+                key={item.id}
+                className="flex flex-col gap-3 px-6 py-4 border-b border-[#E1DEE5]/30 sm:flex-row sm:items-center sm:justify-between"
+              >
                 <div>
                   <p className="text-sm font-bold text-[#111111]">{item.message}</p>
                   <p className="text-xs text-[#142B6F]">
@@ -236,7 +244,7 @@ export default function AdminAlertsPage() {
   return (
     <Suspense
       fallback={
-        <div className="p-12">
+        <div className="p-4 sm:p-6 lg:p-12">
           <LoadingList count={5} />
         </div>
       }

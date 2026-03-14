@@ -5,6 +5,8 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import type { Rental } from "@/lib/hooks/useQueries";
+import { ColumnDef } from "@tanstack/react-table";
+import { TanStackTable } from "@/components/ui/TanStackTable";
 
 type Props = {
   rentals: Rental[];
@@ -19,18 +21,13 @@ const formatDate = (d: string) =>
   });
 
 const daysBetween = (start: string, end: string) =>
-  Math.ceil(
-    (new Date(end).getTime() - new Date(start).getTime()) / (1000 * 60 * 60 * 24)
-  );
+  Math.ceil((new Date(end).getTime() - new Date(start).getTime()) / (1000 * 60 * 60 * 24));
 
 export const BorrowingHistoryTable = ({ rentals, loading }: Props) => {
   const { t } = useLanguage();
   const rows = rentals.map((r) => {
     const returned = r.return_date ? formatDate(r.return_date) : "—";
-    const days =
-      r.return_date && r.loan_date
-        ? daysBetween(r.loan_date, r.return_date)
-        : 0;
+    const days = r.return_date && r.loan_date ? daysBetween(r.loan_date, r.return_date) : 0;
     const amount = r.payment?.amount ?? r.fine ?? 0;
     return {
       id: r.id,
@@ -42,82 +39,56 @@ export const BorrowingHistoryTable = ({ rentals, loading }: Props) => {
     };
   });
 
+  type HistoryRow = (typeof rows)[number];
+  const columns: ColumnDef<HistoryRow, unknown>[] = [
+    {
+      id: "title",
+      header: t("student_dashboard.history.table.title"),
+      cell: ({ row }) => <span className="font-bold text-primary">{row.original.title}</span>,
+    },
+    {
+      id: "borrowed",
+      header: t("student_dashboard.history.table.borrowed"),
+      cell: ({ row }) => <span className="text-secondary font-medium">{row.original.borrowedDate}</span>,
+    },
+    {
+      id: "returned",
+      header: t("student_dashboard.history.table.returned"),
+      cell: ({ row }) => <span className="text-secondary font-medium">{row.original.returnedDate}</span>,
+    },
+    {
+      id: "days_kept",
+      header: t("student_dashboard.history.table.days_kept"),
+      cell: ({ row }) => <span className="text-secondary font-medium">{row.original.daysKept}</span>,
+    },
+    {
+      id: "amount_paid",
+      header: t("student_dashboard.history.table.amount_paid"),
+      cell: ({ row }) => <span className="font-extrabold text-primary">{row.original.amountPaid}</span>,
+    },
+  ];
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h3 className="text-xl font-serif font-extrabold text-primary">
-          {t("student_dashboard.history.title")}
-        </h3>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <h3 className="text-xl font-serif font-extrabold text-primary">{t("student_dashboard.history.title")}</h3>
         <Link
           href="/dashboard/student/history"
           className="flex items-center gap-1 text-sm font-bold text-secondary hover:text-primary transition-colors group"
         >
           {t("student_dashboard.history.see_all")}
-          <ChevronRight
-            size={16}
-            className="group-hover:translate-x-0.5 transition-transform"
-          />
+          <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
         </Link>
       </div>
 
       <div className="overflow-x-auto rounded-3xl border border-border/40 bg-card/50 shadow-sm">
-        {loading ? (
-          <div className="p-8 animate-pulse">
-            <div className="h-8 bg-muted/50 rounded mb-4 w-2/3" />
-            <div className="space-y-2">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-12 bg-muted/50 rounded" />
-              ))}
-            </div>
-          </div>
-        ) : rows.length === 0 ? (
-          <div className="p-8 text-center text-secondary">
-            {t("student_dashboard.history.none")}
-          </div>
-        ) : (
-          <table className="w-full text-left border-collapse min-w-[600px]">
-            <thead>
-              <tr className="border-b border-border/50">
-                <th className="px-6 py-5 text-[10px] uppercase tracking-widest font-extrabold text-secondary/60">
-                  {t("student_dashboard.history.table.title")}
-                </th>
-                <th className="px-6 py-5 text-[10px] uppercase tracking-widest font-extrabold text-secondary/60">
-                  {t("student_dashboard.history.table.borrowed")}
-                </th>
-                <th className="px-6 py-5 text-[10px] uppercase tracking-widest font-extrabold text-secondary/60">
-                  {t("student_dashboard.history.table.returned")}
-                </th>
-                <th className="px-6 py-5 text-[10px] uppercase tracking-widest font-extrabold text-secondary/60">
-                  {t("student_dashboard.history.table.days_kept")}
-                </th>
-                <th className="px-6 py-5 text-[10px] uppercase tracking-widest font-extrabold text-secondary/60">
-                  {t("student_dashboard.history.table.amount_paid")}
-                </th>
-              </tr>
-            </thead>
-            <tbody className="text-sm divide-y divide-border/20">
-              {rows.map((row) => (
-                <tr key={row.id} className="hover:bg-primary/5 transition-colors">
-                  <td className="px-6 py-5 font-bold text-primary">
-                    {row.title}
-                  </td>
-                  <td className="px-6 py-5 text-secondary font-medium">
-                    {row.borrowedDate}
-                  </td>
-                  <td className="px-6 py-5 text-secondary font-medium">
-                    {row.returnedDate}
-                  </td>
-                  <td className="px-6 py-5 text-secondary font-medium">
-                    {row.daysKept}
-                  </td>
-                  <td className="px-6 py-5 font-extrabold text-primary">
-                    {row.amountPaid}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+        <TanStackTable
+          data={rows}
+          columns={columns}
+          isLoading={loading}
+          emptyText={t("student_dashboard.history.none")}
+          skeletonRows={3}
+        />
       </div>
     </div>
   );

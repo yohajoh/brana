@@ -170,9 +170,11 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="p-6 lg:p-12 space-y-8">
+    <div className="p-4 sm:p-6 lg:p-12 space-y-8">
       <div>
-        <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-[#111111]">{t("dashboard.analytics_title")}</h1>
+        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-extrabold text-[#111111]">
+          {t("dashboard.analytics_title")}
+        </h1>
         <p className="text-[#142B6F] font-medium">{t("dashboard.analytics_subtitle")}</p>
       </div>
 
@@ -180,11 +182,13 @@ export default function DashboardPage() {
         <div className="py-16 text-center text-[#142B6F]">{t("dashboard.loading")}</div>
       ) : (
         <>
-          <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
             {summary.map((item) => (
-              <div key={item.label} className="bg-white border border-[#E1DEE5]/50 rounded-xl p-3">
-                <p className="text-[11px] uppercase tracking-wider text-[#142B6F] font-bold">{item.label}</p>
-                <p className="text-2xl font-black text-[#111111] mt-1">{item.value}</p>
+              <div key={item.label} className="bg-white border border-[#E1DEE5]/50 rounded-xl p-3 sm:p-4 shadow-sm">
+                <p className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#142B6F] font-bold truncate">
+                  {item.label}
+                </p>
+                <p className="text-xl sm:text-2xl font-black text-[#111111] mt-1 truncate">{item.value}</p>
               </div>
             ))}
           </div>
@@ -207,7 +211,7 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
               <Field label={t("dashboard.targets.rentals")} value={form.target_rentals} onChange={(v) => setForm((p) => ({ ...p, target_rentals: v }))} />
               <Field label={t("dashboard.targets.active_readers")} value={form.target_active_readers} onChange={(v) => setForm((p) => ({ ...p, target_active_readers: v }))} />
-              <Field label={t("dashboard.targets.on_time_returns")} item={null} value={form.target_on_time_returns} onChange={(v) => setForm((p) => ({ ...p, target_on_time_returns: v }))} />
+              <Field label={t("dashboard.targets.on_time_returns")} value={form.target_on_time_returns} onChange={(v) => setForm((p) => ({ ...p, target_on_time_returns: v }))} />
               <Field label={t("dashboard.targets.new_books")} value={form.target_new_books} onChange={(v) => setForm((p) => ({ ...p, target_new_books: v }))} />
             </div>
             <button type="submit" disabled={updateTargets.isPending} className="px-4 py-2.5 rounded-xl bg-[#142B6F] text-white text-sm font-bold disabled:opacity-50">
