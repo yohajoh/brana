@@ -29,6 +29,8 @@ import { paginationMeta } from "../utils/apiFeatures.js";
 import { createNotification, notifyAdmins } from "./notification.service.js";
 import { notifyNextInQueue, markReservationFulfilledForBorrow } from "./reservation.service.js";
 import { syncLowStockAlertForBook } from "./inventoryAlert.service.js";
+import { sendEmail } from "./mail.service.js";
+import { getCalendarClient } from "../utils/googleCalendar.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS
@@ -115,6 +117,44 @@ const RENTAL_INCLUDE = {
 const buildCopyCode = (bookId, sequence) => {
   const seq = String(sequence).padStart(4, "0");
   return `BC-${bookId.slice(0, 8).toUpperCase()}-${seq}`;
+};
+
+const normalizeTimeString = (value) => {
+  if (!value) return null;
+  const match = /^(\d{2}):(\d{2})$/.exec(String(value));
+  if (!match) return null;
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  if (hours > 23 || minutes > 59) return null;
+  return { hours, minutes };
+};
+
+const toUtcDateString = (date) => {
+  const pad = (value) => String(value).padStart(2, "0");
+  return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}`;
+};
+
+const buildOverdueEventWindow = ({ dueDate, overdueTime }) => {
+  const time = normalizeTimeString(overdueTime) || { hours: 9, minutes: 0 };
+  const datePart = toUtcDateString(dueDate);
+  const startDateTime = `${datePart}T${String(time.hours).padStart(2, "0")}:${String(time.minutes).padStart(
+    2,
+    "0",
+  )}:00`;
+  const totalMinutes = time.hours * 60 + time.minutes + 15;
+  const endHours = Math.floor(totalMinutes / 60) % 24;
+  const endMinutes = totalMinutes % 60;
+  let endDatePart = datePart;
+  if (totalMinutes >= 24 * 60) {
+    const base = new Date(Date.UTC(dueDate.getUTCFullYear(), dueDate.getUTCMonth(), dueDate.getUTCDate()));
+    base.setUTCDate(base.getUTCDate() + 1);
+    endDatePart = toUtcDateString(base);
+  }
+  const endDateTime = `${endDatePart}T${String(endHours).padStart(2, "0")}:${String(endMinutes).padStart(
+    2,
+    "0",
+  )}:00`;
+  return { startDateTime, endDateTime };
 };
 
 const ensureAvailableCopy = async (bookId, copies, available) => {
@@ -348,7 +388,7 @@ export const getRentalById = async (id, user) => {
  *   - Notifies student (INFO)
  *   - Notifies admins (INFO)
  */
-export const borrowBook = async (userId, { book_id, loan_days }, io, options = {}) => {
+export const borrowBook = async (userId, { book_id, loan_days, time_zone, overdue_time }, io, options = {}) => {
   if (!book_id) throw new AppError("book_id is required", 400);
 
   const [config, book, user] = await Promise.all([
@@ -366,7 +406,7 @@ export const borrowBook = async (userId, { book_id, loan_days }, io, options = {
     }),
     prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, name: true, email: true, is_blocked: true },
+      select: { id: true, name: true, email: true, is_blocked: true, google_refresh_token: true },
     }),
   ]);
 
@@ -497,6 +537,100 @@ export const borrowBook = async (userId, { book_id, loan_days }, io, options = {
     type: "INFO",
     io,
   });
+
+  const copyCode = rental.copy?.copy_code || "N/A";
+  const emailSubject = `Borrow Confirmed: "${book.title}"`;
+  const emailBodyText = `Dear ${user.name},
+
+You have successfully borrowed "${book.title}".
+
+Borrow Details:
+- Borrow ID: ${rental.id}
+- Copy Code: ${copyCode}
+- Due Date: ${dueDateStr}
+- Loan Period: ${loanDays} day(s)
+
+Please return the book on or before the due date to avoid late fees.
+
+Best regards,
+Birana Library`;
+  const emailBodyHtml = `<p>Dear ${user.name},</p><p>You have successfully borrowed "<strong>${book.title}</strong>".</p><p><strong>Borrow Details</strong><br/>Borrow ID: ${rental.id}<br/>Copy Code: ${copyCode}<br/>Due Date: ${dueDateStr}<br/>Loan Period: ${loanDays} day(s)</p><p>Please return the book on or before the due date to avoid late fees.</p><p>Best regards,<br/>Birana Library</p>`;
+
+  try {
+    await sendEmail({
+      email: user.email,
+      subject: emailSubject,
+      message: emailBodyText,
+      html: emailBodyHtml,
+    });
+  } catch (error) {
+    console.error(`Failed to send borrow confirmation email to ${user.email}:`, error);
+  }
+
+  if (user.google_refresh_token) {
+    try {
+      const calendar = getCalendarClient(user.google_refresh_token);
+      const { startDateTime, endDateTime } = buildOverdueEventWindow({
+        dueDate,
+        overdueTime: overdue_time,
+      });
+      const event = {
+        summary: `Overdue Alert: ${book.title}`,
+        description: `Your borrowed book "${book.title}" is due on ${dueDateStr}. Please return it on time to avoid fines.`,
+        start: {
+          dateTime: startDateTime,
+          timeZone: time_zone || "UTC",
+        },
+        end: {
+          dateTime: endDateTime,
+          timeZone: time_zone || "UTC",
+        },
+        attendees: [{ email: user.email }],
+        reminders: {
+          useDefault: false,
+          overrides: [{ method: "email", minutes: 0 }],
+        },
+      };
+
+      await calendar.events.insert({
+        calendarId: "primary",
+        resource: event,
+        sendUpdates: "all",
+      });
+
+      const reminderDate = new Date(dueDate);
+      reminderDate.setDate(reminderDate.getDate() - 1);
+      const { startDateTime: reminderStart, endDateTime: reminderEnd } = buildOverdueEventWindow({
+        dueDate: reminderDate,
+        overdueTime: overdue_time,
+      });
+      const reminderEvent = {
+        summary: `Due Tomorrow: ${book.title}`,
+        description: `Reminder: Your borrowed book "${book.title}" is due tomorrow (${dueDateStr}). Please return it on time to avoid fines.`,
+        start: {
+          dateTime: reminderStart,
+          timeZone: time_zone || "UTC",
+        },
+        end: {
+          dateTime: reminderEnd,
+          timeZone: time_zone || "UTC",
+        },
+        attendees: [{ email: user.email }],
+        reminders: {
+          useDefault: false,
+          overrides: [{ method: "email", minutes: 0 }],
+        },
+      };
+
+      await calendar.events.insert({
+        calendarId: "primary",
+        resource: reminderEvent,
+        sendUpdates: "all",
+      });
+    } catch (error) {
+      console.error("Failed to schedule overdue calendar event:", error);
+    }
+  }
 
   return { ...rental, daysUntilDue: loanDays, dueDate };
 };

@@ -14,6 +14,8 @@ import { AppError } from "../middlewares/error.middleware.js";
 import { paginationMeta } from "../utils/apiFeatures.js";
 import { syncLowStockAlertForBook } from "./inventoryAlert.service.js";
 import { uploadImageToCloudinary } from "../utils/cloudinary.js";
+import { sendEmail } from "./mail.service.js";
+import { getCalendarClient } from "../utils/googleCalendar.js";
 
 const RATING_CACHE_TTL_MS = 60 * 1000;
 const ratingCache = new Map();
@@ -704,6 +706,89 @@ export const createBook = async (data, imageFile = null, galleryFiles = []) => {
   runAsyncTask("sync-low-stock-after-create", async () => {
     await syncLowStockAlertForBook(created.id);
   });
+
+  runAsyncTask("announce-new-book-email", async () => {
+    const users = await prisma.user.findMany({
+      where: { is_blocked: false, is_confirmed: true },
+      select: { email: true, name: true, google_refresh_token: true },
+    });
+
+    if (users.length === 0) return;
+
+    const authorName = created.author?.name || "Unknown";
+    const categoryName = created.category?.name || "Uncategorized";
+    const tags = Array.isArray(created.tags) ? created.tags.join(", ") : "";
+    const topics = Array.isArray(created.topics) ? created.topics.join(", ") : "";
+
+    const detailsLines = [
+      `Title: ${created.title}`,
+      `Author: ${authorName}`,
+      `Category: ${categoryName}`,
+      created.publisher ? `Publisher: ${created.publisher}` : null,
+      created.publication_year ? `Publication Year: ${created.publication_year}` : null,
+      created.language ? `Language: ${created.language}` : null,
+      created.pages ? `Pages: ${created.pages}` : null,
+      created.isbn ? `ISBN: ${created.isbn}` : null,
+      created.rental_price ? `Rental Price: ${Number(created.rental_price).toFixed(2)} ETB` : null,
+      `Copies: ${created.copies}`,
+      `Available: ${created.available}`,
+      tags ? `Tags: ${tags}` : null,
+      topics ? `Topics: ${topics}` : null,
+    ].filter(Boolean);
+
+    const detailsText = detailsLines.join("\n");
+    const detailsHtml = detailsLines.map((line) => `<li>${line}</li>`).join("");
+
+    const subject = `New Book Added: "${created.title}"`;
+    const description = created.description || "No description provided.";
+
+    for (const user of users) {
+      if (!user.email) continue;
+      try {
+        await sendEmail({
+          email: user.email,
+          subject,
+          message: `Hello ${user.name || "Reader"},\n\nA new book has been added to the library catalog.\n\n${detailsText}\n\nDescription:\n${description}\n\nBest regards,\nBirana Library`,
+          html: `<p>Hello ${user.name || "Reader"},</p><p>A new book has been added to the library catalog.</p><ul>${detailsHtml}</ul><p><strong>Description</strong><br/>${description}</p><p>Best regards,<br/>Birana Library</p>`,
+        });
+      } catch (error) {
+        console.error(`Failed to send new book email to ${user.email}:`, error);
+      }
+
+      if (!user.google_refresh_token) continue;
+      try {
+        const calendar = getCalendarClient(user.google_refresh_token);
+        const start = new Date();
+        const end = new Date(start.getTime() + 15 * 60 * 1000);
+        const event = {
+          summary: `New Book Added: ${created.title}`,
+          description: `${detailsText}\n\nDescription:\n${description}`,
+          start: {
+            dateTime: start.toISOString(),
+            timeZone: "UTC",
+          },
+          end: {
+            dateTime: end.toISOString(),
+            timeZone: "UTC",
+          },
+          attendees: [{ email: user.email }],
+          reminders: {
+            useDefault: false,
+            overrides: [{ method: "email", minutes: 0 }],
+          },
+        };
+
+        await calendar.events.insert({
+          calendarId: "primary",
+          resource: event,
+          sendUpdates: "all",
+        });
+      } catch (error) {
+        console.error(`Failed to schedule new book calendar event for ${user.email}:`, error);
+      }
+    }
+  });
+
   return created;
 };
 
