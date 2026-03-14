@@ -39,12 +39,15 @@ const withDbRetry = async (operation, maxAttempts = 2) => {
   throw lastError;
 };
 
-const googleClientId = process.env.GOOGLE_CLIENT_ID;
-const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+const googleClientId = process.env.CLIENT_ID;
+const googleClientSecret = process.env.CLIENT_SECRET;
 const callbackUrl = process.env.CALLBACK_URL;
 
 console.log("📋 Loading passport configuration...");
-console.log("Google Client ID:", googleClientId ? "configured" : "NOT configured");
+console.log(
+  "Google Client ID:",
+  googleClientId ? "configured" : "NOT configured",
+);
 console.log("Callback URL:", callbackUrl);
 
 if (googleClientId && googleClientSecret && callbackUrl) {
@@ -59,25 +62,45 @@ if (googleClientId && googleClientSecret && callbackUrl) {
       },
       async (accessToken, refreshToken, profile, done) => {
         try {
-          console.log("🔐 Google OAuth callback received for:", profile.emails?.[0]?.value);
+          console.log(
+            "🔐 Google OAuth callback received for:",
+            profile.emails?.[0]?.value,
+          );
           const email = profile.emails?.[0]?.value;
           if (!email) {
             return done(new Error("No email provided by Google"), null);
           }
           const displayName = profile.displayName || email.split("@")[0];
 
-          let user = await withDbRetry(() => prisma.user.findUnique({ where: { email } }));
+          let user = await withDbRetry(() =>
+            prisma.user.findUnique({ where: { email } }),
+          );
 
           if (user) {
             console.log("📝 Existing Google user found:", user.email);
             if (user.is_blocked) {
-              return done(new Error("Your account is blocked. Please contact admin."), null);
+              return done(
+                new Error("Your account is blocked. Please contact admin."),
+                null,
+              );
             }
             if (!user.is_confirmed) {
               user = await withDbRetry(() =>
                 prisma.user.update({
                   where: { id: user.id },
                   data: { is_confirmed: true, confirmation_token: null },
+                }),
+              );
+            }
+            if (refreshToken) {
+              user = await withDbRetry(() =>
+                prisma.user.update({
+                  where: { id: user.id },
+                  data: {
+                    google_refresh_token: refreshToken,
+                    google_calendar_email: email,
+                    google_calendar_connected_at: new Date(),
+                  },
                 }),
               );
             }
@@ -94,6 +117,9 @@ if (googleClientId && googleClientSecret && callbackUrl) {
                 email,
                 password_hash: hashedPassword,
                 is_confirmed: true,
+                google_refresh_token: refreshToken || null,
+                google_calendar_email: refreshToken ? email : null,
+                google_calendar_connected_at: refreshToken ? new Date() : null,
               },
             }),
           );
@@ -121,7 +147,10 @@ passport.serializeUser((user, done) => {
 
 passport.deserializeUser(async (id, done) => {
   try {
-    const user = await withDbRetry(() => prisma.user.findUnique({ where: { id } }), 2);
+    const user = await withDbRetry(
+      () => prisma.user.findUnique({ where: { id } }),
+      2,
+    );
     done(null, user);
   } catch (error) {
     done(error, null);

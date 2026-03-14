@@ -2,6 +2,8 @@ import { prisma } from "../prisma.js";
 import { AppError } from "../middlewares/error.middleware.js";
 import { paginationMeta } from "../utils/apiFeatures.js";
 import { createNotification } from "./notification.service.js";
+import { sendEmail } from "./mail.service.js";
+import { getCalendarClient } from "../utils/googleCalendar.js";
 
 const getConfig = async () => {
   const defaults = { reservation_window_hr: 24, max_loan_days: 14 };
@@ -95,6 +97,12 @@ const getNextQueuePosition = async (tx, bookId) => {
     _max: { queue_position: true },
   });
   return Number(current._max.queue_position ?? 0) + 1;
+};
+
+const buildWindowFromDate = (date, minutes = 15) => {
+  const start = new Date(date);
+  const end = new Date(start.getTime() + minutes * 60 * 1000);
+  return { startDateTime: start.toISOString(), endDateTime: end.toISOString() };
 };
 
 export const getMyReservations = async (userId, query, options = {}) => {
@@ -481,7 +489,7 @@ export const expirePendingReservations = async (io, options = {}) => {
     where,
     include: {
       book: { select: { id: true, title: true } },
-      user: { select: { id: true, name: true } },
+      user: { select: { id: true, name: true, email: true, google_refresh_token: true } },
     },
   });
 
@@ -502,6 +510,38 @@ export const expirePendingReservations = async (io, options = {}) => {
         type: "RESERVATION",
         io,
       });
+
+      if (item.user?.google_refresh_token && item.user?.email) {
+        try {
+          const calendar = getCalendarClient(item.user.google_refresh_token);
+          const { startDateTime, endDateTime } = buildWindowFromDate(new Date());
+          const event = {
+            summary: `Reservation Expired: ${item.book.title}`,
+            description: `Your reservation window for "${item.book.title}" has expired. You can reserve it again.`,
+            start: {
+              dateTime: startDateTime,
+              timeZone: "UTC",
+            },
+            end: {
+              dateTime: endDateTime,
+              timeZone: "UTC",
+            },
+            attendees: [{ email: item.user.email }],
+            reminders: {
+              useDefault: false,
+              overrides: [{ method: "email", minutes: 0 }],
+            },
+          };
+
+          await calendar.events.insert({
+            calendarId: "primary",
+            resource: event,
+            sendUpdates: "all",
+          });
+        } catch (error) {
+          console.error("Failed to schedule reservation expired calendar event:", error);
+        }
+      }
     }
 
     await notifyNextInQueue(item.book.id, io, { notifyUsers });
@@ -558,6 +598,69 @@ export const notifyNextInQueue = async (bookId, io, options = {}) => {
       type: "RESERVATION",
       io,
     });
+
+    const fullUser = await prisma.user.findUnique({
+      where: { id: updated.user_id },
+      select: { name: true, email: true, google_refresh_token: true },
+    });
+
+    if (fullUser?.email) {
+      const subject = `Reservation Available: "${book.title}"`;
+      const message = `Dear ${fullUser.name || "Reader"},
+
+Good news! The book "${book.title}" you reserved is now available.
+
+Reservation Window Ends: ${expiresAt.toLocaleString()}
+
+Please borrow the book before the reservation window expires.
+
+Best regards,
+Birana Library`;
+      const html = `<p>Dear ${fullUser.name || "Reader"},</p><p>Good news! The book "<strong>${book.title}</strong>" you reserved is now available.</p><p><strong>Reservation Window Ends:</strong> ${expiresAt.toLocaleString()}</p><p>Please borrow the book before the reservation window expires.</p><p>Best regards,<br/>Birana Library</p>`;
+
+      try {
+        await sendEmail({
+          email: fullUser.email,
+          subject,
+          message,
+          html,
+        });
+      } catch (error) {
+        console.error(`Failed to send reservation availability email to ${fullUser.email}:`, error);
+      }
+
+      if (fullUser.google_refresh_token) {
+        try {
+          const calendar = getCalendarClient(fullUser.google_refresh_token);
+          const { startDateTime, endDateTime } = buildWindowFromDate(new Date());
+          const event = {
+            summary: `Reservation Available: ${book.title}`,
+            description: `Your reserved book "${book.title}" is now available. Reservation window ends on ${expiresAt.toLocaleString()}.`,
+            start: {
+              dateTime: startDateTime,
+              timeZone: "UTC",
+            },
+            end: {
+              dateTime: endDateTime,
+              timeZone: "UTC",
+            },
+            attendees: [{ email: fullUser.email }],
+            reminders: {
+              useDefault: false,
+              overrides: [{ method: "email", minutes: 0 }],
+            },
+          };
+
+          await calendar.events.insert({
+            calendarId: "primary",
+            resource: event,
+            sendUpdates: "all",
+          });
+        } catch (error) {
+          console.error("Failed to schedule reservation availability calendar event:", error);
+        }
+      }
+    }
   }
 
   return updated;

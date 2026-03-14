@@ -6,6 +6,7 @@ import Link from "next/link";
 import { AuthLayout } from "../AuthLayout";
 import { fetchApi, API_BASE_URL } from "@/lib/api";
 import { useLanguage } from "@/components/providers/LanguageProvider";
+import { FcGoogle } from "react-icons/fc";
 
 function LoginContent() {
   const router = useRouter();
@@ -21,7 +22,8 @@ function LoginContent() {
     }
     const err = searchParams.get("error");
     if (err === "auth_failed") setError(t("auth.login.messages.google_failed"));
-    if (err === "auth_timeout") setError(t("auth.login.messages.google_timeout"));
+    if (err === "auth_timeout")
+      setError(t("auth.login.messages.google_timeout"));
   }, [searchParams, t]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -42,7 +44,10 @@ function LoginContent() {
       const role = data?.data?.user?.role ?? "STUDENT";
       router.push(role === "ADMIN" ? "/dashboard/admin" : "/dashboard/student");
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : t("auth.login.messages.invalid_credentials");
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : t("auth.login.messages.invalid_credentials");
       setError(errorMessage);
     } finally {
       setIsLoading(false);
@@ -78,7 +83,10 @@ function LoginContent() {
           )}
 
           <div className="space-y-1.5">
-            <label htmlFor="email" className="text-xs font-medium text-[#111111]">
+            <label
+              htmlFor="email"
+              className="text-xs font-medium text-[#111111]"
+            >
               {t("auth.login.identity_label")}
             </label>
             <input
@@ -147,7 +155,7 @@ function LoginContent() {
             onClick={handleGoogleLogin}
             className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#E1DEE5] bg-white px-4 py-2.5 text-sm font-medium text-[#111111] hover:bg-[#FFFFFF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFD602] focus-visible:ring-offset-2 focus-visible:ring-offset-white transition"
           >
-            <span className="h-4 w-4 rounded-full bg-[#DB4437]" />
+            <FcGoogle size={18} />
             <span>{t("auth.login.google_login")}</span>
           </button>
         </form>
