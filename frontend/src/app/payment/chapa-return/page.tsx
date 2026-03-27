@@ -1,117 +1,77 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { fetchApi } from "@/lib/api";
 
-function ChapaReturnContent() {
+export default function ChapaReturnPage() {
   const searchParams = useSearchParams();
-  const txRef = useMemo(
-    () =>
-      searchParams.get("tx_ref") ||
-      searchParams.get("trx_ref") ||
-      searchParams.get("reference") ||
-      searchParams.get("txRef"),
-    [searchParams],
-  );
+  const txRef =
+    searchParams.get("tx_ref") ||
+    searchParams.get("trx_ref") ||
+    searchParams.get("reference") ||
+    searchParams.get("txRef");
 
-  const [message, setMessage] = useState("Finalizing your payment...");
-  const targetUrl = useMemo(() => {
-    if (!txRef) return "/dashboard/student/payments";
-    return `/dashboard/student/payments?tx_ref=${encodeURIComponent(txRef)}`;
-  }, [txRef]);
+  const targetUrl = txRef
+    ? `/dashboard/student/payments?tx_ref=${encodeURIComponent(txRef)}`
+    : "/dashboard/student/payments";
 
-  const hasNavigated = useRef(false);
+  const redirected = useRef(false);
 
   useEffect(() => {
-    if (hasNavigated.current) return;
+    if (redirected.current) return;
+    redirected.current = true;
 
-    const absoluteUrl = new URL(targetUrl, window.location.origin).toString();
-
-    const doRedirect = () => {
-      if (hasNavigated.current) return;
-      hasNavigated.current = true;
-
-      // If inside a frame (e.g., Chapa webview), try to break out.
-      try {
-        if (window.top && window.top !== window.self) {
-          window.top.location.href = absoluteUrl;
-          return;
-        }
-      } catch {
-        // Cross-origin frame — fall through to current-window redirect.
-      }
-
-      window.location.href = absoluteUrl;
-    };
-
-    if (!txRef) {
-      setMessage("Payment reference not found. Redirecting...");
-      doRedirect();
-      return;
+    // Fire-and-forget verification — never await it, never block on it.
+    if (txRef) {
+      fetchApi(`/payments/verify/${encodeURIComponent(txRef)}`).catch(() => {});
     }
 
-    // Guarantee redirect within 2 seconds regardless of verification.
-    const fallbackTimer = window.setTimeout(() => {
-      setMessage("Redirecting to your payments...");
-      doRedirect();
-    }, 2000);
-
-    // Attempt verification in the background (non-blocking).
-    const verify = async () => {
-      try {
-        await Promise.race([
-          fetchApi(`/payments/verify/${encodeURIComponent(txRef)}`),
-          new Promise((_, reject) =>
-            setTimeout(() => reject(new Error("timeout")), 3000),
-          ),
-        ]);
-      } catch {
-        // Verification failed or timed out — irrelevant, we redirect anyway.
+    // Redirect immediately via multiple methods
+    try {
+      if (window.top && window.top !== window.self) {
+        window.top.location.replace(targetUrl);
+        return;
       }
-      if (hasNavigated.current) return;
-      setMessage("Redirecting to your payments...");
-      clearTimeout(fallbackTimer);
-      doRedirect();
-    };
+    } catch {
+      // cross-origin frame, fall through
+    }
 
-    verify();
+    window.location.replace(targetUrl);
 
-    return () => {
-      clearTimeout(fallbackTimer);
-    };
+    // If replace didn't work after 500ms, try assign
+    setTimeout(() => {
+      if (!document.hidden || window.location.pathname.includes("chapa-return")) {
+        window.location.assign(targetUrl);
+      }
+    }, 500);
+
+    // If that didn't work after 1.5s, try href
+    setTimeout(() => {
+      if (window.location.pathname.includes("chapa-return")) {
+        window.location.href = targetUrl;
+      }
+    }, 1500);
   }, [targetUrl, txRef]);
 
   return (
-    <section className="mx-auto w-full max-w-lg rounded-2xl border border-border/60 bg-card p-6 text-center shadow-sm">
-      <h1 className="text-2xl font-serif font-extrabold text-primary">Completing Payment</h1>
-      <p className="mt-3 text-sm text-secondary">{message}</p>
-      <a
-        href={targetUrl}
-        className="mt-4 inline-block rounded-lg bg-primary px-4 py-2 text-sm font-bold text-background"
-      >
-        Continue Now
-      </a>
-      <p className="mt-2 text-xs text-secondary/70">If redirect does not happen automatically, click above.</p>
-    </section>
-  );
-}
+    <main className="min-h-screen bg-background px-4 py-16 text-foreground flex items-center justify-center">
+      <section className="mx-auto w-full max-w-lg rounded-2xl border border-border/60 bg-card p-6 text-center shadow-sm">
+        <h1 className="text-2xl font-serif font-extrabold text-primary">Completing Payment</h1>
+        <div className="mt-6">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
+          <p className="mt-4 text-sm text-secondary">Redirecting to your payments...</p>
+        </div>
 
-function ChapaReturnFallback() {
-  return (
-    <section className="mx-auto w-full max-w-lg rounded-2xl border border-border/60 bg-card p-6 text-center shadow-sm">
-      <h1 className="text-2xl font-serif font-extrabold text-primary">Completing Payment</h1>
-      <p className="mt-3 text-sm text-secondary">Finalizing your payment...</p>
-    </section>
-  );
-}
-
-export default function ChapaReturnPage() {
-  return (
-    <main className="min-h-screen bg-background px-4 py-16 text-foreground">
-      <Suspense fallback={<ChapaReturnFallback />}>
-        <ChapaReturnContent />
-      </Suspense>
+        {/* Manual fallback link — works even if JS is completely broken */}
+        <a
+          href={targetUrl}
+          className="mt-6 inline-block rounded-lg bg-primary px-6 py-2.5 text-sm font-bold text-background hover:bg-primary/90 transition-colors"
+        >
+          Continue Now
+        </a>
+        <p className="mt-3 text-xs text-secondary/70">If redirect does not happen automatically, click above.</p>
+      </section>
     </main>
   );
 }
