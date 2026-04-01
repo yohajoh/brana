@@ -29,6 +29,86 @@ type Overview = {
   trends: { rentalsPerWeek: WeeklyPoint[] };
 };
 
+const toNumber = (value: unknown) => {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : 0;
+};
+
+const clampProgress = (value: unknown) => Math.max(0, Math.min(100, toNumber(value)));
+
+const readObject = (value: unknown): Record<string, unknown> => {
+  return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+};
+
+const normalizeGoalProgress = (value: unknown): GoalProgress => {
+  const source = readObject(value);
+  const target = toNumber(source.target);
+  const actual = toNumber(source.actual);
+  const progress = source.progress == null && target > 0 ? (actual / target) * 100 : toNumber(source.progress);
+
+  return {
+    target,
+    actual,
+    progress: clampProgress(progress),
+  };
+};
+
+const normalizeWeeklyPoints = (value: unknown): WeeklyPoint[] => {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => {
+    const point = readObject(item);
+    return {
+      week_start: String(point.week_start ?? point.weekStart ?? ""),
+      count: toNumber(point.count ?? point.value ?? point.total),
+    };
+  });
+};
+
+const normalizeOverview = (value: unknown): Overview => {
+  const root = readObject(value);
+  const users = readObject(root.users);
+  const books = readObject(root.books);
+  const rentals = readObject(root.rentals);
+  const revenue = readObject(root.revenue);
+  const monthlyTargets = readObject(root.monthlyTargets ?? root.monthly_targets);
+  const progress = readObject(monthlyTargets.progress);
+  const trends = readObject(root.trends);
+
+  return {
+    users: {
+      total: toNumber(users.total),
+      newThisMonth: toNumber(users.newThisMonth ?? users.new_this_month),
+      blocked: toNumber(users.blocked),
+    },
+    books: {
+      total: toNumber(books.total),
+      available: toNumber(books.available),
+      outOfStock: toNumber(books.outOfStock ?? books.out_of_stock),
+    },
+    rentals: {
+      active: toNumber(rentals.active),
+      overdue: toNumber(rentals.overdue),
+      reservations: toNumber(rentals.reservations),
+      completed: toNumber(rentals.completed),
+    },
+    revenue: {
+      thisMonth: toNumber(revenue.thisMonth ?? revenue.this_month),
+      growth: toNumber(revenue.growth),
+    },
+    monthlyTargets: {
+      progress: {
+        rentals: normalizeGoalProgress(progress.rentals),
+        activeReaders: normalizeGoalProgress(progress.activeReaders ?? progress.active_readers),
+        onTimeReturns: normalizeGoalProgress(progress.onTimeReturns ?? progress.on_time_returns),
+        newBooks: normalizeGoalProgress(progress.newBooks ?? progress.new_books),
+      },
+    },
+    trends: {
+      rentalsPerWeek: normalizeWeeklyPoints(trends.rentalsPerWeek ?? trends.rentals_per_week),
+    },
+  };
+};
+
 const defaultOverview: Overview = {
   users: { total: 0, newThisMonth: 0, blocked: 0 },
   books: { total: 0, available: 0, outOfStock: 0 },
@@ -46,6 +126,8 @@ const defaultOverview: Overview = {
 };
 
 function ProgressRow({ label, item }: { label: string; item: GoalProgress }) {
+  const width = clampProgress(item.progress);
+
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between text-xs">
@@ -54,9 +136,11 @@ function ProgressRow({ label, item }: { label: string; item: GoalProgress }) {
           {item.actual} / {item.target}
         </span>
       </div>
-      <div className="w-full h-2 rounded-full bg-[#E1DEE5] overflow-hidden">
-        <div className="h-full bg-[#142B6F]" style={{ width: `${Math.min(100, item.progress)}%` }} />
-      </div>
+      <progress
+        value={width}
+        max={100}
+        className="w-full h-2 rounded-full overflow-hidden [&::-webkit-progress-bar]:bg-[#E1DEE5] [&::-webkit-progress-value]:bg-[#142B6F] [&::-moz-progress-bar]:bg-[#142B6F]"
+      />
     </div>
   );
 }
@@ -114,7 +198,9 @@ export default function DashboardPage() {
   const updateTargets = useUpdateTargets();
 
   const overview = useMemo(() => {
-    return (overviewData?.data as Overview) || defaultOverview;
+    const payload = (overviewData as { data?: unknown } | undefined)?.data ?? overviewData;
+    if (!payload) return defaultOverview;
+    return normalizeOverview(payload);
   }, [overviewData]);
 
   const target = targetsData?.data?.target as {
