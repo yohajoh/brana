@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState, useEffect } from "react";
 import { useMyPayments, useMyRentals, useMyDebtSummary, api } from "@/lib/hooks/useQueries";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { ColumnDef } from "@tanstack/react-table";
@@ -29,15 +28,20 @@ type RentalFine = {
 
 function PaymentsContent() {
   const { t } = useLanguage();
-  const searchParams = useSearchParams();
-  const txRefFromQuery =
-    searchParams.get("tx_ref") ||
-    searchParams.get("trx_ref") ||
-    searchParams.get("reference") ||
-    searchParams.get("txRef");
+  const [txRefFromQuery, setTxRefFromQuery] = useState<string | null>(null);
 
   const [verifyingTx, setVerifyingTx] = useState<string | null>(null);
   const [verifyMessage, setVerifyMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    setTxRefFromQuery(
+      searchParams.get("tx_ref") ||
+        searchParams.get("trx_ref") ||
+        searchParams.get("reference") ||
+        searchParams.get("txRef"),
+    );
+  }, []);
 
   const { data: paymentsData, isLoading: paymentsLoading, refetch: refetchPayments } = useMyPayments("limit=100");
   const { data: rentalsData } = useMyRentals("status=PENDING&limit=100");
@@ -244,23 +248,6 @@ function PaymentsContent() {
   );
 }
 
-function PaymentsLoading() {
-  const { t } = useLanguage();
-  return (
-    <div className="p-6 lg:p-12 space-y-8">
-      <div className="space-y-2">
-        <div className="h-12 w-64 bg-[#E1DEE5]/30 rounded-lg animate-pulse" />
-        <div className="h-5 w-96 bg-[#E1DEE5]/30 rounded-lg animate-pulse" />
-      </div>
-      <div className="py-16 text-center text-secondary text-sm">{t("student_payments.loading_payments")}</div>
-    </div>
-  );
-}
-
 export default function StudentPaymentsPage() {
-  return (
-    <Suspense fallback={<PaymentsLoading />}>
-      <PaymentsContent />
-    </Suspense>
-  );
+  return <PaymentsContent />;
 }

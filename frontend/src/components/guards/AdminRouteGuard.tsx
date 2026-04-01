@@ -21,7 +21,8 @@ export function AdminRouteGuard() {
         }
 
         const roles = user.roles || [user.role];
-        if (!roles.includes("ADMIN") || user.activePersona !== "ADMIN") {
+        const resolvedPersona = user.activePersona || (roles.includes("ADMIN") ? "ADMIN" : "STUDENT");
+        if (!roles.includes("ADMIN") || resolvedPersona !== "ADMIN") {
           router.replace("/dashboard/student");
         }
       } catch {

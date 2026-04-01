@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { fetchCurrentUser } from "@/lib/api";
 
 export function StudentRouteGuard() {
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     let mounted = true;
@@ -21,7 +22,8 @@ export function StudentRouteGuard() {
         }
 
         const roles = user.roles || [user.role];
-        if (!roles.includes("STUDENT") || user.activePersona !== "STUDENT") {
+        const resolvedPersona = user.activePersona || (pathname.startsWith("/dashboard/student") ? "STUDENT" : "ADMIN");
+        if (!roles.includes("STUDENT") || resolvedPersona !== "STUDENT") {
           router.replace("/dashboard/admin");
         }
       } catch {
@@ -34,7 +36,7 @@ export function StudentRouteGuard() {
     return () => {
       mounted = false;
     };
-  }, [router]);
+  }, [pathname, router]);
 
   return null;
 }

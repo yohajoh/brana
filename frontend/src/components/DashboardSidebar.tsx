@@ -41,8 +41,10 @@ export const DashboardSidebar = ({ variant = "default" }: DashboardSidebarProps)
 
   const isAdminVariant = variant === "admin";
 
-  const isStudent = activePersona === "STUDENT";
-  const isAdmin = activePersona === "ADMIN" || isAdminVariant;
+  const isStudentPath = pathname?.startsWith("/dashboard/student");
+  const isAdminPath = pathname?.startsWith("/dashboard/admin");
+  const isStudent = isStudentPath || activePersona === "STUDENT";
+  const isAdmin = isAdminVariant || isAdminPath || activePersona === "ADMIN";
   const baseRoute = isStudent ? "/dashboard/student" : "/dashboard/admin";
 
   const studentNavItems = [
