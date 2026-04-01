@@ -54,20 +54,34 @@ const sanitizeChapaText = (value, fallback) => {
 };
 
 const buildChapaReturnUrl = (txRef) => {
-  const frontendBase = process.env.CHAPA_RETURN_URL || process.env.FRONTEND_URL || "http://localhost:3000";
+  const explicitReturnUrl = process.env.CHAPA_RETURN_URL;
+  const frontendBase = process.env.FRONTEND_URL || "http://localhost:3000";
   const returnPath = process.env.CHAPA_RETURN_PATH || "/payment/chapa-return";
 
   try {
+    // If CHAPA_RETURN_URL is explicitly set, treat it as the full destination URL.
+    if (explicitReturnUrl) {
+      const explicit = new URL(explicitReturnUrl, frontendBase);
+      explicit.searchParams.set("tx_ref", txRef);
+      return explicit.toString();
+    }
+
     const url = new URL(returnPath, frontendBase);
     url.searchParams.set("tx_ref", txRef);
     return url.toString();
   } catch {
-    const normalizedBase = String(frontendBase || "http://localhost:3000").replace(/\/+$/, "");
+    const fallbackBase = String(explicitReturnUrl || frontendBase).replace(/\/+$/, "");
     const normalizedPath = String(returnPath || "/payment/chapa-return").startsWith("/")
       ? returnPath
       : `/${returnPath}`;
+
+    if (explicitReturnUrl) {
+      const joiner = fallbackBase.includes("?") ? "&" : "?";
+      return `${fallbackBase}${joiner}tx_ref=${encodeURIComponent(txRef)}`;
+    }
+
     const joiner = normalizedPath.includes("?") ? "&" : "?";
-    return `${normalizedBase}${normalizedPath}${joiner}tx_ref=${encodeURIComponent(txRef)}`;
+    return `${fallbackBase}${normalizedPath}${joiner}tx_ref=${encodeURIComponent(txRef)}`;
   }
 };
 
