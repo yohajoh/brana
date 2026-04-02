@@ -104,12 +104,12 @@ export const Footer = () => {
             &copy; {new Date().getFullYear()} Birana. {t("footer.rights")}
           </p>
           <div className="flex gap-6">
-            <a href="#" className="text-xs text-[#142B6F] hover:text-[#111111] transition-colors">
+            <Link href="/privacy-policy" className="text-xs text-[#142B6F] hover:text-[#111111] transition-colors">
               {t("footer.privacy")}
-            </a>
-            <a href="#" className="text-xs text-[#142B6F] hover:text-[#111111] transition-colors">
+            </Link>
+            <Link href="/terms-of-service" className="text-xs text-[#142B6F] hover:text-[#111111] transition-colors">
               {t("footer.terms")}
-            </a>
+            </Link>
           </div>
         </div>
       </div>
