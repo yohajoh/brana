@@ -31,7 +31,7 @@ export const sendTokenCookie = (user, statusCode, res, tokenPayload) => {
     expires: new Date(Date.now() + Number(process.env.JWT_COOKIE_EXPIRE || 30) * 24 * 60 * 60 * 1000),
     httpOnly: true,
     secure: isProduction,
-    sameSite: isProduction ? "None" : "Lax",
+    sameSite: isProduction ? "none" : "lax",
   };
 
   user.password_hash = undefined;

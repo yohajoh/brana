@@ -57,7 +57,7 @@ const clearAuthCookie = (res) => {
     expires: new Date(0),
     httpOnly: true,
     secure: isProduction,
-    sameSite: isProduction ? "None" : "Lax",
+    sameSite: isProduction ? "none" : "lax",
   });
 };
 
