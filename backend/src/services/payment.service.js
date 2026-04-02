@@ -56,7 +56,7 @@ const sanitizeChapaText = (value, fallback) => {
 const buildChapaReturnUrl = (txRef) => {
   const explicitReturnUrl = process.env.CHAPA_RETURN_URL;
   const frontendBase = process.env.FRONTEND_URL || "http://localhost:3000";
-  const returnPath = process.env.CHAPA_RETURN_PATH || "/dashboard/student/payments";
+  const returnPath = process.env.CHAPA_RETURN_PATH || "/payment/chapa-return";
 
   try {
     // If CHAPA_RETURN_URL is explicitly set, treat it as the full destination URL.
@@ -238,10 +238,10 @@ export const initiatePayment = async (rentalId, userId, { method = "CHAPA", cont
   const normalizedContext = String(context || "FINE").toUpperCase();
   const isBorrowPayment = normalizedContext === "BORROW";
 
-  let payableAmount = 0;
-  let rentalCharge = null;
-  let debtAmount = null;
-  let debtRentalIds = [];
+  let payableAmount;
+  let rentalCharge;
+  let debtAmount;
+  let debtRentalIds;
 
   if (isBorrowPayment) {
     if (rental.status !== "BORROWED") {

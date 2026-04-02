@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo } from "react";
+import { Suspense, useCallback, useEffect, useMemo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
@@ -38,7 +38,7 @@ const parsePositiveInt = (value: string | null, fallback: number) => {
 
 const INTERNAL_FILTER_KEYS = ["category_id", "author_id", "min_rating"] as const;
 
-export default function BooksPage() {
+function BooksContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -316,5 +316,17 @@ export default function BooksPage() {
       </main>
       <Footer />
     </div>
+  );
+}
+
+function BooksLoadingFallback() {
+  return <div className="min-h-screen bg-background" />;
+}
+
+export default function BooksPage() {
+  return (
+    <Suspense fallback={<BooksLoadingFallback />}>
+      <BooksContent />
+    </Suspense>
   );
 }

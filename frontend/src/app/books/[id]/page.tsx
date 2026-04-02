@@ -569,10 +569,7 @@ export default function BookDetailPage() {
 
       setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : t("common.error_occurred");
+      const message = err instanceof Error ? err.message : t("common.error_occurred");
       toast.error(message);
     } finally {
       setDigitalLoading(false);
@@ -701,8 +698,6 @@ export default function BookDetailPage() {
   const shouldShowReserve = bookType === "physical" && physicalBook && physicalBook.available === 0;
   const reserveCount = physicalBook?.reservationCount || 0;
 
-  const breadcrumbType = bookType === "digital" ? "Digital" : "Physical";
-
   if (!loading && (error || !book)) {
     return (
       <div className="min-h-screen bg-background text-foreground flex flex-col selection:bg-primary/10">
@@ -735,9 +730,13 @@ export default function BookDetailPage() {
             {t("book_details.breadcrumb.books")}
           </Link>
           <ChevronRight size={14} />
-          <span className="text-secondary">{bookType === "digital" ? t("book_details.breadcrumb.digital") : t("book_details.breadcrumb.physical")}</span>
+          <span className="text-secondary">
+            {bookType === "digital" ? t("book_details.breadcrumb.digital") : t("book_details.breadcrumb.physical")}
+          </span>
           <ChevronRight size={14} />
-          <span className="max-w-[60vw] truncate text-secondary sm:max-w-none">{book?.title || t("sidebar.books")}</span>
+          <span className="max-w-[60vw] truncate text-secondary sm:max-w-none">
+            {book?.title || t("sidebar.books")}
+          </span>
         </nav>
 
         {loading || !book ? (
@@ -819,7 +818,11 @@ export default function BookDetailPage() {
                     !isAdmin ? (
                       <>
                         {hasFullyBorrowed ? (
-                          <PrimaryActionButton label={t("book_details.actions.currently_borrowed")} disabled variant="outline" />
+                          <PrimaryActionButton
+                            label={t("book_details.actions.currently_borrowed")}
+                            disabled
+                            variant="outline"
+                          />
                         ) : hasPendingBorrowPayment ? (
                           <PrimaryActionButton
                             label={t("book_details.actions.complete_payment")}
@@ -837,17 +840,27 @@ export default function BookDetailPage() {
                         ) : shouldShowReserve ? (
                           <>
                             <PrimaryActionButton
-                              label={physicalBook?.userContext?.hasActiveReservation ? t("book_details.labels.already_reserved") : t("book_details.actions.reserve_label")}
+                              label={
+                                physicalBook?.userContext?.hasActiveReservation
+                                  ? t("book_details.labels.already_reserved")
+                                  : t("book_details.actions.reserve_label")
+                              }
                               loading={reserveLoading}
                               loadingLabel={t("admin_reservations.modal.issuing")}
                               disabled={Boolean(physicalBook?.userContext?.hasActiveReservation)}
                               onClick={handleReserve}
                               variant="outline"
                             />
-                            <p className="text-xs text-secondary">{t("book_details.labels.students_in_queue", { count: reserveCount })}</p>
+                            <p className="text-xs text-secondary">
+                              {t("book_details.labels.students_in_queue", { count: reserveCount })}
+                            </p>
                           </>
                         ) : (
-                          <PrimaryActionButton label={t("book_details.status.unavailable")} disabled variant="outline" />
+                          <PrimaryActionButton
+                            label={t("book_details.status.unavailable")}
+                            disabled
+                            variant="outline"
+                          />
                         )}
                       </>
                     ) : null
@@ -876,7 +889,9 @@ export default function BookDetailPage() {
                           disabled={digitalLoading}
                           className="w-full rounded-lg px-4 py-2 text-sm font-bold border border-primary text-primary hover:bg-primary hover:text-background transition-all disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                          {digitalLoading ? t("book_details.actions.preparing_download") : t("book_details.actions.download_pdf")}
+                          {digitalLoading
+                            ? t("book_details.actions.preparing_download")
+                            : t("book_details.actions.download_pdf")}
                         </button>
                       )}
                     </>
@@ -901,7 +916,9 @@ export default function BookDetailPage() {
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <div className="bg-card rounded-2xl p-4 border border-border/50 text-center space-y-1">
-                  <p className="text-[10px] uppercase tracking-widest text-secondary font-bold">{t("book_details.labels.rating")}</p>
+                  <p className="text-[10px] uppercase tracking-widest text-secondary font-bold">
+                    {t("book_details.labels.rating")}
+                  </p>
                   <div className="flex items-center justify-center gap-1 text-[#FFD602]">
                     <Star size={16} fill="currentColor" />
                     <span className="text-sm font-bold">
@@ -909,23 +926,28 @@ export default function BookDetailPage() {
                     </span>
                   </div>
                   <p className="text-[9px] text-secondary/60">
-                    {book.rating.total} {book.rating.total === 1 ? t("book_details.labels.review") : t("book_details.labels.reviews")}
+                    {book.rating.total}{" "}
+                    {book.rating.total === 1 ? t("book_details.labels.review") : t("book_details.labels.reviews")}
                   </p>
                 </div>
                 <div className="bg-card rounded-2xl p-4 border border-border/50 text-center space-y-1">
-                  <p className="text-[10px] uppercase tracking-widest text-secondary font-bold">{t("book_details.labels.category")}</p>
+                  <p className="text-[10px] uppercase tracking-widest text-secondary font-bold">
+                    {t("book_details.labels.category")}
+                  </p>
                   <p className="text-sm font-bold text-primary">{book.category.name}</p>
                 </div>
                 <div className="bg-card rounded-2xl p-4 border border-border/50 text-center space-y-1">
                   <p className="text-[10px] uppercase tracking-widest text-secondary font-bold">
-                    {bookType === "digital" ? t("book_details.labels.access") : t("book_details.labels.available_on_shelf")}
+                    {bookType === "digital"
+                      ? t("book_details.labels.access")
+                      : t("book_details.labels.available_on_shelf")}
                   </p>
                   <p className="text-sm font-bold text-primary">
                     {bookType === "digital"
                       ? (book as DigitalBook).pdf_access === "RESTRICTED"
                         ? t("book_details.status.read_only")
                         : t("book_details.labels.read_and_download")
-                      : displayedAvailableCopies === 1 
+                      : displayedAvailableCopies === 1
                         ? t("book_details.labels.copy", { count: displayedAvailableCopies })
                         : t("book_details.labels.copies", { count: displayedAvailableCopies })}
                   </p>
@@ -969,7 +991,9 @@ export default function BookDetailPage() {
 
                 {!isAdmin && canManageReview && (
                   <section className="space-y-4">
-                    <h2 className="text-2xl font-serif font-bold text-primary">{t("book_details.reviews.write_title")}</h2>
+                    <h2 className="text-2xl font-serif font-bold text-primary">
+                      {t("book_details.reviews.write_title")}
+                    </h2>
                     <div className="bg-card rounded-xl p-4 border border-border/50 space-y-3">
                       <div className="flex flex-wrap items-center gap-1">
                         {[1, 2, 3, 4, 5].map((n) => (
@@ -994,13 +1018,17 @@ export default function BookDetailPage() {
                         rows={4}
                       />
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                         <button
+                        <button
                           type="button"
                           onClick={submitReview}
                           disabled={reviewBusy || reviewRating < 1 || !isReviewTextValid}
                           className="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-background disabled:cursor-not-allowed disabled:opacity-40"
                         >
-                          {isSubmittingReview ? t("book_details.actions.submitting_review") : myReview ? t("book_details.actions.update_review") : t("book_details.actions.submit_review")}
+                          {isSubmittingReview
+                            ? t("book_details.actions.submitting_review")
+                            : myReview
+                              ? t("book_details.actions.update_review")
+                              : t("book_details.actions.submit_review")}
                         </button>
                         {myReview && (
                           <button
@@ -1009,7 +1037,9 @@ export default function BookDetailPage() {
                             disabled={reviewBusy}
                             className="rounded-lg border border-border px-4 py-2 text-sm font-bold text-primary disabled:cursor-not-allowed disabled:opacity-40"
                           >
-                            {isRemovingReview ? t("book_details.actions.removing_review") : t("book_details.reviews.remove")}
+                            {isRemovingReview
+                              ? t("book_details.actions.removing_review")
+                              : t("book_details.reviews.remove")}
                           </button>
                         )}
                       </div>
@@ -1019,9 +1049,7 @@ export default function BookDetailPage() {
 
                 {!isAdmin && bookType === "digital" && isStudent && !canManageReview && (
                   <section className="rounded-xl border border-border/50 bg-card p-4">
-                    <p className="text-sm font-medium text-secondary">
-                      {t("book_details.reviews.unlock_digital")}
-                    </p>
+                    <p className="text-sm font-medium text-secondary">{t("book_details.reviews.unlock_digital")}</p>
                   </section>
                 )}
 
@@ -1064,7 +1092,8 @@ export default function BookDetailPage() {
                         </button>
                         <p className="text-xs text-secondary/70">
                           {t("admin_reservations.table.expires")} {reviewsPage * REVIEWS_PER_PAGE + 1}-
-                          {Math.min((reviewsPage + 1) * REVIEWS_PER_PAGE, book.reviews.length)} {t("common.of")} {book.reviews.length}
+                          {Math.min((reviewsPage + 1) * REVIEWS_PER_PAGE, book.reviews.length)} {t("common.of")}{" "}
+                          {book.reviews.length}
                         </p>
                         <button
                           type="button"
@@ -1082,7 +1111,9 @@ export default function BookDetailPage() {
                 <section className="space-y-4">
                   <h2 className="text-2xl font-serif font-bold text-primary flex items-center gap-2">
                     <FileText size={22} className="text-secondary" />
-                    {relatedSource === "author" ? t("book_details.sections.more_by", { name: book.author.name }) : t("book_details.sections.related_in", { name: book.category.name })}
+                    {relatedSource === "author"
+                      ? t("book_details.sections.more_by", { name: book.author.name })
+                      : t("book_details.sections.related_in", { name: book.category.name })}
                   </h2>
                   {related.length === 0 ? (
                     <div className="bg-card rounded-xl border border-border/50 p-6 text-secondary text-sm">

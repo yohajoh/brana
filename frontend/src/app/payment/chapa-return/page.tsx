@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/hooks/useQueries";
 
@@ -12,7 +12,7 @@ const getFirstParam = (params: URLSearchParams, keys: string[]) => {
   return null;
 };
 
-export default function ChapaReturnPage() {
+function ChapaReturnContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<"verifying" | "pending" | "success" | "failed" | "error">("verifying");
@@ -190,5 +190,17 @@ export default function ChapaReturnPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function ChapaReturnFallback() {
+  return <div className="min-h-screen bg-[radial-gradient(circle_at_top,#fef3c7_0%,#f8fafc_45%,#eef2ff_100%)]" />;
+}
+
+export default function ChapaReturnPage() {
+  return (
+    <Suspense fallback={<ChapaReturnFallback />}>
+      <ChapaReturnContent />
+    </Suspense>
   );
 }

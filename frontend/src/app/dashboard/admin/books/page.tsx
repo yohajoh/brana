@@ -873,8 +873,8 @@ function AddBookModal({
     topics: "",
     pdf_access: "RESTRICTED" as "FREE" | "PAID" | "RESTRICTED",
   });
-  const [authorSearch, setAuthorSearch] = useState("");
-  const [categorySearch, setCategorySearch] = useState("");
+  const [, setAuthorSearch] = useState("");
+  const [, setCategorySearch] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
@@ -883,13 +883,6 @@ function AddBookModal({
   const imageInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
-
-  const syncSelectedLabels = (nextForm: typeof form) => {
-    const selectedAuthor = authors.find((item) => item.id === nextForm.author_id);
-    const selectedCategory = categories.find((item) => item.id === nextForm.category_id);
-    setAuthorSearch(selectedAuthor?.name || "");
-    setCategorySearch(selectedCategory?.name || "");
-  };
 
   useEffect(() => {
     if (!show) return;
@@ -937,27 +930,19 @@ function AddBookModal({
         topics: Array.isArray(editingBook.topics) ? editingBook.topics.join(", ") : "",
         pdf_access: editingBook.pdf_access || "RESTRICTED",
       });
-      syncSelectedLabels({
-        title: editingBook.title || "",
-        author_id: editingBook.author_id || editingBook.author?.id || "",
-        category_id: editingBook.category_id || editingBook.category?.id || "",
-        copies: String(editingBook.copies ?? editingBook.total ?? ""),
-        pages: String(editingBook.pages ?? ""),
-        description: editingBook.description || "",
-        publication_year: String(editingBook.publication_year ?? ""),
-        loan_duration_days: String(editingBook.loan_duration_days ?? ""),
-        rental_price: String(editingBook.rental_price ?? 10),
-        tags: Array.isArray(editingBook.tags) ? editingBook.tags.join(", ") : "",
-        topics: Array.isArray(editingBook.topics) ? editingBook.topics.join(", ") : "",
-        pdf_access: editingBook.pdf_access || "RESTRICTED",
-      });
+      const selectedAuthorId = editingBook.author_id || editingBook.author?.id || "";
+      const selectedCategoryId = editingBook.category_id || editingBook.category?.id || "";
+      const selectedAuthor = authors.find((item) => item.id === selectedAuthorId);
+      const selectedCategory = categories.find((item) => item.id === selectedCategoryId);
+      setAuthorSearch(selectedAuthor?.name || "");
+      setCategorySearch(selectedCategory?.name || "");
       setImageFile(null);
       setGalleryFiles([]);
       setPdfFile(null);
     }, 0);
 
     return () => clearTimeout(timer);
-  }, [show, editingBook]);
+  }, [show, editingBook, authors, categories]);
 
   if (!show) return null;
 

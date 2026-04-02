@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
+    "build": "pnpm lint",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
     "test": "echo \"Error: no test specified\" && exit 1"

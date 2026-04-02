@@ -474,7 +474,7 @@ export const getHighDemandReservations = async (query = {}) => {
 export const expirePendingReservations = async (io, options = {}) => {
   const notifyUsers = options.notifyUsers !== false;
   const now = new Date();
-  let where = {};
+  let where;
 
   if (options.reservationIds && Array.isArray(options.reservationIds)) {
     where = { id: { in: options.reservationIds } };

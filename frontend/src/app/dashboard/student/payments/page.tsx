@@ -26,6 +26,18 @@ type RentalFine = {
   physical_book: { title: string };
 };
 
+type DebtFineEntry = {
+  rental_id: string;
+  book_title: string;
+  amount: number | string | null;
+};
+
+type DebtSummary = {
+  hasDebt?: boolean;
+  totalDebt?: number | string | null;
+  overdueFines?: DebtFineEntry[];
+};
+
 function PaymentsContent() {
   const { t } = useLanguage();
   const [txRefFromQuery, setTxRefFromQuery] = useState<string | null>(null);
@@ -54,7 +66,7 @@ function PaymentsContent() {
   const pendingFines: RentalFine[] = ((rentalsData?.rentals || []) as unknown as RentalFine[]).filter(
     (r) => Number(r.fine || 0) > 0,
   );
-  const debtSummary = debtSummaryData?.data;
+  const debtSummary = debtSummaryData?.data as DebtSummary | undefined;
 
   const loading = paymentsLoading;
 
@@ -181,7 +193,7 @@ function PaymentsContent() {
             {t("student_payments.outstanding_desc", { amount: Number(debtSummary.totalDebt || 0).toFixed(2) })}
           </p>
           <div className="space-y-1">
-            {debtSummary.overdueFines?.slice(0, 4).map((entry: any) => (
+            {debtSummary.overdueFines?.slice(0, 4).map((entry: DebtFineEntry) => (
               <p key={entry.rental_id} className="text-xs text-[#142B6F]">
                 • {entry.book_title}: {Number(entry.amount || 0).toFixed(2)} ETB
               </p>

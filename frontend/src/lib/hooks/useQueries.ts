@@ -72,6 +72,21 @@ export type Rental = {
   payment?: { amount: number; status: string } | null;
 };
 
+export type DeliveryOrder = {
+  id: string;
+  building_block_number?: string | null;
+  dorm_number?: string | null;
+  available_time?: string | null;
+  created_at: string;
+  user?: Pick<User, "id" | "name" | "email" | "student_id" | "year"> | null;
+  rental?: {
+    id: string;
+    status?: string | null;
+    physical_book?: { title?: string | null } | null;
+    payment?: { status?: string | null } | null;
+  } | null;
+};
+
 export type Reservation = {
   id: string;
   book: Book & { id?: string; available?: number; copies?: number };
@@ -191,6 +206,7 @@ type HighDemandReservationsResponse = { data: { books: HighDemandReservationBook
 type WishlistResponse = { wishlist: WishlistItem[]; meta: { totalPages: number } };
 type AlertsResponse = { alerts: unknown[]; meta?: unknown };
 type PaymentsResponse = { payments: Payment[] };
+type DeliveryOrdersResponse = { orders: DeliveryOrder[] };
 type DebtSummaryResponse = { data: DebtSummary };
 type ActivityLogsResponse = { logs: ActivityLog[]; meta?: unknown };
 
@@ -296,8 +312,17 @@ export const queryKeys = {
   alerts: ["alerts"] as const,
   payments: (params?: string) => ["payments", params] as const,
   myPayments: (params?: string) => ["payments", "mine", params] as const,
+  deliveryOrders: (params?: string) => ["delivery-orders", params] as const,
   debtSummary: ["payments", "debt-summary"] as const,
 };
+
+export function useDeliveryOrders(params?: string) {
+  return useQuery<DeliveryOrdersResponse>({
+    queryKey: queryKeys.deliveryOrders(params),
+    queryFn: () => api.get<DeliveryOrdersResponse>(`/rentals/orders?${params || "limit=100"}`),
+    ...defaultOptions,
+  });
+}
 
 export function useBooks(params?: string) {
   return useQuery<BooksResponse>({
@@ -839,7 +864,7 @@ export function useOverdueRanking(params?: string) {
 export function useSendReminders() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload?: { rentalIds?: string[] }) => 
+    mutationFn: (payload?: { rentalIds?: string[] }) =>
       api.post<{ data: unknown }>("/rentals/admin/send-reminders", payload || {}),
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: ["rentals"] });

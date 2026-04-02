@@ -1,50 +1,54 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useState } from "react";
 import en from "@/lib/translations/en.json";
 import am from "@/lib/translations/am.json";
 import or from "@/lib/translations/or.json";
 
 type Language = "en" | "am" | "or";
+type TranslationValue = string | number | boolean | null | TranslationMap | TranslationValue[];
+type TranslationMap = { [key: string]: TranslationValue };
+
+const isLanguage = (value: string | null): value is Language => value === "en" || value === "am" || value === "or";
+
+const getInitialLanguage = (): Language => {
+  if (typeof window === "undefined") return "en";
+  const savedLang = localStorage.getItem("language");
+  return isLanguage(savedLang) ? savedLang : "en";
+};
+
+const isTranslationMap = (value: TranslationValue): value is TranslationMap =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
 
 interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
-  t: (path: string, variables?: Record<string, string | number>) => any;
+  t: (path: string, variables?: Record<string, string | number>) => TranslationValue;
 }
 
-const translations = {
-  en,
-  am,
-  or,
+const translations: Record<Language, TranslationMap> = {
+  en: en as TranslationMap,
+  am: am as TranslationMap,
+  or: or as TranslationMap,
 };
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
-export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
-  const [language, setLanguageState] = useState<Language>("en");
-
-  useEffect(() => {
-    const savedLang = localStorage.getItem("language") as Language;
-    if (savedLang && (savedLang === "en" || savedLang === "am" || savedLang === "or")) {
-      setLanguageState(savedLang);
-    }
-  }, []);
+export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [language, setLanguageState] = useState<Language>(getInitialLanguage);
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
     localStorage.setItem("language", lang);
   };
 
-  const t = (path: string, variables?: Record<string, string | number>) => {
+  const t = (path: string, variables?: Record<string, string | number>): TranslationValue => {
     const keys = path.split(".");
-    let result: any = translations[language];
+    let result: TranslationValue = translations[language];
 
     let found = true;
     for (const key of keys) {
-      if (result && result[key]) {
+      if (isTranslationMap(result) && key in result) {
         result = result[key];
       } else {
         found = false;
@@ -56,7 +60,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({
       // Fallback to English if translation is missing
       result = translations["en"];
       for (const key of keys) {
-        if (result && result[key]) {
+        if (isTranslationMap(result) && key in result) {
           result = result[key];
         } else {
           return path; // Return path if even fallback fails
@@ -73,11 +77,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({
     return result;
   };
 
-  return (
-    <LanguageContext.Provider value={{ language, setLanguage, t }}>
-      {children}
-    </LanguageContext.Provider>
-  );
+  return <LanguageContext.Provider value={{ language, setLanguage, t }}>{children}</LanguageContext.Provider>;
 };
 
 export const useLanguage = () => {

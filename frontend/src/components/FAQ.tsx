@@ -9,7 +9,8 @@ export const FAQ = () => {
   const { t } = useLanguage();
   const [openIndex, setOpenIndex] = useState<number | null>(3); // Set Birana question open by default
 
-  const faqs = t("faq.questions") || [];
+  type FaqItem = { question: string; answer: string };
+  const faqs = (t("faq.questions") as FaqItem[]) || [];
 
   return (
     <section className="w-full py-24 bg-card/10 mb-15">
@@ -17,7 +18,7 @@ export const FAQ = () => {
         <SectionHeader title={t("faq.title")} centered />
 
         <div className="space-y-4">
-          {faqs.map((faq: any, index: number) => {
+          {faqs.map((faq: FaqItem, index: number) => {
             const isOpen = openIndex === index;
             return (
               <div

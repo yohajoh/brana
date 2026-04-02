@@ -36,7 +36,9 @@ const formatDate = (d: string) =>
 const daysBetween = (start: string, end: string) =>
   Math.ceil((new Date(end).getTime() - new Date(start).getTime()) / (1000 * 60 * 60 * 24));
 
-const getStatusDisplay = (status: string, t: any) => {
+type TranslateFn = (path: string, variables?: Record<string, string | number>) => string;
+
+const getStatusDisplay = (status: string, t: TranslateFn) => {
   switch (status) {
     case "BORROWED":
       return { text: t("student_history.table.status_borrowed"), color: "bg-amber-100 text-amber-700" };

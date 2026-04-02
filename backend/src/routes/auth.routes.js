@@ -166,7 +166,7 @@ router.get("/google-calendar/callback", async (req, res) => {
   let decoded;
   try {
     decoded = verifyCalendarState(String(state));
-  } catch (error) {
+  } catch {
     return res.redirect(
       `${FRONTEND_URL}/dashboard/student?error=google_calendar_state_invalid`,
     );

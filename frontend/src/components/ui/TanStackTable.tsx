@@ -29,6 +29,8 @@ export function TanStackTable<TData>({
   const formatHeaderFallback = (columnId: string) =>
     columnId.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
+  // TanStack's table instance intentionally exposes non-memoizable functions.
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data,
     columns,
