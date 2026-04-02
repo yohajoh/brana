@@ -1,7 +1,9 @@
 import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient } from "@prisma/client";
+import PrismaClientPkg from "@prisma/client";
 import pg from "pg";
+
+const { PrismaClient } = PrismaClientPkg;
 
 const globalForPrisma = globalThis;
 
