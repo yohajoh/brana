@@ -321,8 +321,14 @@ export default function BookDetailPage() {
   const isRemovingReview = reviewAction === "remove";
 
   const handleBorrow = async () => {
-    if (!user) return router.push("/auth/login");
     if (!physicalBook || borrowLoading) return;
+
+    const currentUser = user ?? (await fetchCurrentUser());
+    if (!currentUser) {
+      router.push("/auth/login");
+      return;
+    }
+    if (!user) setUser(currentUser);
 
     const rentalId =
       physicalBook.userContext?.hasActiveRental && !physicalBook.userContext?.hasCompletedBorrowPayment
