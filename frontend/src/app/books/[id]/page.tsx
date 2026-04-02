@@ -152,7 +152,7 @@ function PrimaryActionButton({
       : "bg-primary text-background hover:bg-accent";
 
   return (
-    <button onClick={onClick} disabled={disabled || loading} className={`${base} ${style}`}>
+    <button type="button" onClick={onClick} disabled={disabled || loading} className={`${base} ${style}`}>
       {loading ? loadingLabel : label}
     </button>
   );
@@ -348,11 +348,16 @@ export default function BookDetailPage() {
         method: "POST",
         body: JSON.stringify({ method: "CHAPA", context: "BORROW" }),
       });
-      const chapaUrl = payRes?.data?.chapaUrl || payRes?.chapaUrl;
+      const chapaUrl =
+        payRes?.data?.chapaUrl ||
+        payRes?.data?.checkout_url ||
+        payRes?.chapaUrl ||
+        payRes?.checkout_url ||
+        (payRes?.data?.payment?.tx_ref ? `https://checkout.chapa.co/checkout/payment/${payRes.data.payment.tx_ref}` : "");
       if (!chapaUrl) {
         throw new Error("Payment checkout URL was not returned");
       }
-      window.location.href = chapaUrl;
+      window.location.assign(chapaUrl);
       return;
     } catch (err) {
       const message = err instanceof Error ? err.message : "Borrow checkout failed";
