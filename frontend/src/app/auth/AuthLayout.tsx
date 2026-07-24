@@ -1,8 +1,10 @@
 "use client";
 
-import React, { PropsWithChildren, useState } from "react";
+import React, { PropsWithChildren } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import { ArrowLeft } from "lucide-react";
+import { motion } from "framer-motion";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 interface AuthLayoutProps extends PropsWithChildren {
   title: string;
@@ -10,134 +12,282 @@ interface AuthLayoutProps extends PropsWithChildren {
   showBackLink?: boolean;
   backHref?: string;
   backLabel?: string;
-  imageSrc: string;
-  imageAlt?: string;
-  imageTitle?: string;
-  imageTagline?: string;
-  useMobileBackgroundImage?: boolean;
+  badge?: string;
+  icon?: React.ReactNode;
 }
 
 export const AuthLayout: React.FC<AuthLayoutProps> = ({
   title,
   subtitle,
   children,
-  showBackLink,
+  showBackLink = false,
   backHref = "/auth/login",
-  backLabel = "Back to login",
-  imageSrc,
-  imageAlt = "Brana library imagery",
-  imageTitle = "The Digital Sanctuary",
-  imageTagline = "Preserving spiritual and academic books for generations.",
-  useMobileBackgroundImage = true,
+  backLabel,
+  badge,
+  icon,
 }) => {
-  const [isDark, setIsDark] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return window.localStorage.getItem("brana-theme") === "dark";
-  });
-
-  const toggleTheme = () => {
-    setIsDark((prev) => {
-      const next = !prev;
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem("brana-theme", next ? "dark" : "light");
-      }
-      return next;
-    });
-  };
-
+  const { t } = useLanguage();
+  const resolvedBackLabel = backLabel ?? (t("auth.common.back_to_login") as string);
   return (
-    <div
-      className={`relative min-h-screen transition-colors ${
-        isDark
-          ? "dark bg-slate-950 text-slate-100"
-          : "bg-[#FFFFFF] text-[#111111]"
-      }`}
-    >
-      {/* Mobile background illustration */}
-      {useMobileBackgroundImage && (
-        <div
-          className="pointer-events-none absolute inset-0 bg-center bg-no-repeat bg-cover opacity-30 lg:hidden"
-          style={{ backgroundImage: `url(${imageSrc})` }}
-        />
-      )}
+    <div className="relative min-h-screen w-full overflow-hidden flex flex-col">
+      {/* ── Background ─────────────────────────────────────────── */}
+      <div className="absolute inset-0 bg-[#f8f7fc]" />
+      {/* Navy blob top-right */}
+      <div className="absolute -top-32 -right-32 w-[500px] h-[500px] rounded-full bg-[#142b6f]/06 blur-[100px] pointer-events-none" />
+      {/* Gold blob bottom-left */}
+      <div className="absolute -bottom-24 -left-24 w-[420px] h-[420px] rounded-full bg-[#f5c518]/08 blur-[90px] pointer-events-none" />
+      {/* Dot grid */}
+      <div className="absolute inset-0 pointer-events-none opacity-[0.025]"
+        style={{ backgroundImage: "radial-gradient(circle at 1px 1px, #142b6f 1px, transparent 0)", backgroundSize: "30px 30px" }} />
 
-      <div className="relative flex min-h-screen items-stretch justify-center px-0 py-0 lg:px-0">
-        <div className="flex w-full flex-col lg:flex-row">
-          {/* Illustration on the left for desktop (takes half of the screen) */}
-          <div className="relative hidden w-1/2 lg:block">
-            <Image
-              src={imageSrc}
-              alt={imageAlt}
-              fill
-              priority
-              className="object-cover"
-            />
-            <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-[#FFFFFF]/80 via-[#FFFFFF]/80 to-transparent dark:from-slate-950/80 dark:via-slate-950/80 dark:to-transparent" />
-            <div className="pointer-events-none absolute bottom-10 left-10 max-w-sm space-y-2 text-[#111111]">
-              <p className="text-xs uppercase tracking-[0.25em] text-amber-700/80">
-                Brana Library
-              </p>
-              <h2 className="text-2xl font-semibold leading-snug drop-shadow-md">
-                {imageTitle}
-              </h2>
-              <p className="text-sm text-[#142B6F] drop-shadow-sm">
-                {imageTagline}
-              </p>
-            </div>
+      {/* ── Top bar ─────────────────────────────────────────────── */}
+      <header className="relative z-10 w-full px-6 py-5 flex items-center justify-between">
+        <Link href="/" className="flex items-center gap-2.5 group">
+          <div className="relative w-8 h-8 shrink-0">
+            <div className="absolute inset-0 rounded-lg bg-[#142b6f] shadow-[0_2px_10px_rgba(20,43,111,0.35)] group-hover:shadow-[0_4px_18px_rgba(20,43,111,0.45)] transition-shadow" />
+            <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-[#f5c518] rounded-tr-lg rounded-bl-lg" />
+            <span className="absolute inset-0 flex items-center justify-center text-white font-serif font-black text-sm select-none">ብ</span>
+          </div>
+          <span className="text-lg font-serif font-black text-[#142b6f]">ብራና</span>
+        </Link>
+
+        {showBackLink && (
+          <Link href={backHref} className="flex items-center gap-1.5 text-sm font-semibold text-[#374151] hover:text-[#142b6f] transition-colors">
+            <ArrowLeft size={14} />
+            {resolvedBackLabel}
+          </Link>
+        )}
+      </header>
+
+      {/* ── Centered card ───────────────────────────────────────── */}
+      <main className="relative z-10 flex-1 flex items-center justify-center px-4 py-8">
+        <motion.div
+          initial={{ opacity: 0, y: 22, scale: 0.97 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          className="w-full max-w-[520px]"
+        >
+          <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-[0_8px_48px_rgba(20,43,111,0.11)] border border-[#e2e0e7]/70 px-8 sm:px-12 py-10">
+            {/* Badge */}
+            {badge && (
+              <div className="inline-flex items-center gap-2 rounded-full bg-[#142b6f]/08 border border-[#142b6f]/12 px-3.5 py-1.5 mb-6">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#142b6f]" />
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#142b6f]">{badge}</span>
+              </div>
+            )}
+
+            {/* Custom icon */}
+            {icon && <div className="mb-6">{icon}</div>}
+
+            {/* Title */}
+            <h1 className="text-2xl sm:text-3xl font-serif font-black text-[#0d0d0d] leading-tight mb-2">
+              {title}
+            </h1>
+            {subtitle && (
+              <p className="text-sm text-[#6b7280] leading-relaxed mb-8">{subtitle}</p>
+            )}
+            {!subtitle && <div className="mb-7" />}
+
+            {children}
+          </div>
+        </motion.div>
+      </main>
+
+      {/* ── Footer ──────────────────────────────────────────────── */}
+      <footer className="relative z-10 py-5 text-center">
+        <p className="text-xs text-[#9ca3af]">&copy; {new Date().getFullYear()} Birana Library — ASTU</p>
+      </footer>
+    </div>
+  );
+};
+
+/* ─── Centered card layout — 70vw × 80vh — used by Login and Signup ──────── */
+
+interface SplitAuthLayoutProps {
+  imageSrc: string;
+  imageTitle: string;
+  imageTagline: string;
+  imageStats?: Array<{ value: string; label: string }>;
+  children: React.ReactNode;
+  rightTitle: string;
+  rightSubtitle?: string;
+  badge?: string;
+  topRight?: React.ReactNode;
+}
+
+export const SplitAuthLayout: React.FC<SplitAuthLayoutProps> = ({
+  imageSrc,
+  imageTitle,
+  imageTagline,
+  imageStats,
+  children,
+  rightTitle,
+  rightSubtitle,
+  badge,
+  topRight,
+}) => {
+  const { t } = useLanguage();
+  return (
+    /*
+     * Full-screen dark backdrop — card floats centered.
+     * Background: very dark charcoal + two soft orbs.
+     */
+    <div className="min-h-screen w-full bg-[#0a0d14] flex items-center justify-center relative overflow-hidden">
+
+      {/* ── Background decoration ────────────────────────────── */}
+      <div className="pointer-events-none absolute inset-0">
+        {/* Navy orb — top left */}
+        <div className="absolute -top-48 -left-48 w-[640px] h-[640px] rounded-full bg-[#142b6f]/18 blur-[120px]" />
+        {/* Gold orb — bottom right */}
+        <div className="absolute -bottom-40 -right-40 w-[560px] h-[560px] rounded-full bg-[#f5c518]/08 blur-[110px]" />
+        {/* Subtle dot grid */}
+        <div className="absolute inset-0 opacity-[0.03]"
+          style={{ backgroundImage: "radial-gradient(circle at 1px 1px, #f5c518 1px, transparent 0)", backgroundSize: "40px 40px" }} />
+      </div>
+
+      {/*
+       * THE CARD
+       * w-[70vw] — 70% of viewport width
+       * h-[80vh] — 80% of viewport height
+       * Fixed dimensions: the card itself never grows.
+       * Left (image) = 40%, Right (form) = 60%
+       * Right has overflow-y-auto — only the form scrolls.
+       */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96, y: 16 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+        className="relative z-10 w-[70vw] h-[80vh] min-w-[720px] max-w-[1100px] flex rounded-[28px] overflow-hidden shadow-[0_32px_96px_rgba(0,0,0,0.55),0_8px_32px_rgba(0,0,0,0.3)]"
+        style={{ border: "1px solid rgba(255,255,255,0.08)" }}
+      >
+
+        {/* ── LEFT PANEL: 40% — image with overlays ───────────── */}
+        <div className="relative w-[40%] shrink-0 flex flex-col overflow-hidden">
+          {/* Photo */}
+          <div
+            className="absolute inset-0 bg-cover bg-center"
+            style={{ backgroundImage: `url(${imageSrc})` }}
+          />
+          {/* Layered overlays for depth */}
+          <div className="absolute inset-0 bg-gradient-to-br from-[#0d0d0d]/70 via-[#142b6f]/40 to-[#0d0d0d]/80" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0d0d0d]/90 via-transparent to-transparent" />
+
+          {/* Gold accent top stripe */}
+          <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#f5c518]/80 via-[#f5c518] to-transparent" />
+
+          {/* Logo — top */}
+          <div className="relative z-10 p-8">
+            <Link href="/" className="flex items-center gap-2.5">
+              <div className="relative w-9 h-9 shrink-0">
+                <div className="absolute inset-0 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 shadow-[0_2px_12px_rgba(0,0,0,0.3)]" />
+                <div className="absolute top-0 right-0 w-3 h-3 bg-[#f5c518] rounded-tr-xl rounded-bl-lg" />
+                <span className="absolute inset-0 flex items-center justify-center text-white font-serif font-black text-base select-none">ብ</span>
+              </div>
+              <span className="text-xl font-serif font-black text-white tracking-tight">ብራና</span>
+            </Link>
           </div>
 
-          {/* Content on the right */}
-          <div className="flex w-full items-center justify-center px-4 py-8 lg:w-1/2 lg:px-10">
-            <div className="w-full max-w-md">
-              <div className="mb-8 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold tracking-tight">
-                    Birana
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={toggleTheme}
-                  className="inline-flex items-center gap-1 rounded-full border border-slate-300/70 bg-white/60 px-3 py-1 text-xs font-medium text-slate-700 shadow-sm hover:bg-white dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-100"
-                >
-                  <span
-                    className={`h-2 w-2 rounded-full ${
-                      isDark ? "bg-emerald-400" : "bg-amber-400"
-                    }`}
-                  />
-                  <span>{isDark ? "Dark" : "Light"} mode</span>
-                </button>
+          {/* Bottom content */}
+          <div className="relative z-10 mt-auto p-8">
+            {/* Stats */}
+            {imageStats && imageStats.length > 0 && (
+              <div className="flex gap-5 mb-7">
+                {imageStats.map(({ value, label }) => (
+                  <motion.div
+                    key={label}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4, duration: 0.45 }}
+                  >
+                    <div className="text-xl font-serif font-black text-white leading-none">{value}</div>
+                    <div className="text-[10px] text-white/50 font-semibold mt-1 uppercase tracking-wider">{label}</div>
+                  </motion.div>
+                ))}
               </div>
+            )}
 
-              <div className="mb-7 space-y-2">
-                <h1 className="text-2xl font-semibold tracking-tight">
-                  {title}
-                </h1>
-                {subtitle ? (
-                  <p className="text-sm leading-relaxed text-[#142B6F] dark:text-slate-300">
-                    {subtitle}
-                  </p>
-                ) : null}
-              </div>
+            {/* Divider */}
+            <div className="h-px bg-white/15 mb-5" />
 
-              <div className="space-y-6">{children}</div>
+            {/* Eyebrow */}
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#f5c518] mb-2">
+              Birana Library · ASTU
+            </p>
 
-              {showBackLink && (
-                <div className="mt-6 pt-5 border-t border-[#E1DEE5] dark:border-slate-800">
-                  <p className="text-center text-xs text-[#142B6F] dark:text-slate-400">
-                    <Link
-                      href={backHref}
-                      className="font-medium text-[#142B6F] hover:text-[#142B6F] dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors"
-                    >
-                      {backLabel}
-                    </Link>
-                  </p>
-                </div>
-              )}
-            </div>
+            {/* Title */}
+            <h2 className="text-xl font-serif font-black text-white leading-tight mb-2">
+              {imageTitle}
+            </h2>
+
+            {/* Tagline */}
+            <p className="text-xs text-white/50 leading-relaxed">
+              {imageTagline}
+            </p>
           </div>
         </div>
-      </div>
+
+        {/* ── RIGHT PANEL: 60% — form, scrollable ─────────────── */}
+        <div className="relative flex-1 bg-[#f8f7fc] flex flex-col overflow-hidden">
+
+          {/* Very subtle right-panel background accents */}
+          <div className="pointer-events-none absolute -top-20 -right-20 w-64 h-64 rounded-full bg-[#142b6f]/04 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-16 -left-16 w-48 h-48 rounded-full bg-[#f5c518]/05 blur-3xl" />
+
+          {/* ── Top bar (fixed inside right panel) ── */}
+          <div className="relative z-10 shrink-0 flex items-center justify-between px-8 py-5 border-b border-[#e2e0e7]/60">
+            {/* Back to home */}
+            <Link href="/" className="flex items-center gap-1.5 text-xs font-semibold text-[#9ca3af] hover:text-[#142b6f] transition-colors">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M9 2L4 7l5 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              {t("auth.common.home") as string}
+            </Link>
+            {/* Right slot (sign up / sign in link) */}
+            {topRight}
+          </div>
+
+          {/*
+           * ── Scrollable form content ──
+           * This div is the ONLY thing that scrolls.
+           * overflow-y-auto + flex-1 means it fills remaining height
+           * and scrolls when content overflows.
+           */}
+          <div className="relative z-10 flex-1 overflow-y-auto">
+            <div className="px-8 py-7">
+              {/* Badge */}
+              {badge && (
+                <div className="inline-flex items-center gap-2 rounded-full bg-[#142b6f]/08 border border-[#142b6f]/12 px-3.5 py-1.5 mb-5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#142b6f]" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#142b6f]">{badge}</span>
+                </div>
+              )}
+
+              {/* Title */}
+              <h1 className="text-2xl font-serif font-black text-[#0d0d0d] leading-tight mb-1">
+                {rightTitle}
+              </h1>
+              {rightSubtitle && (
+                <p className="text-sm text-[#6b7280] leading-relaxed mb-6">{rightSubtitle}</p>
+              )}
+              {!rightSubtitle && <div className="mb-6" />}
+
+              {/* Form content */}
+              {children}
+
+              {/* Bottom padding so last element isn't flush against edge */}
+              <div className="h-6" />
+            </div>
+          </div>
+
+          {/* ── Footer strip (fixed inside right panel) ── */}
+          <div className="relative z-10 shrink-0 px-8 py-3 border-t border-[#e2e0e7]/60">
+            <p className="text-[10px] text-[#c0bfca]">
+              &copy; {new Date().getFullYear()} Birana Library System — ASTU
+            </p>
+          </div>
+        </div>
+
+      </motion.div>
     </div>
   );
 };

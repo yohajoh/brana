@@ -42,8 +42,8 @@ const withDbRetry = async (operation, maxAttempts = 2) => {
   throw lastError;
 };
 
-const googleClientId = process.env.CLIENT_ID;
-const googleClientSecret = process.env.CLIENT_SECRET;
+const googleClientId = process.env.GOOGLE_CLIENT_ID || process.env.CLIENT_ID;
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET || process.env.CLIENT_SECRET;
 const callbackUrl = process.env.CALLBACK_URL;
 
 console.log("📋 Loading passport configuration...");

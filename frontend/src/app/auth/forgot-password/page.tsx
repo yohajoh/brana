@@ -1,93 +1,102 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import Link from "next/link";
 import { AuthLayout } from "../AuthLayout";
 import { fetchApi } from "@/lib/api";
-import { AuthModal } from "@/components/ui/AuthModal";
 import { useLanguage } from "@/components/providers/LanguageProvider";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function ForgotPasswordPage() {
   const { t } = useLanguage();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showModal, setShowModal] = useState(false);
+  const [done, setDone] = useState(false);
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setIsLoading(true);
-    setError(null);
-
-    const formData = new FormData(event.currentTarget);
-    const email = formData.get("email") as string;
-
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsLoading(true); setError(null);
+    const fd = new FormData(e.currentTarget);
     try {
       await fetchApi("/auth/forgot-password", {
         method: "POST",
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: fd.get("email") }),
       });
-      setShowModal(true);
+      setDone(true);
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : t("auth.forgot_password.messages.default_error") || "Something went wrong. Please try again.";
-      setError(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
+      setError(err instanceof Error ? err.message : (t("auth.forgot_password.messages.default_error") as string));
+    } finally { setIsLoading(false); }
   };
 
-  return (
-    <>
+  if (done) {
+    return (
       <AuthLayout
-        title={t("auth.forgot_password.title")}
-        subtitle={t("auth.forgot_password.subtitle")}
-        showBackLink
-        backHref="/auth/login"
-        backLabel={t("auth.forgot_password.back_label")}
-        imageSrc="/auth/image copy 2.png"
-        imageAlt={t("auth.forgot_password.image_alt") || "Book fair at Addis literature festival"}
+        title={t("auth.forgot_password.modal.title") as string}
+        badge="Email sent"
+        icon={
+          <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 280, damping: 24 }}
+            className="w-14 h-14 rounded-2xl bg-[#142b6f]/08 border border-[#142b6f]/12 flex items-center justify-center">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+              <path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2z" stroke="#142b6f" strokeWidth="1.5" />
+              <path d="M2 6l10 7 10-7" stroke="#142b6f" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </motion.div>
+        }
       >
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {error && (
-            <div className="rounded-xl bg-red-50 p-3 text-xs text-red-600 border border-red-100 italic">
-              {error}
-            </div>
-          )}
-
-          <div className="space-y-1.5">
-            <label htmlFor="email" className="text-xs font-medium text-[#111111]">
-              {t("auth.forgot_password.email_label")}
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              required
-              className="w-full rounded-xl border border-[#E1DEE5] bg-white px-3 py-2.5 text-sm text-[#111111] placeholder:text-[#142B6F] outline-none focus:border-[#142B6F] focus:ring-2 focus:ring-[#FFD602] transition"
-              placeholder={t("auth.forgot_password.email_placeholder")}
-            />
-          </div>
-
-          <p className="text-[11px] text-[#142B6F]">
-            {t("auth.forgot_password.help_text")}
-          </p>
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="inline-flex w-full items-center justify-center rounded-xl bg-[#142B6F] px-4 py-2.5 text-sm font-medium text-white shadow-[0_14px_40px_rgba(74,43,11,0.35)] hover:bg-[#142B6F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFD602] focus-visible:ring-offset-2 focus-visible:ring-offset-white transition disabled:opacity-70 disabled:cursor-not-allowed"
-          >
-            {isLoading ? t("auth.forgot_password.submitting") : t("auth.forgot_password.submit")}
-          </button>
-        </form>
+        <p className="text-sm text-[#374151] leading-relaxed mb-8">
+          {t("auth.forgot_password.modal.message") as string}
+        </p>
+        <Link href="/auth/login"
+          className="block w-full rounded-2xl bg-[#142b6f] py-3.5 text-sm font-black text-white text-center shadow-[0_4px_18px_rgba(20,43,111,0.30)] hover:shadow-[0_8px_28px_rgba(20,43,111,0.38)] hover:-translate-y-0.5 transition-all">
+          {t("auth.forgot_password.back_label") as string}
+        </Link>
       </AuthLayout>
+    );
+  }
 
-      <AuthModal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        title={t("auth.forgot_password.modal.title")}
-        message={t("auth.forgot_password.modal.message")}
-        buttonLabel={t("auth.forgot_password.modal.button_label")}
-        buttonHref="/auth/login"
-      />
-    </>
+  return (
+    <AuthLayout
+      title={t("auth.forgot_password.title") as string}
+      subtitle={t("auth.forgot_password.subtitle") as string}
+      showBackLink
+      backHref="/auth/login"
+      backLabel={t("auth.forgot_password.back_label") as string}
+      badge="Password reset"
+    >
+      <AnimatePresence>
+        {error && (
+          <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            className="mb-5 rounded-2xl bg-red-50 border border-red-100 px-4 py-3 text-xs text-red-600">
+            {error}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="space-y-1.5">
+          <label htmlFor="email" className="text-xs font-bold text-[#374151]">
+            {t("auth.forgot_password.email_label") as string}
+          </label>
+          <input id="email" name="email" type="email" required autoComplete="email"
+            placeholder={t("auth.forgot_password.email_placeholder") as string}
+            className="w-full rounded-2xl border border-[#e2e0e7] bg-white px-4 py-3 text-sm text-[#0d0d0d] placeholder:text-[#b0afc0] outline-none focus:border-[#142b6f] focus:shadow-[0_0_0_3px_rgba(20,43,111,0.09)] transition-all" />
+        </div>
+
+        <p className="text-xs text-[#9ca3af] leading-relaxed">
+          {t("auth.forgot_password.help_text") as string}
+        </p>
+
+        <button type="submit" disabled={isLoading}
+          className="w-full rounded-2xl bg-[#142b6f] py-3.5 text-sm font-black text-white shadow-[0_4px_18px_rgba(20,43,111,0.30)] hover:shadow-[0_8px_28px_rgba(20,43,111,0.38)] hover:-translate-y-0.5 transition-all disabled:opacity-60 disabled:cursor-not-allowed">
+          {isLoading ? (
+            <span className="flex items-center justify-center gap-2">
+              <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+              {t("auth.forgot_password.submitting") as string}
+            </span>
+          ) : t("auth.forgot_password.submit") as string}
+        </button>
+      </form>
+    </AuthLayout>
   );
 }

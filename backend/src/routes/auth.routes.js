@@ -37,13 +37,22 @@ router.post("/login", authLimiter, authController.login);
 
 router.get("/logout", authController.logout);
 
+// Password reset — these were previously missing
+router.post("/forgot-password", authLimiter, authController.forgotPassword);
+router.post("/reset-password/:token", authController.resetPassword);
+
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
 const CALENDAR_SCOPES = ["https://www.googleapis.com/auth/calendar.events"];
 const calendarRedirectUri =
-  process.env.CALENDAR_CALLBACK_URL || process.env.CALLBACK_URL || process.env.REDIRECT_URL || undefined;
+  process.env.CALENDAR_CALLBACK_URL || process.env.CALLBACK_URL || undefined;
+
+// Use consistent env var names — support both GOOGLE_CLIENT_ID and CLIENT_ID
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || process.env.CLIENT_ID;
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || process.env.CLIENT_SECRET;
+
 const calendarOAuthClient =
-  process.env.CLIENT_ID && process.env.CLIENT_SECRET
-    ? new google.auth.OAuth2(process.env.CLIENT_ID, process.env.CLIENT_SECRET, calendarRedirectUri)
+  GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET
+    ? new google.auth.OAuth2(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, calendarRedirectUri)
     : null;
 const calendarStateSecret = String(process.env.JWT_SECRET || "fallback_secret");
 const signCalendarState = (userId) =>
@@ -54,7 +63,7 @@ const verifyCalendarState = (token) => jwt.verify(token, calendarStateSecret);
 
 // Google OAuth - use passport's built-in callback
 router.get("/google", (req, res, next) => {
-  if (!process.env.CLIENT_ID || !process.env.CLIENT_SECRET) {
+  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
     return res.redirect(`${FRONTEND_URL}/auth/login?error=google_not_configured`);
   }
   passport.authenticate("google", {

@@ -3,170 +3,159 @@
 import { FormEvent, useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { AuthLayout } from "../AuthLayout";
+import { SplitAuthLayout } from "../AuthLayout";
 import { fetchApi, API_BASE_URL } from "@/lib/api";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { FcGoogle } from "react-icons/fc";
+import { Eye, EyeOff } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+
+const IC = "w-full rounded-2xl border border-[#e2e0e7] bg-white px-4 py-3 text-sm text-[#0d0d0d] placeholder:text-[#b0afc0] outline-none focus:border-[#142b6f] focus:shadow-[0_0_0_3px_rgba(20,43,111,0.09)] transition-all";
 
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { t } = useLanguage();
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError]     = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [showPw, setShowPw]   = useState(false);
 
   useEffect(() => {
-    if (searchParams.get("confirmed") === "true") {
-      setSuccess(t("auth.login.messages.email_confirmed"));
-    }
+    if (searchParams.get("confirmed") === "true") setSuccess(t("auth.login.messages.email_confirmed") as string);
     const err = searchParams.get("error");
-    if (err === "auth_failed") setError(t("auth.login.messages.google_failed"));
-    if (err === "auth_timeout")
-      setError(t("auth.login.messages.google_timeout"));
+    if (err === "auth_failed")            setError(t("auth.login.messages.google_failed") as string);
+    if (err === "auth_timeout")           setError(t("auth.login.messages.google_timeout") as string);
+    if (err === "google_not_configured")  setError("Google sign-in is not configured on the server.");
+    if (err === "google_callback_error")  setError("Google sign-in failed. Please try again.");
   }, [searchParams, t]);
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setIsLoading(true);
-    setError(null);
-    setSuccess(null);
-
-    const formData = new FormData(event.currentTarget);
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
-
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsLoading(true); setError(null); setSuccess(null);
+    const fd = new FormData(e.currentTarget);
     try {
       const data = await fetchApi("/auth/login", {
         method: "POST",
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: fd.get("email"), password: fd.get("password") }),
       });
       const role = data?.data?.user?.role ?? "STUDENT";
       router.push(role === "ADMIN" ? "/dashboard/admin" : "/dashboard/student");
     } catch (err: unknown) {
-      const errorMessage =
-        err instanceof Error
-          ? err.message
-          : t("auth.login.messages.invalid_credentials");
-      setError(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleGoogleLogin = () => {
-    window.location.href = `${API_BASE_URL}/auth/google`;
+      setError(err instanceof Error ? err.message : (t("auth.login.messages.invalid_credentials") as string));
+    } finally { setIsLoading(false); }
   };
 
   return (
-    <Suspense fallback={null}>
-      <AuthLayout
-        title={t("auth.login.title")}
-        subtitle={t("auth.login.subtitle")}
-        showBackLink
-        backHref="/auth/create-account"
-        backLabel={t("auth.login.back_label")}
-        imageSrc="/auth/image.png"
-        imageAlt={t("auth.login.image_alt") || "Shelves of Ethiopian books"}
-        useMobileBackgroundImage={false}
+    <SplitAuthLayout
+      imageSrc="/hero img.jpg"
+      imageTitle="Your next great read is one click away."
+      imageTagline="Explore thousands of physical and digital books at ASTU's library system."
+      imageStats={[
+        { value: "2,400+", label: "Books" },
+        { value: "1,800+", label: "Students" },
+        { value: "4.9★",   label: "Rating"   },
+      ]}
+      rightTitle={t("auth.login.title") as string}
+      rightSubtitle={t("auth.login.subtitle") as string}
+      badge="Welcome back"
+      topRight={
+        <Link href="/auth/create-account" className="text-xs font-semibold text-[#374151] hover:text-[#142b6f] transition-colors">
+          No account?{" "}
+          <span className="text-[#142b6f] font-black underline underline-offset-2">Sign up</span>
+        </Link>
+      }
+    >
+      {/* Google */}
+      <motion.button
+        type="button"
+        whileHover={{ y: -1 }}
+        whileTap={{ scale: 0.98 }}
+        onClick={() => { window.location.href = `${API_BASE_URL}/auth/google`; }}
+        className="w-full flex items-center justify-center gap-3 rounded-2xl border border-[#e2e0e7] bg-white px-4 py-3 text-sm font-semibold text-[#0d0d0d] shadow-sm hover:shadow-[0_4px_16px_rgba(20,43,111,0.09)] hover:border-[#142b6f]/20 transition-all"
       >
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <div className="rounded-xl bg-red-50 p-3 text-xs text-red-600 border border-red-100 italic">
-              {error}
-            </div>
-          )}
-          {success && (
-            <div className="rounded-xl bg-emerald-50 p-3 text-xs text-emerald-600 border border-emerald-100 italic">
-              {success}
-            </div>
-          )}
+        <FcGoogle size={20} />
+        {t("auth.login.google_login") as string}
+      </motion.button>
 
-          <div className="space-y-1.5">
-            <label
-              htmlFor="email"
-              className="text-xs font-medium text-[#111111]"
-            >
-              {t("auth.login.identity_label")}
+      {/* Divider */}
+      <div className="flex items-center gap-3 my-6 text-[11px] text-[#b0afc0] font-semibold">
+        <span className="h-px flex-1 bg-[#e2e0e7]" />
+        {t("auth.login.or_continue_with") as string}
+        <span className="h-px flex-1 bg-[#e2e0e7]" />
+      </div>
+
+      {/* Alerts */}
+      <AnimatePresence>
+        {error && (
+          <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            className="mb-5 rounded-2xl bg-red-50 border border-red-100 px-4 py-3 text-xs text-red-600">
+            {error}
+          </motion.div>
+        )}
+        {success && (
+          <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            className="mb-5 rounded-2xl bg-emerald-50 border border-emerald-100 px-4 py-3 text-xs text-emerald-700">
+            {success}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Email */}
+        <div className="space-y-1.5">
+          <label htmlFor="email" className="text-xs font-bold text-[#374151]">
+            {t("auth.login.identity_label") as string}
+          </label>
+          <input id="email" name="email" type="email" required autoComplete="email"
+            placeholder={t("auth.login.identity_placeholder") as string} className={IC} />
+        </div>
+
+        {/* Password */}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <label htmlFor="password" className="text-xs font-bold text-[#374151]">
+              {t("auth.login.password_label") as string}
             </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              required
-              className="w-full rounded-xl border border-[#E1DEE5] bg-white px-3 py-2.5 text-sm text-[#111111] placeholder:text-[#142B6F] outline-none focus:border-[#142B6F] focus:ring-2 focus:ring-[#FFD602] transition"
-              placeholder={t("auth.login.identity_placeholder")}
-            />
+            <Link href="/auth/forgot-password" className="text-[11px] font-semibold text-[#142b6f] hover:opacity-75 transition-opacity">
+              {t("auth.login.forgot_password") as string}
+            </Link>
           </div>
-
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between text-xs">
-              <label htmlFor="password" className="font-medium text-[#111111]">
-                {t("auth.login.password_label")}
-              </label>
-              <Link
-                href="/auth/forgot-password"
-                className="text-[#142B6F] hover:text-[#142B6F] transition-colors"
-              >
-                {t("auth.login.forgot_password")}
-              </Link>
-            </div>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              required
-              className="w-full rounded-xl border border-[#E1DEE5] bg-white px-3 py-2.5 text-sm text-[#111111] placeholder:text-[#142B6F] outline-none focus:border-[#142B6F] focus:ring-2 focus:ring-[#FFD602] transition"
-              placeholder={t("auth.login.password_placeholder")}
-            />
+          <div className="relative">
+            <input id="password" name="password" type={showPw ? "text" : "password"} required autoComplete="current-password"
+              placeholder={t("auth.login.password_placeholder") as string} className={`${IC} pr-11`} />
+            <button type="button" onClick={() => setShowPw(v => !v)}
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#b0afc0] hover:text-[#374151] transition-colors">
+              {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
+            </button>
           </div>
+        </div>
 
-          <div className="flex items-center gap-2 pt-1">
-            <input
-              id="remember"
-              name="remember"
-              type="checkbox"
-              className="h-3.5 w-3.5 rounded border-[#E1DEE5] bg-transparent accent-[#142B6F] focus:ring-0"
-            />
-            <label
-              htmlFor="remember"
-              className="text-xs text-[#142B6F] leading-snug cursor-pointer"
-            >
-              {t("auth.login.remember_me")}
-            </label>
-          </div>
+        {/* Submit */}
+        <button type="submit" disabled={isLoading}
+          className="w-full mt-1 rounded-2xl bg-[#142b6f] py-3.5 text-sm font-black text-white shadow-[0_4px_18px_rgba(20,43,111,0.30)] hover:shadow-[0_8px_28px_rgba(20,43,111,0.38)] hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-60 disabled:cursor-not-allowed">
+          {isLoading ? (
+            <span className="flex items-center justify-center gap-2">
+              <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+              {t("auth.login.submitting") as string}
+            </span>
+          ) : t("auth.login.submit") as string}
+        </button>
+      </form>
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="mt-2 inline-flex w-full items-center justify-center rounded-xl bg-[#142B6F] px-4 py-2.5 text-sm font-medium text-white shadow-[0_14px_40px_rgba(74,43,11,0.35)] hover:bg-[#142B6F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFD602] focus-visible:ring-offset-2 focus-visible:ring-offset-white transition disabled:opacity-70 disabled:cursor-not-allowed"
-          >
-            {isLoading ? t("auth.login.submitting") : t("auth.login.submit")}
-          </button>
-
-          <div className="flex items-center gap-3 pt-3 text-[11px] text-[#142B6F]">
-            <span className="h-px flex-1 bg-[#E1DEE5]" />
-            <span>{t("auth.login.or_continue_with")}</span>
-            <span className="h-px flex-1 bg-[#E1DEE5]" />
-          </div>
-
-          <button
-            type="button"
-            onClick={handleGoogleLogin}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#E1DEE5] bg-white px-4 py-2.5 text-sm font-medium text-[#111111] hover:bg-[#FFFFFF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFD602] focus-visible:ring-offset-2 focus-visible:ring-offset-white transition"
-          >
-            <FcGoogle size={18} />
-            <span>{t("auth.login.google_login")}</span>
-          </button>
-        </form>
-      </AuthLayout>
-    </Suspense>
+      <p className="mt-7 text-center text-xs text-[#9ca3af]">
+        Don&apos;t have an account?{" "}
+        <Link href="/auth/create-account" className="font-black text-[#142b6f] hover:opacity-75 transition-opacity">
+          {t("navbar.signup") as string}
+        </Link>
+      </p>
+    </SplitAuthLayout>
   );
 }
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#FFFFFF]" />}>
+    <Suspense fallback={<div className="min-h-screen bg-[#0d0d0d]" />}>
       <LoginContent />
     </Suspense>
   );
