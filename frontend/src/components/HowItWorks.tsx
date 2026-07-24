@@ -1,71 +1,80 @@
 "use client";
 
 import React from "react";
-import { UserPlus, Search, Truck, RotateCcw } from "lucide-react";
 import { useLanguage } from "@/components/providers/LanguageProvider";
+import { motion } from "framer-motion";
 
 export const HowItWorks = () => {
   const { t } = useLanguage();
 
   const steps = [
     {
-      id: 1,
-      title: t("how_it_works.steps.create_account.title"),
-      description: t("how_it_works.steps.create_account.description"),
-      icon: <UserPlus size={24} />,
+      num: "01",
+      title: t("how_it_works.steps.create_account.title") as string,
+      description: t("how_it_works.steps.create_account.description") as string,
     },
     {
-      id: 2,
-      title: t("how_it_works.steps.choose_book.title"),
-      description: t("how_it_works.steps.choose_book.description"),
-      icon: <Search size={24} />,
+      num: "02",
+      title: t("how_it_works.steps.choose_book.title") as string,
+      description: t("how_it_works.steps.choose_book.description") as string,
     },
     {
-      id: 3,
-      title: t("how_it_works.steps.dorm_delivery.title"),
-      description: t("how_it_works.steps.dorm_delivery.description"),
-      icon: <Truck size={24} />,
+      num: "03",
+      title: t("how_it_works.steps.dorm_delivery.title") as string,
+      description: t("how_it_works.steps.dorm_delivery.description") as string,
     },
     {
-      id: 4,
-      title: t("how_it_works.steps.return_pay.title"),
-      description: t("how_it_works.steps.return_pay.description"),
-      icon: <RotateCcw size={24} />,
+      num: "04",
+      title: t("how_it_works.steps.return_pay.title") as string,
+      description: t("how_it_works.steps.return_pay.description") as string,
     },
   ];
 
   return (
-    <section className="w-full py-24 bg-background mb-10">
-      <div className="mx-auto max-w-7xl px-6">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl font-serif font-extrabold text-primary mb-4">
-            {t("how_it_works.title")}
+    <section className="w-full bg-[#0d0d0d] py-20">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+          className="mb-16"
+        >
+          <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#f5c518] mb-3">
+            How It Works
+          </p>
+          <h2 className="text-3xl sm:text-4xl font-serif font-black text-white max-w-lg leading-tight">
+            {t("how_it_works.title") as string}
           </h2>
-          <div className="h-1.5 w-24 bg-secondary/30 mx-auto rounded-full" />
-        </div>
+        </motion.div>
 
-        <div className="relative">
-          {/* Decorative curve (simplified for implementation) */}
-          <div className="hidden lg:block absolute top-[60px] left-[15%] right-[15%] h-[2px] border-t-2 border-dashed border-border/80 z-0" />
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 relative z-10">
-            {steps.map((step) => (
-              <div
-                key={step.id}
-                className="flex flex-col items-center text-center p-8 rounded-3xl bg-card border border-border shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
-              >
-                <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center text-background mb-6 shadow-lg shadow-primary/20">
-                  {step.icon}
-                </div>
-                <h3 className="text-xl font-serif font-bold text-primary mb-3">
-                  {step.title}
-                </h3>
-                <p className="text-sm text-secondary leading-relaxed font-medium">
-                  {step.description}
-                </p>
+        {/* Steps — horizontal editorial layout */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-white/06">
+          {steps.map((step, i) => (
+            <motion.div
+              key={step.num}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-20px" }}
+              transition={{ duration: 0.5, delay: i * 0.1, ease: [0.16, 1, 0.3, 1] }}
+              className="bg-[#0d0d0d] p-8 group"
+            >
+              {/* Step number — very large, muted */}
+              <div className="text-6xl font-serif font-black text-white/06 leading-none mb-6 select-none">
+                {step.num}
               </div>
-            ))}
-          </div>
+              {/* Yellow accent bar */}
+              <div className="w-8 h-0.5 bg-[#f5c518] mb-5 group-hover:w-14 transition-all duration-300" />
+              <h3 className="text-lg font-serif font-black text-white mb-3">
+                {step.title}
+              </h3>
+              <p className="text-sm text-white/50 leading-relaxed">
+                {step.description}
+              </p>
+            </motion.div>
+          ))}
         </div>
       </div>
     </section>

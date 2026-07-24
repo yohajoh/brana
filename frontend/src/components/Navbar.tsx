@@ -9,8 +9,9 @@ import { PersonaSwitcher } from "@/components/PersonaSwitcher";
 import { usePersona } from "@/components/providers/PersonaProvider";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { Globe, Menu, X } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useDashboardShell } from "@/components/providers/DashboardShellProvider";
+import { motion, AnimatePresence } from "framer-motion";
 
 type LanguageCode = "en" | "am" | "or";
 
@@ -20,204 +21,321 @@ export const Navbar = () => {
   const { language, setLanguage, t } = useLanguage();
   const [isLangOpen, setIsLangOpen] = useState(false);
   const [isPublicMenuOpen, setIsPublicMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const langRef = useRef<HTMLDivElement>(null);
   const { toggleMobileSidebar } = useDashboardShell();
+
   const isStudentDashboard = pathname.startsWith("/dashboard/student");
   const isAdminDashboard = pathname.startsWith("/dashboard/admin");
   const isDashboard = pathname.startsWith("/dashboard/");
 
+  // Track scroll for public nav blur/shadow enhancement
+  useEffect(() => {
+    if (isDashboard) return;
+    const onScroll = () => setScrolled(window.scrollY > 24);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [isDashboard]);
+
+  // Close lang dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (langRef.current && !langRef.current.contains(e.target as Node)) {
+        setIsLangOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
   const isActive = (path: string) => {
-    if (path === "/") {
-      return pathname === "/";
-    }
+    if (path === "/") return pathname === "/";
     return pathname.startsWith(path);
   };
 
-  const languages: Array<{ code: LanguageCode; name: string }> = [
-    { code: "en", name: "English" },
-    { code: "am", name: "አማርኛ" },
-    { code: "or", name: "Oromiffa" },
+  const languages: Array<{ code: LanguageCode; name: string; flag: string }> = [
+    { code: "en", name: "English",  flag: "🇬🇧" },
+    { code: "am", name: "አማርኛ",    flag: "🇪🇹" },
+    { code: "or", name: "Oromiffa", flag: "🇪🇹" },
   ];
 
-  const headerClass = isDashboard
-    ? "fixed top-0 left-0 right-0 lg:left-64 z-[70] w-auto border-b border-border/40 bg-background/78 backdrop-blur-xl"
-    : "sticky top-0 z-50 w-full border-b border-border/40 bg-background/70 backdrop-blur-xl pt-4 pb-2";
+  const navLinks = [
+    { href: "/",      label: t("navbar.home") as string   },
+    { href: "/books", label: t("navbar.books") as string  },
+    { href: "/about", label: t("navbar.about") as string  },
+  ];
 
-  const containerClass = isDashboard
-    ? "mx-auto flex w-full items-center justify-between px-4 lg:px-6 py-2"
-    : "mx-auto flex max-w-7xl items-center justify-between px-6";
+  /* ── Dashboard header ─────────────────────────────────────── */
+  if (isDashboard) {
+    return (
+      <header className="fixed top-0 left-0 right-0 lg:left-64 z-[70] border-b border-[#e2e0e7]/60 bg-white/80 backdrop-blur-xl">
+        <div className="flex items-center justify-between px-4 lg:px-6 py-3">
+          {/* Mobile hamburger */}
+          <button
+            type="button"
+            onClick={toggleMobileSidebar}
+            className="lg:hidden flex items-center justify-center w-9 h-9 rounded-xl border border-[#e2e0e7] bg-white text-[#374151] hover:border-[#142b6f] hover:text-[#142b6f] transition-all"
+            aria-label="Open sidebar"
+          >
+            <Menu size={18} />
+          </button>
 
-  const shellClass = isDashboard
-    ? "flex w-full items-center justify-between rounded-xl sm:rounded-2xl border border-border/70 bg-card/70 px-3 sm:px-4 py-2 shadow-[0_8px_22px_rgba(20,43,111,0.10)]"
-    : "flex w-full items-center justify-between rounded-full border border-border/70 bg-card/70 px-6 py-2.5 shadow-[0_10px_32px_rgba(20,43,111,0.10)]";
-
-  return (
-    <header className={headerClass}>
-      <div className={containerClass}>
-        <div className={shellClass}>
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            {isDashboard ? (
-              <button
-                type="button"
-                onClick={toggleMobileSidebar}
-                className="lg:hidden inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-background text-secondary hover:text-primary hover:border-primary"
-                aria-label="Toggle menu"
-                title="Toggle menu"
-              >
-                <Menu size={18} />
-              </button>
-            ) : null}
-            {!isDashboard ? (
-              <button
-                type="button"
-                onClick={() => setIsPublicMenuOpen((current) => !current)}
-                className="md:hidden inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-background text-secondary hover:text-primary hover:border-primary"
-                aria-label="Toggle navigation"
-                title="Toggle navigation"
-              >
-                {isPublicMenuOpen ? <X size={18} /> : <Menu size={18} />}
-              </button>
-            ) : null}
-            <Link href="/" className="flex items-center gap-2 shrink-0">
-              <Image src="/icons/icon.png" alt="Book icon" width={28} height={28} />
-              <span className="hidden sm:inline text-lg font-serif font-bold tracking-tight text-primary">ብራና</span>
-            </Link>
+          <div className="hidden lg:flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-xs font-semibold text-[#374151]">
+              {isAdminDashboard ? "Admin Dashboard" : "Student Dashboard"}
+            </span>
           </div>
 
-          {!isDashboard && (
-            <nav className="hidden items-center gap-10 text-sm font-medium text-secondary md:flex">
-              <Link
-                href="/"
-                className={`relative transition-colors ${
-                  isActive("/") && !pathname.startsWith("/books") && !pathname.startsWith("/about")
-                    ? "text-primary font-bold after:absolute after:-bottom-1 after:left-0 after:h-0.5 after:w-full after:bg-primary after:rounded-full"
-                    : "hover:text-primary"
-                }`}
-              >
-                {t("navbar.home")}
-              </Link>
-              <Link
-                href="/books"
-                className={`relative transition-colors ${
-                  isActive("/books")
-                    ? "text-primary font-bold after:absolute after:-bottom-1 after:left-0 after:h-0.5 after:w-full after:bg-primary after:rounded-full"
-                    : "hover:text-primary"
-                }`}
-              >
-                {t("navbar.books")}
-              </Link>
-              <Link
-                href="/about"
-                className={`relative transition-colors ${
-                  isActive("/about")
-                    ? "text-primary font-bold after:absolute after:-bottom-1 after:left-0 after:h-0.5 after:w-full after:bg-primary after:rounded-full"
-                    : "hover:text-primary"
-                }`}
-              >
-                {t("navbar.about")}
-              </Link>
-            </nav>
-          )}
-
-          <div className="flex items-center gap-2 sm:gap-3">
-            {/* Language Switcher */}
-            <div className="relative">
+          <div className="flex items-center gap-2 ml-auto">
+            {/* Language */}
+            <div className="relative" ref={langRef}>
               <button
                 onClick={() => setIsLangOpen(!isLangOpen)}
-                className="flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-semibold text-secondary hover:text-primary hover:border-primary transition-all active:scale-95"
+                className="flex items-center gap-1.5 rounded-xl border border-[#e2e0e7] bg-white px-3 py-1.5 text-xs font-semibold text-[#374151] hover:border-[#142b6f] hover:text-[#142b6f] transition-all"
               >
-                <Globe size={14} />
-                <span className="hidden sm:inline uppercase">{language}</span>
+                <Globe size={13} />
+                <span className="uppercase">{language}</span>
               </button>
-
-              {isLangOpen && (
-                <div className="absolute right-0 mt-2 w-32 rounded-2xl border border-border bg-card p-2 shadow-xl animate-in fade-in zoom-in duration-200">
-                  {languages.map((lang) => (
-                    <button
-                      key={lang.code}
-                      onClick={() => {
-                        setLanguage(lang.code);
-                        setIsLangOpen(false);
-                      }}
-                      className={`w-full rounded-xl px-3 py-2 text-left text-xs font-medium transition-colors ${
-                        language === lang.code ? "bg-primary/10 text-primary" : "text-secondary hover:bg-muted"
-                      }`}
-                    >
-                      {lang.name}
-                    </button>
-                  ))}
-                </div>
-              )}
+              <AnimatePresence>
+                {isLangOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.92, y: -6 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.92, y: -6 }}
+                    transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+                    className="absolute right-0 mt-2 w-36 dropdown-panel p-1.5 z-50"
+                  >
+                    {languages.map((lang) => (
+                      <button
+                        key={lang.code}
+                        onClick={() => { setLanguage(lang.code); setIsLangOpen(false); }}
+                        className={`w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold transition-colors ${
+                          language === lang.code
+                            ? "bg-[#142b6f]/08 text-[#142b6f]"
+                            : "text-[#374151] hover:bg-[#f8f7fb]"
+                        }`}
+                      >
+                        <span>{lang.flag}</span>
+                        {lang.name}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {isStudentDashboard && <NotificationDropdown />}
             {isAdminDashboard && <AdminNotificationDropdown />}
+            {user && <PersonaSwitcher />}
+          </div>
+        </div>
+      </header>
+    );
+  }
+
+  /* ── Public header ────────────────────────────────────────── */
+  return (
+    <header className={`sticky top-0 z-50 w-full transition-all duration-300 ${
+      scrolled
+        ? "border-b border-[#e2e0e7]/80 bg-white/90 backdrop-blur-xl shadow-[0_2px_20px_rgba(20,43,111,0.07)]"
+        : "border-b border-transparent bg-white/60 backdrop-blur-md"
+    }`}>
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        <div className="flex items-center justify-between h-16">
+
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-2.5 shrink-0 group">
+            <div className="relative w-9 h-9 flex items-center justify-center rounded-xl bg-[#142b6f] shadow-[0_4px_12px_rgba(20,43,111,0.3)] group-hover:shadow-[0_6px_20px_rgba(20,43,111,0.4)] transition-shadow">
+              <BookOpen size={18} className="text-white" />
+            </div>
+            <span className="text-xl font-serif font-bold tracking-tight text-[#142b6f]">
+              ብራና
+            </span>
+          </Link>
+
+          {/* Desktop nav links */}
+          <nav className="hidden md:flex items-center gap-1">
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`relative px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                  isActive(link.href) && !(link.href !== "/" && !pathname.startsWith(link.href))
+                    ? "text-[#142b6f] bg-[#142b6f]/07"
+                    : "text-[#374151] hover:text-[#142b6f] hover:bg-[#142b6f]/05"
+                }`}
+              >
+                {link.label}
+                {isActive(link.href) && (
+                  <motion.span
+                    layoutId="nav-underline"
+                    className="absolute bottom-0.5 left-3 right-3 h-0.5 bg-[#142b6f] rounded-full"
+                    transition={{ type: "spring", stiffness: 380, damping: 34 }}
+                  />
+                )}
+              </Link>
+            ))}
+          </nav>
+
+          {/* Right actions */}
+          <div className="flex items-center gap-2">
+            {/* Language switcher */}
+            <div className="relative" ref={langRef}>
+              <button
+                onClick={() => setIsLangOpen(!isLangOpen)}
+                className="hidden sm:flex items-center gap-1.5 rounded-xl border border-[#e2e0e7] bg-white/80 px-3 py-1.5 text-xs font-bold text-[#374151] hover:border-[#142b6f] hover:text-[#142b6f] transition-all"
+              >
+                <Globe size={13} />
+                <span className="uppercase">{language}</span>
+              </button>
+              <AnimatePresence>
+                {isLangOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.92, y: -6 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.92, y: -6 }}
+                    transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+                    className="absolute right-0 mt-2 w-36 dropdown-panel p-1.5 z-50"
+                  >
+                    {languages.map((lang) => (
+                      <button
+                        key={lang.code}
+                        onClick={() => { setLanguage(lang.code); setIsLangOpen(false); }}
+                        className={`w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold transition-colors ${
+                          language === lang.code
+                            ? "bg-[#142b6f]/08 text-[#142b6f]"
+                            : "text-[#374151] hover:bg-[#f8f7fb]"
+                        }`}
+                      >
+                        <span>{lang.flag}</span>
+                        {lang.name}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
             {user ? (
               <PersonaSwitcher />
             ) : (
               <>
                 <Link
                   href="/auth/login"
-                  className="hidden sm:inline-flex rounded-full bg-primary px-6 py-2 text-sm font-bold text-background shadow-md hover:bg-background
-                   hover:text-primary border border-primary transition-all active:scale-95"
+                  className="hidden sm:inline-flex items-center justify-center rounded-full px-5 py-2 text-sm font-bold text-[#142b6f] border border-[#e2e0e7] hover:border-[#142b6f] hover:bg-[#142b6f]/05 transition-all"
                 >
-                  {t("navbar.login")}
+                  {t("navbar.login") as string}
                 </Link>
                 <Link
                   href="/auth/create-account"
-                  className="hidden sm:inline-flex rounded-full px-6 py-2 text-sm font-bold border border-accent text-accent shadow-md hover:bg-accent hover:text-background transition-all active:scale-95"
+                  className="hidden sm:inline-flex items-center justify-center rounded-full px-5 py-2 text-sm font-bold text-white bg-[#142b6f] shadow-[0_4px_14px_rgba(20,43,111,0.3)] hover:shadow-[0_6px_20px_rgba(20,43,111,0.38)] hover:-translate-y-0.5 active:translate-y-0 transition-all"
                 >
-                  {t("navbar.signup")}
+                  {t("navbar.signup") as string}
                 </Link>
               </>
             )}
+
+            {/* Mobile hamburger */}
+            <button
+              type="button"
+              onClick={() => setIsPublicMenuOpen((v) => !v)}
+              className="md:hidden flex items-center justify-center w-9 h-9 rounded-xl border border-[#e2e0e7] text-[#374151] hover:border-[#142b6f] hover:text-[#142b6f] transition-all"
+              aria-label="Toggle menu"
+            >
+              <AnimatePresence mode="wait" initial={false}>
+                {isPublicMenuOpen ? (
+                  <motion.span key="x"
+                    initial={{ rotate: -90, opacity: 0 }}
+                    animate={{ rotate: 0, opacity: 1 }}
+                    exit={{ rotate: 90, opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <X size={18} />
+                  </motion.span>
+                ) : (
+                  <motion.span key="menu"
+                    initial={{ rotate: 90, opacity: 0 }}
+                    animate={{ rotate: 0, opacity: 1 }}
+                    exit={{ rotate: -90, opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <Menu size={18} />
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </button>
           </div>
         </div>
 
-        {!isDashboard && isPublicMenuOpen ? (
-          <div className="mt-2 rounded-2xl border border-border/70 bg-card/95 p-3 shadow-[0_8px_22px_rgba(20,43,111,0.10)] md:hidden">
-            <nav className="flex flex-col gap-2 text-sm font-semibold text-secondary">
-              <Link
-                href="/"
-                onClick={() => setIsPublicMenuOpen(false)}
-                className="rounded-xl px-3 py-2 hover:bg-muted hover:text-primary"
-              >
-                {t("navbar.home")}
-              </Link>
-              <Link
-                href="/books"
-                onClick={() => setIsPublicMenuOpen(false)}
-                className="rounded-xl px-3 py-2 hover:bg-muted hover:text-primary"
-              >
-                {t("navbar.books")}
-              </Link>
-              <Link
-                href="/about"
-                onClick={() => setIsPublicMenuOpen(false)}
-                className="rounded-xl px-3 py-2 hover:bg-muted hover:text-primary"
-              >
-                {t("navbar.about")}
-              </Link>
-            </nav>
-            {!user ? (
-              <div className="mt-3 flex gap-2">
-                <Link
-                  href="/auth/login"
-                  onClick={() => setIsPublicMenuOpen(false)}
-                  className="flex-1 rounded-xl bg-primary px-4 py-2 text-center text-sm font-bold text-background border border-primary"
-                >
-                  {t("navbar.login")}
-                </Link>
-                <Link
-                  href="/auth/create-account"
-                  onClick={() => setIsPublicMenuOpen(false)}
-                  className="flex-1 rounded-xl border border-accent px-4 py-2 text-center text-sm font-bold text-accent"
-                >
-                  {t("navbar.signup")}
-                </Link>
+        {/* Mobile dropdown menu */}
+        <AnimatePresence>
+          {isPublicMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+              className="overflow-hidden md:hidden pb-4"
+            >
+              <div className="rounded-2xl border border-[#e2e0e7] bg-white/95 backdrop-blur-xl p-3 shadow-[0_8px_32px_rgba(20,43,111,0.10)] mt-1">
+                <nav className="flex flex-col gap-1 mb-3">
+                  {navLinks.map((link) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      onClick={() => setIsPublicMenuOpen(false)}
+                      className={`flex items-center rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors ${
+                        isActive(link.href)
+                          ? "bg-[#142b6f]/08 text-[#142b6f]"
+                          : "text-[#374151] hover:bg-[#f8f7fb] hover:text-[#142b6f]"
+                      }`}
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
+                </nav>
+
+                {/* Language (mobile) */}
+                <div className="flex flex-wrap gap-1.5 mb-3 px-1">
+                  {languages.map((lang) => (
+                    <button
+                      key={lang.code}
+                      onClick={() => { setLanguage(lang.code); setIsPublicMenuOpen(false); }}
+                      className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors border ${
+                        language === lang.code
+                          ? "border-[#142b6f] bg-[#142b6f]/08 text-[#142b6f]"
+                          : "border-[#e2e0e7] text-[#374151] hover:border-[#142b6f]"
+                      }`}
+                    >
+                      <span>{lang.flag}</span>
+                      {lang.name}
+                    </button>
+                  ))}
+                </div>
+
+                {!user && (
+                  <div className="flex gap-2 pt-1">
+                    <Link
+                      href="/auth/login"
+                      onClick={() => setIsPublicMenuOpen(false)}
+                      className="flex-1 text-center rounded-full border border-[#e2e0e7] py-2.5 text-sm font-bold text-[#142b6f] hover:border-[#142b6f] transition-all"
+                    >
+                      {t("navbar.login") as string}
+                    </Link>
+                    <Link
+                      href="/auth/create-account"
+                      onClick={() => setIsPublicMenuOpen(false)}
+                      className="flex-1 text-center rounded-full py-2.5 text-sm font-bold text-white bg-[#142b6f] shadow-md transition-all"
+                    >
+                      {t("navbar.signup") as string}
+                    </Link>
+                  </div>
+                )}
               </div>
-            ) : null}
-          </div>
-        ) : null}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </header>
   );

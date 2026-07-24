@@ -1,116 +1,142 @@
 "use client";
 
 import Link from "next/link";
-import { Facebook, Twitter, Instagram, Mail, Phone } from "lucide-react";
-import { RiTiktokLine } from "react-icons/ri";
 import Image from "next/image";
+import { Mail, Phone, MapPin } from "lucide-react";
+import { Facebook, Twitter, Instagram } from "lucide-react";
+import { RiTiktokLine } from "react-icons/ri";
 import { LiaTelegram } from "react-icons/lia";
-
 import { useLanguage } from "@/components/providers/LanguageProvider";
+import { useQuery } from "@tanstack/react-query";
+import { fetchApi } from "@/lib/api";
 
 export const Footer = () => {
   const { t } = useLanguage();
+  const year = new Date().getFullYear();
+
+  // Fetch categories for footer links (real data)
+  const { data: catData } = useQuery({
+    queryKey: ["footer-categories"],
+    queryFn: () => fetchApi("/categories?limit=5"),
+    staleTime: 30 * 60 * 1000,
+  });
+  const categories = (catData as { categories?: Array<{ id: string; name: string; slug: string }> })?.categories ?? [];
 
   return (
-    <footer className="mt-4 w-full bg-[#F2F6FF] text-[#111111] border-t border-[#DEE6F8] pt-10 pb-7">
-      <div className="mx-auto w-full max-w-7xl px-6">
-        <div className="grid grid-cols-1 gap-10 md:grid-cols-3">
-          <div className="space-y-6">
-            <Link href="/" className="flex items-center gap-2">
-              <Image src="/icons/icon.png" alt="Book icon" width={38} height={38} />
-              <span className="text-3xl font-serif font-bold tracking-tight text-[#142B6F]">ብራና</span>
-            </Link>
-
-            <p className="max-w-xs text-sm leading-relaxed text-[#142B6F]">{t("footer.description")}</p>
-
-            <div className="flex items-center gap-3">
+    <footer className="w-full bg-[#0a0a0a] text-white">
+      {/* Top editorial bar */}
+      <div className="border-b border-white/06 py-10">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+          <Link href="/" className="flex items-center gap-3">
+            <Image src="/icons/icon.png" alt="Brana" width={36} height={36} className="rounded-xl" />
+            <span className="text-2xl font-serif font-black text-white">ብራና</span>
+          </Link>
+          <p className="text-sm text-white/40 max-w-sm">
+            {t("footer.description") as string}
+          </p>
+          <div className="flex items-center gap-2">
+            {[Facebook, Twitter, Instagram, RiTiktokLine, LiaTelegram].map((Icon, i) => (
               <a
+                key={i}
                 href="#"
-                aria-label="Facebook"
-                title="Facebook"
-                className="rounded-full border border-[#E1DEE5] bg-white p-2 text-[#142B6F] hover:bg-[#FFD602] hover:text-[#111111] hover:border-[#FFD602] transition-all"
+                className="w-9 h-9 rounded-xl bg-white/05 flex items-center justify-center text-white/40 hover:text-white hover:bg-[#142b6f] transition-all"
               >
-                <Facebook size={22} />
+                <Icon size={16} />
               </a>
-              <a
-                href="#"
-                aria-label="Twitter"
-                title="Twitter"
-                className="rounded-full border border-[#E1DEE5] bg-white p-2 text-[#142B6F] hover:bg-[#FFD602] hover:text-[#111111] hover:border-[#FFD602] transition-all"
-              >
-                <Twitter size={22} />
-              </a>
-              <a
-                href="#"
-                aria-label="Instagram"
-                title="Instagram"
-                className="rounded-full border border-[#E1DEE5] bg-white p-2 text-[#142B6F] hover:bg-[#FFD602] hover:text-[#111111] hover:border-[#FFD602] transition-all"
-              >
-                <Instagram size={22} />
-              </a>
-              <a
-                href="#"
-                aria-label="TikTok"
-                title="TikTok"
-                className="rounded-full border border-[#E1DEE5] bg-white p-2 text-[#142B6F] hover:bg-[#FFD602] hover:text-[#111111] hover:border-[#FFD602] transition-all"
-              >
-                <RiTiktokLine size={22} />
-              </a>
-              <a
-                href="#"
-                aria-label="Telegram"
-                title="Telegram"
-                className="rounded-full border border-[#E1DEE5] bg-white p-2 text-[#142B6F] hover:bg-[#FFD602] hover:text-[#111111] hover:border-[#FFD602] transition-all"
-              >
-                <LiaTelegram size={22} />
-              </a>
-            </div>
+            ))}
           </div>
+        </div>
+      </div>
 
-          <div className="space-y-6">
-            <h3 className="text-base font-bold uppercase tracking-widest text-[#142B6F]">{t("footer.links_title")}</h3>
+      {/* Main links grid */}
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 py-12">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-10">
+
+          <div>
+            <h5 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 mb-5">
+              {t("footer.links_title") as string}
+            </h5>
             <nav className="flex flex-col gap-3">
-              <Link href="/" className="w-fit text-sm text-[#111111] hover:text-[#142B6F] transition-colors">
-                {t("navbar.home")}
-              </Link>
-              <Link href="/books" className="w-fit text-sm text-[#111111] hover:text-[#142B6F] transition-colors">
-                {t("navbar.books")}
-              </Link>
-              <Link href="/about" className="w-fit text-sm text-[#111111] hover:text-[#142B6F] transition-colors">
-                {t("navbar.about")}
-              </Link>
+              {[
+                { href: "/", label: t("navbar.home") as string },
+                { href: "/books", label: t("navbar.books") as string },
+                { href: "/about", label: t("navbar.about") as string },
+                { href: "/auth/create-account", label: "Sign Up" },
+                { href: "/auth/login", label: "Log In" },
+              ].map(({ href, label }) => (
+                <Link key={href} href={href} className="text-sm text-white/45 hover:text-white transition-colors">
+                  {label}
+                </Link>
+              ))}
             </nav>
           </div>
 
-          <div className="space-y-6">
-            <h3 className="text-base font-bold uppercase tracking-widest text-[#142B6F]">
-              {t("footer.contact_title")}
-            </h3>
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-3 text-sm text-[#111111]">
-                <Phone size={16} className="text-[#FFD602]" />
-                <span>+251 987 654 321</span>
+          <div>
+            <h5 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 mb-5">
+              Categories
+            </h5>
+            <nav className="flex flex-col gap-3">
+              {categories.length > 0 ? (
+                categories.map((cat) => (
+                  <Link
+                    key={cat.id}
+                    href={`/books?category_id=${cat.id}`}
+                    className="text-sm text-white/45 hover:text-white transition-colors"
+                  >
+                    {cat.name}
+                  </Link>
+                ))
+              ) : (
+                ["Theology", "Literature", "Technology", "Leadership", "History"].map((name) => (
+                  <span key={name} className="text-sm text-white/30">{name}</span>
+                ))
+              )}
+            </nav>
+          </div>
+
+          <div>
+            <h5 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 mb-5">
+              {t("footer.contact_title") as string}
+            </h5>
+            <div className="flex flex-col gap-3.5">
+              <div className="flex items-start gap-2.5">
+                <Phone size={13} className="text-[#f5c518] mt-0.5 shrink-0" />
+                <span className="text-sm text-white/45">+251 987 654 321</span>
               </div>
-              <div className="flex items-center gap-3 text-sm text-[#111111]">
-                <Mail size={16} className="text-[#FFD602]" />
-                <span>hello@birana.com</span>
+              <div className="flex items-start gap-2.5">
+                <Mail size={13} className="text-[#f5c518] mt-0.5 shrink-0" />
+                <span className="text-sm text-white/45">hello@birana.com</span>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <MapPin size={13} className="text-[#f5c518] mt-0.5 shrink-0" />
+                <span className="text-sm text-white/45">ASTU, Adama, Ethiopia</span>
               </div>
             </div>
           </div>
-        </div>
 
-        <div className="mt-8 flex flex-col items-center justify-between gap-4 border-t border-[#E1DEE5] pt-5 md:flex-row">
-          <p className="text-xs text-[#142B6F]">
-            &copy; {new Date().getFullYear()} Birana. {t("footer.rights")}
-          </p>
-          <div className="flex gap-6">
-            <Link href="/privacy-policy" className="text-xs text-[#142B6F] hover:text-[#111111] transition-colors">
-              {t("footer.privacy")}
-            </Link>
-            <Link href="/terms-of-service" className="text-xs text-[#142B6F] hover:text-[#111111] transition-colors">
-              {t("footer.terms")}
-            </Link>
+          <div>
+            <h5 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 mb-5">
+              Legal
+            </h5>
+            <nav className="flex flex-col gap-3">
+              <Link href="/privacy-policy" className="text-sm text-white/45 hover:text-white transition-colors">
+                {t("footer.privacy") as string}
+              </Link>
+              <Link href="/terms-of-service" className="text-sm text-white/45 hover:text-white transition-colors">
+                {t("footer.terms") as string}
+              </Link>
+            </nav>
           </div>
+        </div>
+      </div>
+
+      {/* Bottom bar */}
+      <div className="border-t border-white/05 py-5">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <p className="text-[11px] text-white/25 text-center">
+            &copy; {year} Birana Library System — Adama Science &amp; Technology University.{" "}
+            {t("footer.rights") as string}
+          </p>
         </div>
       </div>
     </footer>

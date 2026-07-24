@@ -1,4 +1,6 @@
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+export const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  (typeof window !== "undefined" ? "http://localhost:5000/api" : "http://localhost:5000/api");
 const CURRENT_USER_CACHE_TTL_MS = Math.max(0, Number(process.env.NEXT_PUBLIC_CURRENT_USER_CACHE_TTL_MS));
 
 type CurrentUser = {
