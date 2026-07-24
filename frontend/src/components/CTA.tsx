@@ -11,26 +11,36 @@ import { motion } from "framer-motion";
 export const CTA = () => {
   const { t } = useLanguage();
 
-  // Fetch live system config for max loan days
   const { data: configData } = useQuery({
     queryKey: ["public-system-config"],
     queryFn: () => fetchApi("/system-config"),
     staleTime: 10 * 60 * 1000,
   });
-  const config = (configData as { data?: { config?: { max_loan_days?: number; daily_fine?: number; max_books_per_user?: number } } })?.data?.config;
+  const config = (configData as {
+    data?: { config?: { max_loan_days?: number; daily_fine?: number; max_books_per_user?: number } };
+  })?.data?.config;
+
+  const daysUnit   = t("cta_section.days_unit")  as string;
+  const booksUnit  = t("cta_section.books_unit") as string;
 
   const liveStats = [
     {
-      value: config?.max_loan_days ? `${config.max_loan_days} days` : "14 days",
-      label: "Max loan period",
+      value: config?.max_loan_days
+        ? `${config.max_loan_days} ${daysUnit}`
+        : `14 ${daysUnit}`,
+      label: t("cta_section.loan_period") as string,
     },
     {
-      value: config?.max_books_per_user ? `${config.max_books_per_user} books` : "3 books",
-      label: "Per student limit",
+      value: config?.max_books_per_user
+        ? `${config.max_books_per_user} ${booksUnit}`
+        : `3 ${booksUnit}`,
+      label: t("cta_section.per_student") as string,
     },
     {
-      value: config?.daily_fine !== undefined ? `${Number(config.daily_fine).toFixed(0)} ETB/day` : "Free",
-      label: "Late fee",
+      value: config?.daily_fine !== undefined
+        ? `${Number(config.daily_fine).toFixed(0)} ETB/day`
+        : "Free",
+      label: t("cta_section.late_fee") as string,
     },
   ];
 
@@ -66,7 +76,7 @@ export const CTA = () => {
           <div className="bg-[#0d0d0d] px-8 sm:px-12 py-14 flex flex-col justify-between">
             <div>
               <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#f5c518] mb-4">
-                Get Started
+                {t("navbar.signup") as string}
               </p>
               <h2 className="text-3xl sm:text-4xl font-serif font-black text-white leading-tight mb-5">
                 {t("cta_section.title") as string}
@@ -87,7 +97,7 @@ export const CTA = () => {
                 href="/auth/create-account"
                 className="inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-sm font-bold text-white border border-white/20 hover:bg-white/08 hover:border-white/35 transition-all"
               >
-                Sign up free
+                {t("cta_section.signup_free") as string}
               </Link>
             </div>
           </div>
