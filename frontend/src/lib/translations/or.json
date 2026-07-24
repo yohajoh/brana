@@ -78,6 +78,7 @@
     "title": "Gaaffiiwwan Yeroo Baay'ee Gaafataman",
     "contact_prompt": "Gaaffiwwan biraa qabduu? Garee mana kitaabaa quunnamaa.",
     "contact_us": "Quunnamaa",
+    "questions_label": "gaaffiiwwan deebii argatan",
     "questions": [
       {
         "question": "Akkamittan kitaaba liqeeffachuu danda'a?",
@@ -109,6 +110,7 @@
     "title": "Dubbisa keessan isa guddaa itti aanuuf qophiidhaa?",
     "description": "Gibi gubae keenya keessatti kitaabota liqeeffachuuf karaa salphaa ta'e dhandhamaa. Barattoota dubbisuu jaallatan, rakkina malee qophaa'e.",
     "button": "Sassaabbiiwwan sakatta'i",
+    "eyebrow": "Har'a Jalqabi",
     "signup_free": "Bilisaan galmaa'i",
     "loan_period": "Yeroo liqii ol'aanaa",
     "per_student": "Daangaa barataa tokkoof",

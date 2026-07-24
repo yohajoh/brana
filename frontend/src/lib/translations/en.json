@@ -78,6 +78,7 @@
     "title": "Frequently Asked Questions",
     "contact_prompt": "Got more questions? Reach out to the library team.",
     "contact_us": "Contact us",
+    "questions_label": "questions answered",
     "questions": [
       {
         "question": "How do I borrow a book?",
@@ -109,6 +110,7 @@
     "title": "Ready to dive into your next great read?",
     "description": "Experience the simplest way to borrow books within our gibi gubae. Built for students who love reading—without the hassle.",
     "button": "Explore Collections",
+    "eyebrow": "Get Started Today",
     "signup_free": "Sign up free",
     "loan_period": "Max loan period",
     "per_student": "Per student limit",

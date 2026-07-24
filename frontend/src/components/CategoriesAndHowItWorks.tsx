@@ -229,8 +229,8 @@ export const CategoriesAndHowItWorks = () => {
                     onClick={() => setActiveStep(i)}
                     className={`group w-full text-left rounded-2xl border transition-all duration-300 overflow-hidden cursor-pointer ${
                       isActive
-                        ? "border-[#e2e0e7] bg-white shadow-[0_4px_20px_rgba(20,43,111,0.08)]"
-                        : "border-transparent bg-white/50 hover:bg-white/80 hover:border-[#e2e0e7]/60 hover:shadow-[0_2px_10px_rgba(20,43,111,0.05)]"
+                        ? "border-white/25 bg-white shadow-[0_4px_24px_rgba(0,0,0,0.3)]"
+                        : "border-white/08 bg-white/06 hover:bg-white/12 hover:border-white/15"
                     }`}
                   >
                     {/* Always-visible row */}
@@ -238,8 +238,8 @@ export const CategoriesAndHowItWorks = () => {
                       {/* Badge */}
                       <div className={`relative shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black transition-all duration-300 ${
                         isActive
-                          ? `${accent.badgeBg} ${accent.badgeText} shadow-[0_4px_14px_rgba(20,43,111,0.22)]`
-                          : "bg-[#f1f0f4] text-[#9ca3af]"
+                          ? `${accent.badgeBg} ${accent.badgeText} shadow-[0_4px_14px_rgba(0,0,0,0.3)]`
+                          : "bg-white/10 text-white/40"
                       }`}>
                         {step.num}
                         {isActive && (
@@ -252,12 +252,12 @@ export const CategoriesAndHowItWorks = () => {
 
                       <div className="flex-1 min-w-0">
                         <span className={`block text-[10px] font-black uppercase tracking-widest mb-0.5 transition-colors ${
-                          isActive ? accent.labelColor : "text-[#9ca3af]"
+                          isActive ? accent.labelColor : "text-white/30"
                         }`}>
                           {step.label}
                         </span>
                         <span className={`block text-sm font-bold leading-snug transition-colors ${
-                          isActive ? "text-[#0d0d0d]" : "text-[#374151]"
+                          isActive ? "text-[#0d0d0d]" : "text-white/55"
                         }`}>
                           {step.title}
                         </span>
@@ -273,7 +273,7 @@ export const CategoriesAndHowItWorks = () => {
                         />
                       ) : (
                         <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
-                          className="text-[#d1d0d7] group-hover:text-[#142b6f] transition-colors shrink-0">
+                          className="text-white/25 group-hover:text-white/60 transition-colors shrink-0">
                           <path d="M5 3l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                       )}
@@ -291,7 +291,7 @@ export const CategoriesAndHowItWorks = () => {
                           className="lg:hidden overflow-hidden"
                         >
                           <div className="px-4 pb-4">
-                            <div className="h-px bg-[#e2e0e7]/70 mb-3" />
+                            <div className="h-px bg-white/15 mb-3" />
                             <p className="text-sm text-[#374151] leading-relaxed mb-1">
                               {step.description}
                             </p>
@@ -313,11 +313,11 @@ export const CategoriesAndHowItWorks = () => {
                     <motion.div
                       animate={{ width: i === activeStep ? 22 : 7, opacity: i === activeStep ? 1 : 0.25 }}
                       transition={{ duration: 0.28 }}
-                      className="h-1.5 rounded-full bg-[#142b6f]"
+                      className="h-1.5 rounded-full bg-[#f5c518]"
                     />
                   </button>
                 ))}
-                <span className="ml-auto text-[11px] font-bold text-[#9ca3af]">
+                <span className="ml-auto text-[11px] font-bold text-white/35">
                   {steps[activeStep].num} / {String(steps.length).padStart(2, "0")}
                 </span>
               </div>
