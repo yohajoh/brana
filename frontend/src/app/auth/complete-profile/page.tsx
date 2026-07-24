@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuthLayout } from "../AuthLayout";
 import { fetchApi, fetchCurrentUser } from "@/lib/api";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 import { motion, AnimatePresence } from "framer-motion";
 
 type UserData = {
@@ -15,19 +16,20 @@ type UserData = {
 const needsProfile = (u: UserData | null) =>
   !!u && u.role !== "ADMIN" && (!u.student_id || !u.phone || !u.year || !u.department);
 
-const IC = "w-full rounded-2xl border border-[#e2e0e7] bg-white px-4 py-3 text-sm text-[#0d0d0d] placeholder:text-[#b0afc0] outline-none focus:border-[#142b6f] focus:shadow-[0_0_0_3px_rgba(20,43,111,0.09)] transition-all disabled:opacity-50 disabled:cursor-not-allowed";
-
 export default function CompleteProfilePage() {
   const router = useRouter();
-  const [user, setUser]         = useState<UserData | null>(null);
-  const [name, setName]         = useState("");
+  const { t } = useLanguage();
+  const [user, setUser]           = useState<UserData | null>(null);
+  const [name, setName]           = useState("");
   const [studentId, setStudentId] = useState("");
-  const [phone, setPhone]       = useState("");
-  const [year, setYear]         = useState("");
-  const [department, setDept]   = useState("");
-  const [loading, setLoading]   = useState(true);
-  const [saving, setSaving]     = useState(false);
-  const [error, setError]       = useState<string | null>(null);
+  const [phone, setPhone]         = useState("");
+  const [year, setYear]           = useState("");
+  const [department, setDept]     = useState("");
+  const [loading, setLoading]     = useState(true);
+  const [saving, setSaving]       = useState(false);
+  const [error, setError]         = useState<string | null>(null);
+
+  const IC = "w-full rounded-2xl border border-[#e2e0e7] bg-white px-4 py-3 text-sm text-[#0d0d0d] placeholder:text-[#b0afc0] outline-none focus:border-[#142b6f] focus:shadow-[0_0_0_3px_rgba(20,43,111,0.09)] transition-all disabled:opacity-50 disabled:cursor-not-allowed";
 
   useEffect(() => {
     (async () => {
@@ -55,15 +57,15 @@ export default function CompleteProfilePage() {
       await fetchApi("/auth/update-me", { method: "PATCH", body: JSON.stringify(payload) });
       router.replace(user.role === "ADMIN" ? "/dashboard/admin" : "/dashboard/student");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update profile");
+      setError(err instanceof Error ? err.message : (t("auth.complete_profile.error_default") as string));
     } finally { setSaving(false); }
   };
 
   return (
     <AuthLayout
-      title="Complete your profile"
-      subtitle="A few more details and you're ready to start borrowing."
-      badge="Last step"
+      title={t("auth.complete_profile.title") as string}
+      subtitle={t("auth.complete_profile.subtitle") as string}
+      badge={t("auth.complete_profile.badge") as string}
     >
       {loading ? (
         <div className="flex justify-center py-10">
@@ -98,39 +100,57 @@ export default function CompleteProfilePage() {
 
           <form onSubmit={handleSubmit} className="space-y-3">
             <div className="space-y-1">
-              <label className="text-xs font-bold text-[#374151]">Full Name</label>
-              <input type="text" value={name} onChange={e => setName(e.target.value)} required placeholder="Your full name" className={IC} />
+              <label className="text-xs font-bold text-[#374151]">
+                {t("auth.complete_profile.label_name") as string}
+              </label>
+              <input type="text" value={name} onChange={e => setName(e.target.value)} required
+                placeholder={t("auth.complete_profile.placeholder_name") as string} className={IC} />
             </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="text-xs font-bold text-[#374151]">Student ID</label>
+                <label className="text-xs font-bold text-[#374151]">
+                  {t("auth.complete_profile.label_student_id") as string}
+                </label>
                 <input type="text" value={studentId} onChange={e => setStudentId(e.target.value)}
                   required={!user?.student_id} disabled={Boolean(user?.student_id)}
-                  placeholder="UGR/12345/14" className={IC} />
+                  placeholder={t("auth.complete_profile.placeholder_student_id") as string}
+                  className={IC} />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-bold text-[#374151]">Phone</label>
-                <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} required placeholder="+251 9xx xxx xxx" className={IC} />
+                <label className="text-xs font-bold text-[#374151]">
+                  {t("auth.complete_profile.label_phone") as string}
+                </label>
+                <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} required
+                  placeholder={t("auth.complete_profile.placeholder_phone") as string} className={IC} />
               </div>
             </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="text-xs font-bold text-[#374151]">Year</label>
-                <input type="text" value={year} onChange={e => setYear(e.target.value)} required placeholder="e.g. 3rd Year" className={IC} />
+                <label className="text-xs font-bold text-[#374151]">
+                  {t("auth.complete_profile.label_year") as string}
+                </label>
+                <input type="text" value={year} onChange={e => setYear(e.target.value)} required
+                  placeholder={t("auth.complete_profile.placeholder_year") as string} className={IC} />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-bold text-[#374151]">Department</label>
-                <input type="text" value={department} onChange={e => setDept(e.target.value)} required placeholder="e.g. Computer Science" className={IC} />
+                <label className="text-xs font-bold text-[#374151]">
+                  {t("auth.complete_profile.label_department") as string}
+                </label>
+                <input type="text" value={department} onChange={e => setDept(e.target.value)} required
+                  placeholder={t("auth.complete_profile.placeholder_department") as string} className={IC} />
               </div>
             </div>
+
             <button type="submit" disabled={saving}
               className="w-full mt-2 rounded-2xl bg-[#142b6f] py-3.5 text-sm font-black text-white shadow-[0_4px_18px_rgba(20,43,111,0.30)] hover:shadow-[0_8px_28px_rgba(20,43,111,0.38)] hover:-translate-y-0.5 transition-all disabled:opacity-60 disabled:cursor-not-allowed">
               {saving ? (
                 <span className="flex items-center justify-center gap-2">
                   <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                  Saving…
+                  {t("auth.complete_profile.submitting") as string}
                 </span>
-              ) : "Save and continue →"}
+              ) : t("auth.complete_profile.submit") as string}
             </button>
           </form>
         </>

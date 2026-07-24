@@ -132,17 +132,17 @@ export const SplitAuthLayout: React.FC<SplitAuthLayoutProps> = ({
      * Full-screen dark backdrop — card floats centered.
      * Background: very dark charcoal + two soft orbs.
      */
-    <div className="min-h-screen w-full bg-[#0a0d14] flex items-center justify-center relative overflow-hidden">
+    <div className="min-h-screen w-full bg-white flex items-center justify-center relative overflow-hidden">
 
       {/* ── Background decoration ────────────────────────────── */}
       <div className="pointer-events-none absolute inset-0">
         {/* Navy orb — top left */}
-        <div className="absolute -top-48 -left-48 w-[640px] h-[640px] rounded-full bg-[#142b6f]/18 blur-[120px]" />
+        <div className="absolute -top-48 -left-48 w-[640px] h-[640px] rounded-full bg-[#142b6f]/06 blur-[120px]" />
         {/* Gold orb — bottom right */}
         <div className="absolute -bottom-40 -right-40 w-[560px] h-[560px] rounded-full bg-[#f5c518]/08 blur-[110px]" />
         {/* Subtle dot grid */}
-        <div className="absolute inset-0 opacity-[0.03]"
-          style={{ backgroundImage: "radial-gradient(circle at 1px 1px, #f5c518 1px, transparent 0)", backgroundSize: "40px 40px" }} />
+        <div className="absolute inset-0 opacity-[0.025]"
+          style={{ backgroundImage: "radial-gradient(circle at 1px 1px, #142b6f 1px, transparent 0)", backgroundSize: "40px 40px" }} />
       </div>
 
       {/*
@@ -157,8 +157,8 @@ export const SplitAuthLayout: React.FC<SplitAuthLayoutProps> = ({
         initial={{ opacity: 0, scale: 0.96, y: 16 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-        className="relative z-10 w-[70vw] h-[80vh] min-w-[720px] max-w-[1100px] flex rounded-[28px] overflow-hidden shadow-[0_32px_96px_rgba(0,0,0,0.55),0_8px_32px_rgba(0,0,0,0.3)]"
-        style={{ border: "1px solid rgba(255,255,255,0.08)" }}
+        className="relative z-10 w-[70vw] h-[80vh] min-w-[720px] max-w-[1100px] flex rounded-[28px] overflow-hidden"
+        style={{ border: "1px solid rgba(20,43,111,0.10)", boxShadow: "0 40px 120px rgba(20,43,111,0.18), 0 16px 48px rgba(0,0,0,0.10), 0 4px 16px rgba(0,0,0,0.06)" }}
       >
 
         {/* ── LEFT PANEL: 40% — image with overlays ───────────── */}

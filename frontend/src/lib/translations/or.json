@@ -313,7 +313,8 @@
       },
       "messages": {
         "password_mismatch": "Jechi icitii wal hin fudhatu",
-        "signup_failed": "Galmaa'uun hin milkoofne"
+        "signup_failed": "Galmaa'uun hin milkoofne",
+        "check_email": "Liinkii mirkaneessaa email teessan keessanitti ergineerra."
       }
     },
     "forgot_password": {

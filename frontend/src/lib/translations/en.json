@@ -313,7 +313,8 @@
       },
       "messages": {
         "password_mismatch": "Passwords do not match",
-        "signup_failed": "Failed to create account"
+        "signup_failed": "Failed to create account",
+        "check_email": "We sent a confirmation link to your email address."
       }
     },
     "forgot_password": {

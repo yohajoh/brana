@@ -62,7 +62,7 @@ export default function ForgotPasswordPage() {
       showBackLink
       backHref="/auth/login"
       backLabel={t("auth.forgot_password.back_label") as string}
-      badge="Password reset"
+      badge={t("auth.common.badge_reset") as string}
     >
       <AnimatePresence>
         {error && (

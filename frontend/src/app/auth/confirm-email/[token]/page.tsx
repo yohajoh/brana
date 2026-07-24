@@ -6,40 +6,49 @@ import Link from "next/link";
 import { AuthLayout } from "@/app/auth/AuthLayout";
 import { fetchApi } from "@/lib/api";
 import { notifyAuthChange } from "@/lib/auth";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 import { motion } from "framer-motion";
 
 export default function ConfirmEmailPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = use(params);
   const router = useRouter();
+  const { t } = useLanguage();
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
-  const [message, setMessage] = useState("");
+  const [serverMessage, setServerMessage] = useState("");
 
   useEffect(() => {
     (async () => {
       try {
         await fetchApi(`/auth/confirm-email/${token}`);
         setStatus("success");
-        setMessage("Your email has been verified and your account is now active.");
         notifyAuthChange("EMAIL_CONFIRMED");
         setTimeout(() => router.push("/auth/login?confirmed=true"), 3500);
       } catch (err: unknown) {
         setStatus("error");
-        setMessage(err instanceof Error ? err.message : "This confirmation link is invalid or has expired.");
+        setServerMessage(err instanceof Error ? err.message : "");
       }
     })();
   }, [token, router]);
 
-  const titles = { loading: "Verifying your email…", success: "Email confirmed!", error: "Link expired" };
-  const subtitles = { loading: "Please wait a moment.", success: undefined, error: undefined };
+  const titles: Record<"loading" | "success" | "error", string> = {
+    loading: t("auth.confirm_email.title_loading") as string,
+    success: t("auth.confirm_email.title_success") as string,
+    error:   t("auth.confirm_email.title_error")   as string,
+  };
+
+  const message = status === "success"
+    ? t("auth.confirm_email.message_success") as string
+    : status === "error"
+      ? serverMessage || (t("auth.confirm_email.message_error") as string)
+      : "";
 
   return (
     <AuthLayout
       title={titles[status]}
-      subtitle={subtitles[status]}
-      badge="Email verification"
+      subtitle={status === "loading" ? (t("auth.confirm_email.subtitle_loading") as string) : undefined}
+      badge={t("auth.confirm_email.badge") as string}
       showBackLink={status === "error"}
       backHref="/auth/login"
-      backLabel="Back to login"
       icon={
         status === "loading" ? (
           <motion.div
@@ -79,9 +88,11 @@ export default function ConfirmEmailPage({ params }: { params: Promise<{ token: 
             <>
               <Link href="/auth/login"
                 className="block w-full rounded-2xl bg-[#142b6f] py-3.5 text-sm font-black text-white text-center shadow-[0_4px_18px_rgba(20,43,111,0.30)] hover:-translate-y-0.5 transition-all">
-                Sign in now
+                {t("auth.common.sign_in_now") as string}
               </Link>
-              <p className="text-xs text-center text-[#9ca3af]">Redirecting automatically in a moment…</p>
+              <p className="text-xs text-center text-[#9ca3af]">
+                {t("auth.common.redirecting") as string}
+              </p>
             </>
           )}
 
@@ -89,11 +100,11 @@ export default function ConfirmEmailPage({ params }: { params: Promise<{ token: 
             <>
               <Link href="/auth/login"
                 className="block w-full rounded-2xl bg-[#142b6f] py-3.5 text-sm font-black text-white text-center shadow-[0_4px_18px_rgba(20,43,111,0.30)] hover:-translate-y-0.5 transition-all">
-                Back to login
+                {t("auth.common.back_to_login") as string}
               </Link>
               <Link href="/auth/create-account"
                 className="block w-full rounded-2xl border border-[#e2e0e7] py-3.5 text-sm font-semibold text-[#374151] text-center hover:border-[#142b6f] hover:text-[#142b6f] transition-all">
-                Create a new account
+                {t("auth.common.create_new_account") as string}
               </Link>
             </>
           )}

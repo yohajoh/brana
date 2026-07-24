@@ -10,8 +10,13 @@ import { useLanguage } from "@/components/providers/LanguageProvider";
 import { FcGoogle } from "react-icons/fc";
 import { Eye, EyeOff } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
 
 const IC = "w-full rounded-2xl border border-[#e2e0e7] bg-white px-4 py-3 text-sm text-[#0d0d0d] placeholder:text-[#b0afc0] outline-none focus:border-[#142b6f] focus:shadow-[0_0_0_3px_rgba(20,43,111,0.09)] transition-all";
+
+type PublicStats = {
+  data: { totalBooks: number; totalStudents: number; totalCategories: number };
+};
 
 export default function CreateAccountPage() {
   const router = useRouter();
@@ -21,6 +26,21 @@ export default function CreateAccountPage() {
   const [showPw, setShowPw]       = useState(false);
   const [showCf, setShowCf]       = useState(false);
   const [done, setDone]           = useState(false);
+
+  // Real stats
+  const { data: statsData } = useQuery<PublicStats>({
+    queryKey: ["public-stats"],
+    queryFn: () => fetchApi("/public/stats"),
+    staleTime: 10 * 60 * 1000,
+    retry: 1,
+  });
+  const s = statsData?.data;
+
+  const imageStats = [
+    { value: s?.totalBooks      ? `${s.totalBooks.toLocaleString()}+`      : "…", label: t("stats_band.books")      as string },
+    { value: "Free",                                                               label: t("cta_section.loan_period") as string },
+    { value: s?.totalCategories ? `${s.totalCategories}` : "…",                   label: t("stats_band.categories")  as string },
+  ];
 
   useAuthListener((type) => {
     if (type === "EMAIL_CONFIRMED") router.push("/auth/login?confirmed=true");
@@ -55,11 +75,12 @@ export default function CreateAccountPage() {
     return (
       <SplitAuthLayout
         imageSrc="/reading img 9.jpg"
-        imageTitle="Your reading journey starts now."
-        imageTagline="Confirm your email to activate your account and start borrowing books."
-        rightTitle="Check your inbox"
-        rightSubtitle="We sent a confirmation link to your email address."
-        badge="Almost there"
+        imageTitle={t("hero.title_part1") as string}
+        imageTagline={t("hero.description") as string}
+        imageStats={imageStats}
+        rightTitle={t("auth.forgot_password.modal.title") as string}
+        rightSubtitle={t("auth.signup.messages.check_email") as string}
+        badge={t("auth.common.badge_almost") as string}
       >
         <div className="flex flex-col items-center text-center py-4">
           <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
@@ -71,11 +92,11 @@ export default function CreateAccountPage() {
             </svg>
           </motion.div>
           <p className="text-sm text-[#374151] leading-relaxed mb-8">
-            Click the link in the email to activate your account. Check your spam folder if you don&apos;t see it within a minute.
+            {t("auth.forgot_password.modal.message") as string}
           </p>
           <Link href="/auth/login"
             className="w-full rounded-2xl bg-[#142b6f] py-3.5 text-sm font-black text-white text-center shadow-[0_4px_18px_rgba(20,43,111,0.30)] hover:-translate-y-0.5 transition-all">
-            Go to login
+            {t("auth.common.back_to_login") as string}
           </Link>
         </div>
       </SplitAuthLayout>
@@ -85,20 +106,18 @@ export default function CreateAccountPage() {
   return (
     <SplitAuthLayout
       imageSrc="/reading img 9.jpg"
-      imageTitle="Join thousands of ASTU students reading smarter."
-      imageTagline="Borrow physical books, read digital ones, and track your entire library journey in one place."
-      imageStats={[
-        { value: "2,400+", label: "Books"      },
-        { value: "Free",   label: "To join"    },
-        { value: "12+",    label: "Subjects"   },
-      ]}
+      imageTitle={t("hero.title_part1") as string}
+      imageTagline={t("hero.description") as string}
+      imageStats={imageStats}
       rightTitle={t("auth.signup.title") as string}
       rightSubtitle={t("auth.signup.subtitle") as string}
-      badge="New account"
+      badge={t("auth.common.badge_new_account") as string}
       topRight={
         <Link href="/auth/login" className="text-xs font-semibold text-[#374151] hover:text-[#142b6f] transition-colors">
-          Have an account?{" "}
-          <span className="text-[#142b6f] font-black underline underline-offset-2">Sign in</span>
+          {t("auth.signup.already_registered") as string}{" "}
+          <span className="text-[#142b6f] font-black underline underline-offset-2">
+            {t("auth.signup.signin_link") as string}
+          </span>
         </Link>
       }
     >
@@ -107,12 +126,12 @@ export default function CreateAccountPage() {
         onClick={() => { window.location.href = `${API_BASE_URL}/auth/google`; }}
         className="w-full flex items-center justify-center gap-3 rounded-2xl border border-[#e2e0e7] bg-white px-4 py-3 text-sm font-semibold text-[#0d0d0d] shadow-sm hover:shadow-[0_4px_16px_rgba(20,43,111,0.09)] hover:border-[#142b6f]/20 transition-all">
         <FcGoogle size={20} />
-        Continue with Google
+        {t("auth.login.google_login") as string}
       </motion.button>
 
       <div className="flex items-center gap-3 my-5 text-[11px] text-[#b0afc0] font-semibold">
         <span className="h-px flex-1 bg-[#e2e0e7]" />
-        or create manually
+        {t("auth.login.or_continue_with") as string}
         <span className="h-px flex-1 bg-[#e2e0e7]" />
       </div>
 

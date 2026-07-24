@@ -9,25 +9,47 @@ import { useLanguage } from "@/components/providers/LanguageProvider";
 import { FcGoogle } from "react-icons/fc";
 import { Eye, EyeOff } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
 
-const IC = "w-full rounded-2xl border border-[#e2e0e7] bg-white px-4 py-3 text-sm text-[#0d0d0d] placeholder:text-[#b0afc0] outline-none focus:border-[#142b6f] focus:shadow-[0_0_0_3px_rgba(20,43,111,0.09)] transition-all";
+const IC =
+  "w-full rounded-2xl border border-[#e2e0e7] bg-white px-4 py-3 text-sm text-[#0d0d0d] placeholder:text-[#b0afc0] outline-none focus:border-[#142b6f] focus:shadow-[0_0_0_3px_rgba(20,43,111,0.09)] transition-all";
+
+type PublicStats = {
+  data: { totalBooks: number; totalStudents: number; totalRentals: number; totalCategories: number };
+};
 
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { t } = useLanguage();
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError]     = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [showPw, setShowPw]   = useState(false);
+  const [error, setError]         = useState<string | null>(null);
+  const [success, setSuccess]     = useState<string | null>(null);
+  const [showPw, setShowPw]       = useState(false);
+
+  /* Real stats from the public API */
+  const { data: statsData } = useQuery<PublicStats>({
+    queryKey: ["public-stats"],
+    queryFn: () => fetchApi("/public/stats"),
+    staleTime: 10 * 60 * 1000,
+    retry: 1,
+  });
+  const s = statsData?.data;
+
+  const imageStats = [
+    { value: s?.totalBooks    ? `${s.totalBooks.toLocaleString()}+`    : "…", label: t("stats_band.books")    as string },
+    { value: s?.totalStudents ? `${s.totalStudents.toLocaleString()}+` : "…", label: t("stats_band.students") as string },
+    { value: "4.9★", label: "Rating" },
+  ];
 
   useEffect(() => {
-    if (searchParams.get("confirmed") === "true") setSuccess(t("auth.login.messages.email_confirmed") as string);
+    if (searchParams.get("confirmed") === "true")
+      setSuccess(t("auth.login.messages.email_confirmed") as string);
     const err = searchParams.get("error");
-    if (err === "auth_failed")            setError(t("auth.login.messages.google_failed") as string);
-    if (err === "auth_timeout")           setError(t("auth.login.messages.google_timeout") as string);
-    if (err === "google_not_configured")  setError("Google sign-in is not configured on the server.");
-    if (err === "google_callback_error")  setError("Google sign-in failed. Please try again.");
+    if (err === "auth_failed")           setError(t("auth.login.messages.google_failed")   as string);
+    if (err === "auth_timeout")          setError(t("auth.login.messages.google_timeout")  as string);
+    if (err === "google_not_configured") setError("Google sign-in is not configured on the server.");
+    if (err === "google_callback_error") setError("Google sign-in failed. Please try again.");
   }, [searchParams, t]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -43,26 +65,29 @@ function LoginContent() {
       router.push(role === "ADMIN" ? "/dashboard/admin" : "/dashboard/student");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : (t("auth.login.messages.invalid_credentials") as string));
-    } finally { setIsLoading(false); }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <SplitAuthLayout
       imageSrc="/hero img.jpg"
-      imageTitle="Your next great read is one click away."
-      imageTagline="Explore thousands of physical and digital books at ASTU's library system."
-      imageStats={[
-        { value: "2,400+", label: "Books" },
-        { value: "1,800+", label: "Students" },
-        { value: "4.9★",   label: "Rating"   },
-      ]}
+      imageTitle={`${t("hero.title_part1") as string} ${t("hero.title_italic") as string}`}
+      imageTagline={t("hero.description") as string}
+      imageStats={imageStats}
       rightTitle={t("auth.login.title") as string}
       rightSubtitle={t("auth.login.subtitle") as string}
-      badge="Welcome back"
+      badge={t("auth.common.badge_welcome") as string}
       topRight={
-        <Link href="/auth/create-account" className="text-xs font-semibold text-[#374151] hover:text-[#142b6f] transition-colors">
-          No account?{" "}
-          <span className="text-[#142b6f] font-black underline underline-offset-2">Sign up</span>
+        <Link
+          href="/auth/create-account"
+          className="text-xs font-semibold text-[#374151] hover:text-[#142b6f] transition-colors"
+        >
+          {t("auth.signup.already_registered") as string}{" "}
+          <span className="text-[#142b6f] font-black underline underline-offset-2">
+            {t("navbar.signup") as string}
+          </span>
         </Link>
       }
     >
@@ -88,63 +113,84 @@ function LoginContent() {
       {/* Alerts */}
       <AnimatePresence>
         {error && (
-          <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            className="mb-5 rounded-2xl bg-red-50 border border-red-100 px-4 py-3 text-xs text-red-600">
+          <motion.div
+            initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            className="mb-5 rounded-2xl bg-red-50 border border-red-100 px-4 py-3 text-xs text-red-600"
+          >
             {error}
           </motion.div>
         )}
         {success && (
-          <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            className="mb-5 rounded-2xl bg-emerald-50 border border-emerald-100 px-4 py-3 text-xs text-emerald-700">
+          <motion.div
+            initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            className="mb-5 rounded-2xl bg-emerald-50 border border-emerald-100 px-4 py-3 text-xs text-emerald-700"
+          >
             {success}
           </motion.div>
         )}
       </AnimatePresence>
 
+      {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Email */}
         <div className="space-y-1.5">
           <label htmlFor="email" className="text-xs font-bold text-[#374151]">
             {t("auth.login.identity_label") as string}
           </label>
-          <input id="email" name="email" type="email" required autoComplete="email"
-            placeholder={t("auth.login.identity_placeholder") as string} className={IC} />
+          <input
+            id="email" name="email" type="email" required autoComplete="email"
+            placeholder={t("auth.login.identity_placeholder") as string}
+            className={IC}
+          />
         </div>
 
-        {/* Password */}
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <label htmlFor="password" className="text-xs font-bold text-[#374151]">
               {t("auth.login.password_label") as string}
             </label>
-            <Link href="/auth/forgot-password" className="text-[11px] font-semibold text-[#142b6f] hover:opacity-75 transition-opacity">
+            <Link
+              href="/auth/forgot-password"
+              className="text-[11px] font-semibold text-[#142b6f] hover:opacity-75 transition-opacity"
+            >
               {t("auth.login.forgot_password") as string}
             </Link>
           </div>
           <div className="relative">
-            <input id="password" name="password" type={showPw ? "text" : "password"} required autoComplete="current-password"
-              placeholder={t("auth.login.password_placeholder") as string} className={`${IC} pr-11`} />
-            <button type="button" onClick={() => setShowPw(v => !v)}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#b0afc0] hover:text-[#374151] transition-colors">
+            <input
+              id="password" name="password"
+              type={showPw ? "text" : "password"}
+              required autoComplete="current-password"
+              placeholder={t("auth.login.password_placeholder") as string}
+              className={`${IC} pr-11`}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPw(v => !v)}
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#b0afc0] hover:text-[#374151] transition-colors"
+            >
               {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
             </button>
           </div>
         </div>
 
-        {/* Submit */}
-        <button type="submit" disabled={isLoading}
-          className="w-full mt-1 rounded-2xl bg-[#142b6f] py-3.5 text-sm font-black text-white shadow-[0_4px_18px_rgba(20,43,111,0.30)] hover:shadow-[0_8px_28px_rgba(20,43,111,0.38)] hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-60 disabled:cursor-not-allowed">
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="w-full mt-1 rounded-2xl bg-[#142b6f] py-3.5 text-sm font-black text-white shadow-[0_4px_18px_rgba(20,43,111,0.30)] hover:shadow-[0_8px_28px_rgba(20,43,111,0.38)] hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+        >
           {isLoading ? (
             <span className="flex items-center justify-center gap-2">
               <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
               {t("auth.login.submitting") as string}
             </span>
-          ) : t("auth.login.submit") as string}
+          ) : (
+            t("auth.login.submit") as string
+          )}
         </button>
       </form>
 
       <p className="mt-7 text-center text-xs text-[#9ca3af]">
-        Don&apos;t have an account?{" "}
+        {t("auth.signup.already_registered") as string}{" "}
         <Link href="/auth/create-account" className="font-black text-[#142b6f] hover:opacity-75 transition-opacity">
           {t("navbar.signup") as string}
         </Link>
@@ -155,7 +201,7 @@ function LoginContent() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#0d0d0d]" />}>
+    <Suspense fallback={<div className="min-h-screen bg-white" />}>
       <LoginContent />
     </Suspense>
   );

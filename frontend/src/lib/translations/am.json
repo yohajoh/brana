@@ -313,7 +313,8 @@
       },
       "messages": {
         "password_mismatch": "የይለፍ ቃሎች አይዛመዱም",
-        "signup_failed": "መለያ መፍጠር አልተቻለም"
+        "signup_failed": "መለያ መፍጠር አልተቻለም",
+        "check_email": "ወደ ኢሜይል አድራሻዎ የማረጋገጫ ሊንክ ልከናል።"
       }
     },
     "forgot_password": {
