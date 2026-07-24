@@ -14,22 +14,20 @@ type Category = {
   _count?: { books?: number };
 };
 
-/* Category pill palette — works on white background */
-const PALETTE = [
-  { bg: "bg-[#142b6f]",      text: "text-white",      shadow: "hover:shadow-[0_4px_16px_rgba(20,43,111,0.3)]"  },
-  { bg: "bg-[#f5c518]",      text: "text-[#0d0d0d]",  shadow: "hover:shadow-[0_4px_16px_rgba(245,197,24,0.4)]" },
-  { bg: "bg-[#0d0d0d]",      text: "text-white",      shadow: "hover:shadow-[0_4px_16px_rgba(0,0,0,0.25)]"     },
-  { bg: "bg-[#f1f0f4]",      text: "text-[#374151]",  shadow: "hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)]"     },
-  { bg: "bg-[#142b6f]/08",   text: "text-[#142b6f]",  shadow: "hover:shadow-[0_4px_12px_rgba(20,43,111,0.15)]" },
-  { bg: "bg-[#f5c518]/15",   text: "text-[#7a5c00]",  shadow: "hover:shadow-[0_4px_12px_rgba(245,197,24,0.2)]" },
+const PILL_PALETTE = [
+  { bg: "bg-white",          text: "text-[#0d0d0d]",  glow: "hover:shadow-[0_4px_18px_rgba(255,255,255,0.2)]"   },
+  { bg: "bg-[#f5c518]",      text: "text-[#0d0d0d]",  glow: "hover:shadow-[0_4px_18px_rgba(245,197,24,0.45)]"   },
+  { bg: "bg-white/12",       text: "text-white",       glow: "hover:shadow-[0_4px_14px_rgba(255,255,255,0.12)]"  },
+  { bg: "bg-[#f5c518]/20",   text: "text-[#f5c518]",  glow: "hover:shadow-[0_4px_12px_rgba(245,197,24,0.25)]"   },
+  { bg: "bg-white/08",       text: "text-white/80",    glow: "hover:shadow-[0_4px_12px_rgba(255,255,255,0.08)]"  },
+  { bg: "bg-[#f5c518]/10",   text: "text-[#f5c518]",  glow: "hover:shadow-[0_4px_12px_rgba(245,197,24,0.18)]"   },
 ];
 
-/* Step accent colours */
 const STEP_ACCENTS = [
-  { hex: "#142b6f", light: "bg-[#142b6f]/08", text: "text-[#142b6f]", badge: "bg-[#142b6f] text-white" },
-  { hex: "#d4a800", light: "bg-[#f5c518]/15", text: "text-[#7a5c00]", badge: "bg-[#f5c518] text-[#0d0d0d]" },
-  { hex: "#142b6f", light: "bg-[#142b6f]/08", text: "text-[#142b6f]", badge: "bg-[#142b6f] text-white" },
-  { hex: "#0d0d0d", light: "bg-[#0d0d0d]/06", text: "text-[#0d0d0d]", badge: "bg-[#0d0d0d] text-white" },
+  { hex: "#142b6f", badgeBg: "bg-[#142b6f]",  badgeText: "text-white",      activeCard: "from-[#142b6f]/06", labelColor: "text-[#142b6f]"  },
+  { hex: "#c9930a", badgeBg: "bg-[#f5c518]",  badgeText: "text-[#0d0d0d]",  activeCard: "from-[#f5c518]/08", labelColor: "text-[#7a5c00]"  },
+  { hex: "#142b6f", badgeBg: "bg-[#142b6f]",  badgeText: "text-white",      activeCard: "from-[#142b6f]/06", labelColor: "text-[#142b6f]"  },
+  { hex: "#0d0d0d", badgeBg: "bg-[#0d0d0d]",  badgeText: "text-white",      activeCard: "from-[#0d0d0d]/05", labelColor: "text-[#374151]"  },
 ];
 
 export const CategoriesAndHowItWorks = () => {
@@ -75,186 +73,186 @@ export const CategoriesAndHowItWorks = () => {
   ];
 
   return (
-    /* ── White base with a barely-visible warm paper texture ── */
-    <section className="relative w-full overflow-hidden bg-white">
+    <section className="relative w-full overflow-hidden">
 
-      {/* Very subtle background: diagonal lines + two soft blurs */}
-      <div className="pointer-events-none absolute inset-0">
-        {/* Warm offwhite noise */}
-        <div className="absolute inset-0 bg-[#faf9f7]" />
-        {/* Soft gold glow top-right */}
-        <div className="absolute -top-32 right-0 w-[480px] h-[480px] rounded-full bg-[#f5c518]/06 blur-[100px]" />
-        {/* Soft navy glow bottom-left */}
-        <div className="absolute -bottom-24 -left-24 w-[400px] h-[400px] rounded-full bg-[#142b6f]/05 blur-[90px]" />
-        {/* Ultra-faint diagonal rule */}
-        <div
-          className="absolute inset-0 opacity-[0.018]"
-          style={{
-            backgroundImage: "repeating-linear-gradient(135deg, #142b6f 0, #142b6f 1px, transparent 0, transparent 50%)",
-            backgroundSize: "28px 28px",
-          }}
-        />
-      </div>
+      {/* ─────────────────────────────────────────────────────
+          BACKGROUND — rich warm charcoal with amber/gold glow
+          Strong, premium, not blue
+      ───────────────────────────────────────────────────── */}
 
-      <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
+      {/* Base: deep warm charcoal — editorial, not cold */}
+      <div className="absolute inset-0 bg-[#18180f]" />
 
-        {/* ═══════════════════════════════════════════════════════
-            FULL-WIDTH LAYOUT: Left panel + Right panel side-by-side
-            (stacked on mobile, side-by-side from lg)
-        ═══════════════════════════════════════════════════════ */}
-        <div className="lg:grid lg:grid-cols-[1fr_1fr] lg:divide-x lg:divide-[#e2e0e7]/70 min-h-[600px]">
+      {/* Warm amber radial at top-right — the dominant colour */}
+      <div className="absolute -top-32 -right-32 w-[640px] h-[640px] rounded-full blur-[110px]"
+        style={{ background: "radial-gradient(circle, rgba(245,197,24,0.18) 0%, rgba(200,140,20,0.10) 50%, transparent 70%)" }} />
 
-          {/* ────────────────────────────────────────────────────
-              LEFT PANEL — Categories (Find Your Next Read)
-          ──────────────────────────────────────────────────── */}
-          <div className="py-16 lg:py-20 lg:pr-12 flex flex-col justify-between">
+      {/* Warm sienna/terracotta at bottom-left — second accent */}
+      <div className="absolute -bottom-28 -left-28 w-[520px] h-[520px] rounded-full blur-[100px]"
+        style={{ background: "radial-gradient(circle, rgba(210,120,50,0.14) 0%, rgba(180,90,30,0.08) 55%, transparent 75%)" }} />
 
-            {/* Header */}
-            <motion.div
-              initial={{ opacity: 0, x: -24 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true, margin: "-60px" }}
-              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-              className="mb-8"
-            >
+      {/* Centre warm glow lifts the mid-section */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] rounded-full blur-[120px]"
+        style={{ background: "radial-gradient(ellipse, rgba(245,197,24,0.06) 0%, transparent 70%)" }} />
+
+      {/* Ultra-fine cross-hatch texture — barely visible on dark */}
+      <div className="pointer-events-none absolute inset-0"
+        style={{
+          backgroundImage: "linear-gradient(rgba(245,197,24,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(245,197,24,0.04) 1px, transparent 1px)",
+          backgroundSize: "48px 48px",
+        }}
+      />
+
+      {/* ─────────────────────────────────────────────────────
+          CONTENT
+      ───────────────────────────────────────────────────── */}
+      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 py-20">
+
+        {/* ═══════════════════════════════════════════════════
+            TOP: CATEGORIES — full width
+        ═══════════════════════════════════════════════════ */}
+        <motion.div
+          initial={{ opacity: 0, y: 22 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          className="mb-10"
+        >
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-7">
+            <div>
               <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#f5c518] mb-2">
                 {t("categories_strip.eyebrow") as string}
               </p>
-              <h2 className="text-3xl sm:text-4xl font-serif font-black text-[#0d0d0d] leading-tight mb-3">
+              <h2 className="text-3xl sm:text-4xl font-serif font-black text-white leading-tight">
                 {t("categories_strip.title") as string}
               </h2>
-              <p className="text-sm text-[#6b7280] leading-relaxed max-w-xs">
-                {t("how_it_works.subtitle") as string}
-              </p>
-            </motion.div>
-
-            {/* Category pill cloud */}
-            <div className="flex-1">
-              {catsLoading ? (
-                <div className="flex flex-wrap gap-2.5">
-                  {Array.from({ length: 8 }).map((_, i) => (
-                    <div key={i} className="skeleton h-9 w-24 rounded-full" />
-                  ))}
-                </div>
-              ) : (
-                <motion.div
-                  initial="hidden"
-                  whileInView="visible"
-                  viewport={{ once: true }}
-                  variants={{
-                    visible: { transition: { staggerChildren: 0.05 } },
-                    hidden: {},
-                  }}
-                  className="flex flex-wrap gap-2.5"
-                >
-                  {categories.map((cat, i) => {
-                    const { bg, text, shadow } = PALETTE[i % PALETTE.length];
-                    return (
-                      <motion.div
-                        key={cat.id}
-                        variants={{
-                          hidden:  { opacity: 0, scale: 0.85, y: 10 },
-                          visible: { opacity: 1, scale: 1,    y: 0, transition: { duration: 0.38, ease: [0.16, 1, 0.3, 1] } },
-                        }}
-                      >
-                        <Link
-                          href={`/books?category_id=${cat.id}`}
-                          className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold
-                                      transition-all duration-200 hover:-translate-y-0.5 ${shadow} ${bg} ${text}`}
-                        >
-                          {cat.name}
-                          {cat._count?.books !== undefined && (
-                            <span className="opacity-50 text-xs">{cat._count.books}</span>
-                          )}
-                        </Link>
-                      </motion.div>
-                    );
-                  })}
-                </motion.div>
-              )}
             </div>
-
-            {/* Browse all link */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.5, duration: 0.4 }}
-              className="mt-8 pt-6 border-t border-[#e2e0e7]/70"
+            <Link
+              href="/books"
+              className="group inline-flex items-center gap-2 text-sm font-bold text-white/55 hover:text-white transition-colors self-start sm:self-end"
             >
-              <Link
-                href="/books"
-                className="group inline-flex items-center gap-2 text-sm font-bold text-[#142b6f] hover:text-[#0d0d0d] transition-colors"
-              >
-                {t("categories_strip.browse_all") as string}
-                <svg
-                  width="14" height="14" viewBox="0 0 14 14" fill="none"
-                  className="group-hover:translate-x-1.5 transition-transform"
-                >
-                  <path d="M2 7h10M7 2l5 5-5 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </Link>
-            </motion.div>
+              {t("categories_strip.browse_all") as string}
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="group-hover:translate-x-1 transition-transform">
+                <path d="M2 7h10M7 2l5 5-5 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </Link>
           </div>
 
-          {/* ────────────────────────────────────────────────────
-              RIGHT PANEL — How It Works (interactive)
-          ──────────────────────────────────────────────────── */}
-          <div className="py-16 lg:py-20 lg:pl-12 border-t border-[#e2e0e7]/70 lg:border-t-0 flex flex-col">
-
-            {/* Header */}
+          {/* Pills */}
+          {catsLoading ? (
+            <div className="flex flex-wrap gap-2.5">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="skeleton h-9 w-24 rounded-full" />
+              ))}
+            </div>
+          ) : (
             <motion.div
-              initial={{ opacity: 0, x: 24 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true, margin: "-60px" }}
-              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-              className="mb-8"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              variants={{ visible: { transition: { staggerChildren: 0.045 } }, hidden: {} }}
+              className="flex flex-wrap gap-2.5"
             >
+              {categories.map((cat, i) => {
+                const { bg, text, glow } = PILL_PALETTE[i % PILL_PALETTE.length];
+                return (
+                  <motion.div
+                    key={cat.id}
+                    variants={{
+                      hidden:  { opacity: 0, scale: 0.82, y: 12 },
+                      visible: { opacity: 1, scale: 1,    y: 0,
+                        transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] } },
+                    }}
+                  >
+                    <Link
+                      href={`/books?category_id=${cat.id}`}
+                      className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold
+                                  transition-all duration-200 hover:-translate-y-0.5 ${bg} ${text} ${glow}`}
+                    >
+                      {cat.name}
+                      {cat._count?.books !== undefined && (
+                        <span className="opacity-50 text-xs">{cat._count.books}</span>
+                      )}
+                    </Link>
+                  </motion.div>
+                );
+              })}
+            </motion.div>
+          )}
+        </motion.div>
+
+        {/* Thin divider — tighter spacing */}
+        <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-8" />
+
+        {/* ═══════════════════════════════════════════════════
+            BOTTOM: HOW IT WORKS
+            Left: accordion step list  |  Right: detail card
+        ═══════════════════════════════════════════════════ */}
+        <div>
+          {/* Section header */}
+          <motion.div
+            initial={{ opacity: 0, y: 18 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-40px" }}
+            transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+            className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-9"
+          >
+            <div>
               <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#f5c518] mb-2">
                 {t("how_it_works.eyebrow") as string}
               </p>
-              <h2 className="text-3xl sm:text-4xl font-serif font-black text-[#0d0d0d] leading-tight">
+              <h2 className="text-3xl sm:text-4xl font-serif font-black text-white leading-tight">
                 {t("how_it_works.title") as string}
               </h2>
-            </motion.div>
+            </div>
+            <p className="text-sm text-white/45 max-w-xs leading-relaxed">
+              {t("how_it_works.subtitle") as string}
+            </p>
+          </motion.div>
 
-            {/* Step list — with live expanding detail */}
-            <div className="flex flex-col gap-1.5 flex-1">
+          {/* Two-column layout: accordion left, detail card right */}
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.45fr] gap-5 lg:gap-10">
+
+            {/* ── LEFT: accordion step list ─────────────── */}
+            <div className="flex flex-col gap-2">
               {steps.map((step, i) => {
                 const isActive = activeStep === i;
                 const accent = STEP_ACCENTS[i];
                 return (
                   <motion.button
                     key={step.num}
-                    initial={{ opacity: 0, x: 20 }}
+                    initial={{ opacity: 0, x: -18 }}
                     whileInView={{ opacity: 1, x: 0 }}
                     viewport={{ once: true }}
-                    transition={{ duration: 0.45, delay: i * 0.09, ease: [0.16, 1, 0.3, 1] }}
+                    transition={{ duration: 0.44, delay: i * 0.09, ease: [0.16, 1, 0.3, 1] }}
                     onClick={() => setActiveStep(i)}
-                    className={`group w-full text-left rounded-2xl transition-all duration-300 cursor-pointer overflow-hidden ${
+                    className={`group w-full text-left rounded-2xl border transition-all duration-300 overflow-hidden cursor-pointer ${
                       isActive
-                        ? `${accent.light} ring-1 ring-[#e2e0e7] shadow-[0_2px_12px_rgba(20,43,111,0.08)]`
-                        : "hover:bg-[#f8f7fb]"
+                        ? "border-[#e2e0e7] bg-white shadow-[0_4px_20px_rgba(20,43,111,0.08)]"
+                        : "border-transparent bg-white/50 hover:bg-white/80 hover:border-[#e2e0e7]/60 hover:shadow-[0_2px_10px_rgba(20,43,111,0.05)]"
                     }`}
                   >
                     {/* Always-visible row */}
-                    <div className="flex items-center gap-3.5 px-4 py-3.5">
-                      {/* Step badge */}
-                      <div className={`relative shrink-0 w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black transition-all duration-300 ${
-                        isActive ? accent.badge : "bg-[#f1f0f4] text-[#9ca3af]"
+                    <div className="flex items-center gap-3.5 px-4 py-4">
+                      {/* Badge */}
+                      <div className={`relative shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black transition-all duration-300 ${
+                        isActive
+                          ? `${accent.badgeBg} ${accent.badgeText} shadow-[0_4px_14px_rgba(20,43,111,0.22)]`
+                          : "bg-[#f1f0f4] text-[#9ca3af]"
                       }`}>
                         {step.num}
                         {isActive && (
                           <motion.span
-                            layoutId="step-dot-light"
+                            layoutId="accordion-dot"
                             className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[#f5c518] border-2 border-white"
                           />
                         )}
                       </div>
 
-                      <div className="flex-1 min-w-0 text-left">
+                      <div className="flex-1 min-w-0">
                         <span className={`block text-[10px] font-black uppercase tracking-widest mb-0.5 transition-colors ${
-                          isActive ? accent.text : "text-[#9ca3af]"
+                          isActive ? accent.labelColor : "text-[#9ca3af]"
                         }`}>
                           {step.label}
                         </span>
@@ -265,36 +263,36 @@ export const CategoriesAndHowItWorks = () => {
                         </span>
                       </div>
 
-                      {/* Animated progress bar on active */}
                       {isActive ? (
                         <motion.div
                           initial={{ scaleX: 0 }}
                           animate={{ scaleX: 1 }}
-                          transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-                          className="h-1 w-10 rounded-full origin-left"
+                          transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
+                          className="h-1 w-8 rounded-full origin-left shrink-0"
                           style={{ background: accent.hex }}
                         />
                       ) : (
-                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="text-[#d1d0d7] group-hover:text-[#142b6f] transition-colors shrink-0">
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
+                          className="text-[#d1d0d7] group-hover:text-[#142b6f] transition-colors shrink-0">
                           <path d="M5 3l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                       )}
                     </div>
 
-                    {/* Expandable detail panel */}
+                    {/* Mobile-only inline expand */}
                     <AnimatePresence>
                       {isActive && (
                         <motion.div
-                          key="detail"
+                          key="mob-detail"
                           initial={{ height: 0, opacity: 0 }}
                           animate={{ height: "auto", opacity: 1 }}
                           exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-                          className="overflow-hidden"
+                          transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                          className="lg:hidden overflow-hidden"
                         >
-                          <div className="px-4 pb-4 pt-0">
-                            <div className="h-px bg-[#e2e0e7]/60 mb-3" />
-                            <p className="text-sm text-[#374151] leading-relaxed mb-1.5">
+                          <div className="px-4 pb-4">
+                            <div className="h-px bg-[#e2e0e7]/70 mb-3" />
+                            <p className="text-sm text-[#374151] leading-relaxed mb-1">
                               {step.description}
                             </p>
                             <p className="text-xs text-[#6b7280] leading-relaxed">
@@ -307,40 +305,118 @@ export const CategoriesAndHowItWorks = () => {
                   </motion.button>
                 );
               })}
-            </div>
 
-            {/* Step counter indicator */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.5 }}
-              className="mt-6 pt-5 border-t border-[#e2e0e7]/70 flex items-center justify-between"
-            >
-              <div className="flex gap-1.5">
+              {/* Progress dots */}
+              <div className="flex items-center gap-2 pt-3 pl-1">
                 {steps.map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setActiveStep(i)}
-                    className="transition-all duration-300"
-                  >
+                  <button key={i} onClick={() => setActiveStep(i)}>
                     <motion.div
-                      animate={{
-                        width: i === activeStep ? 24 : 8,
-                        opacity: i === activeStep ? 1 : 0.25,
-                      }}
+                      animate={{ width: i === activeStep ? 22 : 7, opacity: i === activeStep ? 1 : 0.25 }}
+                      transition={{ duration: 0.28 }}
                       className="h-1.5 rounded-full bg-[#142b6f]"
                     />
                   </button>
                 ))}
+                <span className="ml-auto text-[11px] font-bold text-[#9ca3af]">
+                  {steps[activeStep].num} / {String(steps.length).padStart(2, "0")}
+                </span>
               </div>
-              <span className="text-xs font-bold text-[#9ca3af]">
-                {t("how_it_works.step_label") as string} {steps[activeStep].num} / {steps.length.toString().padStart(2, "0")}
-              </span>
-            </motion.div>
-          </div>
+            </div>
 
+            {/* ── RIGHT: big detail card — desktop only ──── */}
+            <div className="hidden lg:block">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeStep}
+                  initial={{ opacity: 0, x: 28, scale: 0.97 }}
+                  animate={{ opacity: 1, x: 0, scale: 1 }}
+                  exit={{ opacity: 0, x: -14, scale: 0.97 }}
+                  transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}
+                  className="h-full"
+                >
+                  {(() => {
+                    const step = steps[activeStep];
+                    const accent = STEP_ACCENTS[activeStep];
+                    return (
+                      /* Card with 50% transparent frosted glass look */
+                      <div
+                        className="h-full min-h-[340px] rounded-3xl overflow-hidden flex flex-col
+                                   border border-white/80
+                                   shadow-[0_8px_40px_rgba(20,43,111,0.10)]"
+                        style={{
+                          background: "rgba(255,255,255,0.65)",
+                          backdropFilter: "blur(20px)",
+                          WebkitBackdropFilter: "blur(20px)",
+                        }}
+                      >
+                        {/* Coloured top stripe */}
+                        <div className="h-1.5 w-full shrink-0" style={{ background: accent.hex }} />
+
+                        {/* Inner gradient tint matching step colour */}
+                        <div
+                          className={`absolute inset-0 bg-gradient-to-br ${accent.activeCard} to-transparent pointer-events-none rounded-3xl`}
+                        />
+
+                        <div className="relative flex-1 p-8 lg:p-10 flex flex-col">
+                          {/* Meta row */}
+                          <div className="flex items-start justify-between mb-6">
+                            <div>
+                              <p className={`text-[11px] font-black uppercase tracking-[0.2em] mb-2 ${accent.labelColor} opacity-70`}>
+                                {t("how_it_works.step_label") as string} {step.num} · {step.label}
+                              </p>
+                              <h3 className="text-2xl sm:text-3xl font-serif font-black text-[#0d0d0d] leading-tight max-w-xs">
+                                {step.title}
+                              </h3>
+                            </div>
+                            {/* Ghost number */}
+                            <span
+                              className="text-8xl font-serif font-black select-none leading-none -mt-3 -mr-1"
+                              style={{ color: `${accent.hex}12` }}
+                            >
+                              {step.num}
+                            </span>
+                          </div>
+
+                          {/* Body */}
+                          <div className="flex-1 space-y-3 mb-8">
+                            <p className="text-base text-[#374151] leading-relaxed">
+                              {step.description}
+                            </p>
+                            <p className="text-sm text-[#6b7280] leading-relaxed">
+                              {step.detail}
+                            </p>
+                          </div>
+
+                          {/* Step dots navigation */}
+                          <div className="flex items-center gap-2">
+                            {steps.map((_, i) => (
+                              <button key={i} onClick={() => setActiveStep(i)}>
+                                <motion.div
+                                  animate={{
+                                    width:   i === activeStep ? 26 : 8,
+                                    opacity: i === activeStep ? 1  : 0.22,
+                                  }}
+                                  transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                                  className="h-2 rounded-full"
+                                  style={{ background: accent.hex }}
+                                />
+                              </button>
+                            ))}
+                            <span className="ml-auto text-xs font-bold text-[#9ca3af]">
+                              {activeStep + 1} / {steps.length}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </motion.div>
+              </AnimatePresence>
+            </div>
+
+          </div>
         </div>
+
       </div>
     </section>
   );
