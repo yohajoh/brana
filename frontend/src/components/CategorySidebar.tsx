@@ -1,6 +1,8 @@
 "use client";
 
-import { Filter } from "lucide-react";
+import { Layers } from "lucide-react";
+import { motion } from "framer-motion";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 type Category = {
   id: string;
@@ -17,90 +19,88 @@ type Props = {
 };
 
 export const CategorySidebar = ({ categories, selectedCategory, onCategoryChange, loading }: Props) => {
-  if (loading) {
-    return (
-      <aside className="w-full lg:w-64 flex-shrink-0 space-y-8">
-        <div className="flex items-center gap-3 mb-6">
-          <Filter className="text-primary" size={24} />
-          <h2 className="text-xl font-serif font-extrabold text-primary">Categories</h2>
-        </div>
-        <nav className="flex flex-col gap-2">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="h-12 bg-muted/50 rounded-xl animate-pulse" />
-          ))}
-        </nav>
-      </aside>
-    );
-  }
-
-  // Calculate total books
+  const { t } = useLanguage();
   const totalBooks = categories.reduce((sum, cat) => sum + cat._count.books, 0);
 
   return (
-    <aside className="w-full lg:w-64 flex-shrink-0 space-y-8">
-      <div className="flex items-center gap-3 mb-6">
-        <Filter className="text-primary" size={24} />
-        <h2 className="text-xl font-serif font-extrabold text-primary">Categories</h2>
+    <aside className="w-full lg:w-56 xl:w-60 shrink-0">
+      {/* Header */}
+      <div className="flex items-center gap-2.5 mb-5">
+        <div className="w-7 h-7 rounded-lg bg-[#142b6f] flex items-center justify-center">
+          <Layers size={14} className="text-white" />
+        </div>
+        <h2 className="text-sm font-black uppercase tracking-[0.15em] text-[#142b6f]">
+          {t("books_page.sidebar_title") as string || "Categories"}
+        </h2>
       </div>
 
-      <nav className="flex flex-col gap-2">
-        {/* All Books Option */}
-        <button
-          onClick={() => onCategoryChange(null)}
-          className={`flex items-center justify-between px-4 py-3 rounded-xl transition-all group ${
-            selectedCategory === null
-              ? "bg-muted text-primary font-bold shadow-sm"
-              : "text-secondary hover:bg-muted/50 hover:text-primary"
-          }`}
-        >
-          <div className="flex items-center gap-3">
-            <span
-              className={`${selectedCategory === null ? "text-primary" : "text-secondary/60 group-hover:text-primary"}`}
-            >
-              <Filter size={18} />
-            </span>
-            <span className="text-sm font-medium">All Books</span>
-          </div>
-          <span
-            className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-              selectedCategory === null ? "bg-primary text-background" : "bg-muted/80 text-secondary/70"
+      {loading ? (
+        <div className="flex flex-col gap-2">
+          {Array.from({ length: 7 }).map((_, i) => (
+            <div key={i} className="h-10 rounded-xl bg-[#f1f0f4] animate-pulse" style={{ opacity: 1 - i * 0.1 }} />
+          ))}
+        </div>
+      ) : (
+        <nav className="flex flex-col gap-1">
+          {/* All Books */}
+          <button
+            onClick={() => onCategoryChange(null)}
+            className={`group relative flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
+              selectedCategory === null
+                ? "bg-[#142b6f] text-white shadow-[0_4px_12px_rgba(20,43,111,0.25)]"
+                : "text-[#374151] hover:bg-[#f1f0f4] hover:text-[#142b6f]"
             }`}
           >
-            {totalBooks}
-          </span>
-        </button>
+            {selectedCategory === null && (
+              <motion.span
+                layoutId="cat-active"
+                className="absolute inset-0 rounded-xl bg-[#142b6f]"
+                style={{ zIndex: -1 }}
+              />
+            )}
+            <span>{t("books_page.all_categories") as string || "All Books"}</span>
+            <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+              selectedCategory === null
+                ? "bg-white/20 text-white"
+                : "bg-[#142b6f]/08 text-[#142b6f]"
+            }`}>
+              {totalBooks}
+            </span>
+          </button>
 
-        {/* Category Options */}
-        {categories.map((category) => {
-          const normalizedSelected = (selectedCategory || "").trim().toLowerCase();
-          const isSelected =
-            normalizedSelected === category.slug.toLowerCase() || normalizedSelected === category.name.toLowerCase();
-          const bookCount = category._count.books;
+          {/* Individual categories */}
+          {categories.map((cat, i) => {
+            const isSelected =
+              (selectedCategory || "").trim().toLowerCase() === cat.slug.toLowerCase() ||
+              (selectedCategory || "").trim().toLowerCase() === cat.name.toLowerCase();
+            const count = cat._count.books;
 
-          return (
-            <button
-              key={category.id}
-              onClick={() => onCategoryChange(category.name)}
-              className={`flex items-center justify-between px-4 py-3 rounded-xl transition-all group ${
-                isSelected
-                  ? "bg-muted text-primary font-bold shadow-sm"
-                  : "text-secondary hover:bg-muted/50 hover:text-primary"
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-medium">{category.name}</span>
-              </div>
-              <span
-                className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                  isSelected ? "bg-primary text-background" : "bg-muted/80 text-secondary/70"
+            return (
+              <motion.button
+                key={cat.id}
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.03, duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                onClick={() => onCategoryChange(cat.name)}
+                className={`group relative flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                  isSelected
+                    ? "bg-[#142b6f] text-white shadow-[0_4px_12px_rgba(20,43,111,0.25)]"
+                    : "text-[#374151] hover:bg-[#f1f0f4] hover:text-[#142b6f]"
                 }`}
               >
-                {bookCount}
-              </span>
-            </button>
-          );
-        })}
-      </nav>
+                <span className="truncate">{cat.name}</span>
+                <span className={`ml-2 text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 ${
+                  isSelected
+                    ? "bg-white/20 text-white"
+                    : "bg-[#142b6f]/08 text-[#142b6f]"
+                }`}>
+                  {count}
+                </span>
+              </motion.button>
+            );
+          })}
+        </nav>
+      )}
     </aside>
   );
 };

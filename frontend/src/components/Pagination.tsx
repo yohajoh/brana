@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { motion } from "framer-motion";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 
 type Props = {
@@ -13,97 +14,82 @@ export const Pagination = ({ currentPage, totalPages, onPageChange }: Props) => 
   const { t } = useLanguage();
   if (totalPages <= 1) return null;
 
-  const getPageNumbers = () => {
-    const pages: (number | string)[] = [];
-    const showPages = 5; // Number of page buttons to show
-
-    if (totalPages <= showPages) {
-      // Show all pages if total is small
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
-      }
-    } else {
-      // Always show first page
-      pages.push(1);
-
-      if (currentPage > 3) {
-        pages.push("...");
-      }
-
-      // Show pages around current page
-      const start = Math.max(2, currentPage - 1);
-      const end = Math.min(totalPages - 1, currentPage + 1);
-
-      for (let i = start; i <= end; i++) {
-        pages.push(i);
-      }
-
-      if (currentPage < totalPages - 2) {
-        pages.push("...");
-      }
-
-      // Always show last page
-      pages.push(totalPages);
-    }
-
+  const getPages = (): (number | "...")[] => {
+    if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
+    const pages: (number | "...")[] = [1];
+    if (currentPage > 3) pages.push("...");
+    const start = Math.max(2, currentPage - 1);
+    const end = Math.min(totalPages - 1, currentPage + 1);
+    for (let i = start; i <= end; i++) pages.push(i);
+    if (currentPage < totalPages - 2) pages.push("...");
+    pages.push(totalPages);
     return pages;
   };
 
-  const pages = getPageNumbers();
+  const pages = getPages();
 
   return (
-    <div className="flex items-center justify-center gap-3 py-12">
-      <button
+    <div className="flex items-center justify-center gap-2 py-10">
+      {/* Prev */}
+      <motion.button
+        whileHover={{ scale: 1.06 }}
+        whileTap={{ scale: 0.94 }}
         onClick={() => onPageChange(Math.max(1, currentPage - 1))}
         disabled={currentPage === 1}
-        className="h-10 w-10 flex items-center justify-center rounded-full bg-primary text-background shadow-md hover:bg-accent transition-all active:scale-90 disabled:opacity-50 disabled:cursor-not-allowed"
-        aria-label={t("common.pagination.previous")}
-        title={t("common.pagination.previous")}
+        aria-label={t("common.pagination.previous") as string}
+        className="w-9 h-9 flex items-center justify-center rounded-xl border border-[#e2e0e7] bg-white text-[#374151] hover:border-[#142b6f] hover:text-[#142b6f] disabled:opacity-35 disabled:cursor-not-allowed transition-colors"
       >
-        <ChevronLeft size={20} />
-      </button>
+        <ChevronLeft size={16} />
+      </motion.button>
 
-      <div className="flex items-center gap-2">
-        {pages.map((page, index) => {
+      {/* Page numbers */}
+      <div className="flex items-center gap-1.5">
+        {pages.map((page, i) => {
           if (page === "...") {
             return (
-              <span
-                key={`ellipsis-${index}`}
-                className="px-2 text-secondary/40 font-bold tracking-widest"
-              >
-                ...
+              <span key={`e-${i}`} className="w-9 h-9 flex items-center justify-center text-xs text-[#9ca3af] font-bold">
+                …
               </span>
             );
           }
-
-          const pageNum = page as number;
-          const isActive = pageNum === currentPage;
-
+          const isActive = page === currentPage;
           return (
-            <button
-              key={pageNum}
-              onClick={() => onPageChange(pageNum)}
-              className={
+            <motion.button
+              key={page}
+              whileHover={isActive ? {} : { scale: 1.06 }}
+              whileTap={{ scale: 0.94 }}
+              onClick={() => onPageChange(page)}
+              className={`relative w-9 h-9 flex items-center justify-center rounded-xl text-sm font-bold transition-colors ${
                 isActive
-                  ? "h-10 w-10 flex items-center justify-center rounded-full bg-primary text-background font-bold text-sm shadow-sm ring-2 ring-primary/20"
-                  : "h-10 w-10 flex items-center justify-center rounded-full bg-card border border-border text-secondary font-bold text-sm hover:bg-muted transition-all"
-              }
+                  ? "bg-[#142b6f] text-white shadow-[0_4px_12px_rgba(20,43,111,0.28)]"
+                  : "border border-[#e2e0e7] bg-white text-[#374151] hover:border-[#142b6f] hover:text-[#142b6f]"
+              }`}
             >
-              {pageNum}
-            </button>
+              {isActive && (
+                <motion.span
+                  layoutId="page-active"
+                  className="absolute inset-0 rounded-xl bg-[#142b6f]"
+                  style={{ zIndex: -1 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 35 }}
+                />
+              )}
+              {page}
+            </motion.button>
           );
         })}
       </div>
 
-      <button
+      {/* Next */}
+      <motion.button
+        whileHover={{ scale: 1.06 }}
+        whileTap={{ scale: 0.94 }}
         onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
         disabled={currentPage === totalPages}
-        className="h-10 w-10 flex items-center justify-center rounded-full bg-primary text-background shadow-md hover:bg-accent transition-all active:scale-90 disabled:opacity-50 disabled:cursor-not-allowed"
-        aria-label={t("common.pagination.next")}
-        title={t("common.pagination.next")}
+        aria-label={t("common.pagination.next") as string}
+        className="w-9 h-9 flex items-center justify-center rounded-xl border border-[#e2e0e7] bg-white text-[#374151] hover:border-[#142b6f] hover:text-[#142b6f] disabled:opacity-35 disabled:cursor-not-allowed transition-colors"
       >
-        <ChevronRight size={20} />
-      </button>
+        <ChevronRight size={16} />
+      </motion.button>
     </div>
   );
 };

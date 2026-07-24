@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Star, Book as BookIcon } from "lucide-react";
+import { Star, BookOpen, Download, Eye } from "lucide-react";
+import { motion } from "framer-motion";
 
 type Book = {
   id: string;
@@ -14,10 +15,7 @@ type Book = {
   available: number;
   author: { id: string; name: string; image?: string | null };
   category: { id: string; name: string; slug: string };
-  rating: {
-    average: number;
-    total: number;
-  };
+  rating: { average: number; total: number };
   type?: "physical" | "digital";
   pdf_access?: "FREE" | "PAID" | "RESTRICTED";
 };
@@ -28,98 +26,135 @@ type Props = {
   listQuery?: string;
 };
 
+const container = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.05 } },
+};
+
+const item = {
+  hidden: { opacity: 0, y: 18, scale: 0.97 },
+  visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] } },
+};
+
 export const BookCardGrid = ({ books, loading, listQuery = "" }: Props) => {
   const detailHref = (book: Book) => {
-    const params = new URLSearchParams();
-    if (book.type === "digital") params.set("type", "digital");
-    if (listQuery) params.set("from", listQuery);
-    const query = params.toString();
-    const path = book.id;
-    return query ? `/books/${path}?${query}` : `/books/${path}`;
+    const p = new URLSearchParams();
+    if (book.type === "digital") p.set("type", "digital");
+    if (listQuery) p.set("from", listQuery);
+    const q = p.toString();
+    return q ? `/books/${book.id}?${q}` : `/books/${book.id}`;
   };
 
+  /* ── Loading skeleton ── */
   if (loading) {
     return (
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-6 gap-y-10">
-        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => (
-          <div key={i} className="space-y-3 animate-pulse">
-            <div className="aspect-[3/4] rounded-2xl bg-muted/50" />
-            <div className="h-4 bg-muted/50 rounded" />
-            <div className="h-3 bg-muted/50 rounded w-2/3" />
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-x-5 gap-y-8">
+        {Array.from({ length: 10 }).map((_, i) => (
+          <div key={i} className="space-y-3">
+            <div className="aspect-[2/3] rounded-2xl bg-[#f1f0f4] animate-pulse" />
+            <div className="h-3.5 rounded-lg bg-[#f1f0f4] animate-pulse w-4/5" />
+            <div className="h-3 rounded-lg bg-[#f1f0f4] animate-pulse w-2/3" />
           </div>
         ))}
       </div>
     );
   }
 
+  /* ── Empty state ── */
   if (books.length === 0) {
     return (
-      <div className="col-span-full text-center py-20">
-        <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-muted/50 mb-6">
-          <BookIcon size={40} className="text-secondary/40" />
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col items-center justify-center py-24 text-center"
+      >
+        <div className="w-16 h-16 rounded-2xl bg-[#142b6f]/08 flex items-center justify-center mb-5">
+          <BookOpen size={28} className="text-[#142b6f]/40" />
         </div>
-        <h3 className="text-xl font-serif font-bold text-primary mb-2">No books found</h3>
-        <p className="text-secondary">Try adjusting your search or filter criteria</p>
-      </div>
+        <h3 className="text-lg font-serif font-black text-[#0d0d0d] mb-2">No books found</h3>
+        <p className="text-sm text-[#6b7280]">Try adjusting your search or filter criteria</p>
+      </motion.div>
     );
   }
 
+  /* ── Grid ── */
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-6 gap-y-10">
-      {books.map((book) => (
-        <div key={book.id} className="group flex flex-col items-center">
-          {/* Cover Image Container */}
-          <Link
-            href={detailHref(book)}
-            className="relative aspect-[3/4] w-full rounded-2xl overflow-hidden shadow-md group-hover:shadow-xl group-hover:-translate-y-1 transition-all duration-300 border border-border/40"
-          >
-            <Image src={book.cover_image_url || "/auth/image.png"} alt={book.title} fill className="object-cover" />
+    <motion.div
+      variants={container}
+      initial="hidden"
+      animate="visible"
+      className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-x-5 gap-y-8"
+    >
+      {books.map((book) => {
+        const isDigital = book.type === "digital";
+        const isAvailable = isDigital || book.available > 0;
 
-            {/* Availability Badge */}
-            {book.type === "digital" ? (
-              <div className="absolute top-2 right-2 px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 backdrop-blur-sm bg-[#142B6F]/90 text-white">
-                <BookIcon size={10} />
-                {book.pdf_access === "RESTRICTED" ? "Read Only" : "Download"}
+        return (
+          <motion.div key={book.id} variants={item}>
+            <Link href={detailHref(book)} className="group block">
+              {/* Cover */}
+              <div className="relative aspect-[2/3] rounded-2xl overflow-hidden mb-3 shadow-[0_4px_16px_rgba(0,0,0,0.10)] group-hover:shadow-[0_10px_32px_rgba(20,43,111,0.18)] transition-all duration-300">
+                <Image
+                  src={book.cover_image_url || "/reading_illustration.png"}
+                  alt={book.title}
+                  fill
+                  className="object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+
+                {/* Availability badge */}
+                <div className={`absolute top-2 right-2 flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-black backdrop-blur-sm ${
+                  isDigital
+                    ? "bg-[#142b6f]/90 text-white"
+                    : isAvailable
+                      ? "bg-emerald-500/90 text-white"
+                      : "bg-red-500/90 text-white"
+                }`}>
+                  {isDigital ? (
+                    book.pdf_access === "RESTRICTED"
+                      ? <><Eye size={9} /> Read</>
+                      : <><Download size={9} /> Free</>
+                  ) : (
+                    <>{book.available} left</>
+                  )}
+                </div>
+
+                {/* Digital badge */}
+                {isDigital && (
+                  <div className="absolute top-2 left-2 px-2 py-1 rounded-lg bg-[#f5c518] text-[10px] font-black text-[#0d0d0d]">
+                    Digital
+                  </div>
+                )}
+
+                {/* Hover overlay */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  whileHover={{ opacity: 1 }}
+                  className="absolute inset-0 bg-[#142b6f]/55 flex items-end justify-center pb-5"
+                >
+                  <span className="text-white text-xs font-black tracking-wide uppercase bg-white/15 backdrop-blur-sm px-4 py-1.5 rounded-full border border-white/30">
+                    View Details
+                  </span>
+                </motion.div>
               </div>
-            ) : (
-              <div
-                className={`absolute top-2 right-2 px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 backdrop-blur-sm ${
-                  book.available > 0 ? "bg-green-500/90 text-white" : "bg-red-500/90 text-white"
-                }`}
-              >
-                <BookIcon size={10} />
-                {book.available > 0 ? `${book.available} left` : "Unavailable"}
-              </div>
-            )}
 
-            {/* Hover Overlay */}
-            <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-              <span className="bg-background text-primary px-4 py-2 rounded-full text-xs font-bold shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
-                View Details
-              </span>
-            </div>
-          </Link>
-
-          {/* Book Info */}
-          <div className="mt-4 w-full space-y-1 text-center">
-            <div className="flex items-center justify-center gap-2">
-              <Link href={detailHref(book)}>
-                <h3 className="text-sm font-serif font-bold text-primary group-hover:text-secondary transition-colors line-clamp-1">
+              {/* Info */}
+              <div className="space-y-0.5">
+                <h3 className="text-xs font-bold text-[#0d0d0d] line-clamp-2 leading-snug group-hover:text-[#142b6f] transition-colors">
                   {book.title}
                 </h3>
-              </Link>
-              {book.rating.total > 0 && (
-                <div className="flex items-center gap-1 text-[#FFD602]">
-                  <Star size={12} fill="currentColor" />
-                  <span className="text-[10px] font-bold">{book.rating.average.toFixed(1)}</span>
-                </div>
-              )}
-            </div>
-            <p className="text-[11px] font-medium text-secondary/70 line-clamp-1">{book.author.name}</p>
-            <p className="text-[10px] font-medium text-secondary/50">{book.category.name}</p>
-          </div>
-        </div>
-      ))}
-    </div>
+                <p className="text-[11px] text-[#6b7280] line-clamp-1">{book.author.name}</p>
+                {book.rating.total > 0 && (
+                  <div className="flex items-center gap-1 pt-0.5">
+                    <Star size={10} fill="#f5c518" className="text-[#f5c518]" />
+                    <span className="text-[10px] font-bold text-[#374151]">{book.rating.average.toFixed(1)}</span>
+                    <span className="text-[10px] text-[#9ca3af]">({book.rating.total})</span>
+                  </div>
+                )}
+              </div>
+            </Link>
+          </motion.div>
+        );
+      })}
+    </motion.div>
   );
 };

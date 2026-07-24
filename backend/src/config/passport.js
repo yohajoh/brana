@@ -61,7 +61,13 @@ if (googleClientId && googleClientSecret && callbackUrl) {
         clientID: googleClientId,
         clientSecret: googleClientSecret,
         callbackURL: callbackUrl,
-        scope: ["profile", "email"],
+        scope: [
+          "profile",
+          "email",
+          "https://www.googleapis.com/auth/calendar.events",
+        ],
+        accessType: "offline",     // required to get a refresh_token
+        prompt: "consent",         // force consent screen so refresh_token is always returned
       },
       async (accessToken, refreshToken, profile, done) => {
         try {
