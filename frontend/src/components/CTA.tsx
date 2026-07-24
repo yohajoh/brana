@@ -76,7 +76,7 @@ export const CTA = () => {
           <div className="bg-[#0d0d0d] px-8 sm:px-12 py-14 flex flex-col justify-between">
             <div>
               <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#f5c518] mb-4">
-                {t("navbar.signup") as string}
+                {t("cta_section.button") as string}
               </p>
               <h2 className="text-3xl sm:text-4xl font-serif font-black text-white leading-tight mb-5">
                 {t("cta_section.title") as string}

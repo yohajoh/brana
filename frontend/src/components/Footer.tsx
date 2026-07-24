@@ -80,7 +80,7 @@ export const Footer = () => {
 
             {/* Socials */}
             <div>
-              <p className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3">Social</p>
+              <p className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3">{t("footer.social_title") as string}</p>
               <div className="flex items-center gap-2">
                 {socials.map(({ icon: Icon, href, label }) => (
                   <motion.a

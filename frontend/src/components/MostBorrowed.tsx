@@ -85,7 +85,7 @@ export const MostBorrowed = () => {
         ) : (
           <>
             {/* Trending grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-5 mb-16">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-5 mb-10">
               {trending.map((item, i) => (
                 <motion.div
                   key={item.book.id}
