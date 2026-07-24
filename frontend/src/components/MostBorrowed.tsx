@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { fetchApi } from "@/lib/api";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 import { motion } from "framer-motion";
 
 type TrendingBook = {
@@ -12,7 +13,6 @@ type TrendingBook = {
     title: string;
     cover_image_url?: string;
     available?: number;
-    copies?: number;
     author?: { name?: string };
     category?: { name?: string };
   };
@@ -42,31 +42,30 @@ function useHomePageData() {
 }
 
 export const MostBorrowed = () => {
+  const { t } = useLanguage();
   const { data, isLoading } = useHomePageData();
   const trending = data?.data?.trending ?? [];
   const topRated = data?.data?.topRated ?? [];
-
-  const displayBooks = trending.length > 0 ? trending : [];
 
   return (
     <section className="w-full bg-white py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
 
-        {/* ── Section header ── */}
+        {/* Header */}
         <div className="flex items-end justify-between mb-12">
           <div>
             <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#f5c518] mb-2">
-              Most Borrowed
+              {t("most_borrowed.eyebrow") as string}
             </p>
             <h2 className="text-3xl sm:text-4xl font-serif font-black text-[#0d0d0d] leading-tight">
-              What Our Community Is Reading
+              {t("most_borrowed.title") as string}
             </h2>
           </div>
           <Link
             href="/books"
             className="hidden sm:flex items-center gap-1.5 text-sm font-bold text-[#374151] hover:text-[#0d0d0d] transition-colors group"
           >
-            All books
+            {t("most_borrowed.all_books") as string}
             <ArrowRightSmall className="group-hover:translate-x-1 transition-transform" />
           </Link>
         </div>
@@ -81,14 +80,13 @@ export const MostBorrowed = () => {
               </div>
             ))}
           </div>
-        ) : displayBooks.length === 0 ? (
-          /* Fallback: show recently added books via /books endpoint */
-          <RecentBooksGrid />
+        ) : trending.length === 0 ? (
+          <RecentBooksGrid unavailableLabel={t("most_borrowed.unavailable") as string} />
         ) : (
           <>
-            {/* ── Trending grid: compact covers ── */}
+            {/* Trending grid */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-5 mb-16">
-              {displayBooks.map((item, i) => (
+              {trending.map((item, i) => (
                 <motion.div
                   key={item.book.id}
                   initial={{ opacity: 0, y: 20 }}
@@ -97,7 +95,6 @@ export const MostBorrowed = () => {
                   transition={{ duration: 0.45, delay: i * 0.07, ease: [0.16, 1, 0.3, 1] }}
                 >
                   <Link href={`/books/${item.book.id}`} className="group block">
-                    {/* Cover */}
                     <div className="relative aspect-[2/3] rounded-xl overflow-hidden mb-3 shadow-[0_4px_16px_rgba(0,0,0,0.1)] group-hover:shadow-[0_8px_28px_rgba(0,0,0,0.16)] transition-shadow">
                       <Image
                         src={item.book.cover_image_url || "/reading_illustration.png"}
@@ -105,7 +102,6 @@ export const MostBorrowed = () => {
                         fill
                         className="object-cover transition-transform duration-500 group-hover:scale-105"
                       />
-                      {/* Rank badge */}
                       <div className="absolute top-2 left-2 w-6 h-6 rounded-full bg-[#f5c518] flex items-center justify-center">
                         <span className="text-[9px] font-black text-[#0d0d0d]">#{i + 1}</span>
                       </div>
@@ -118,7 +114,7 @@ export const MostBorrowed = () => {
                     </p>
                     {item.rentalCount > 0 && (
                       <p className="text-[10px] font-bold text-[#142b6f]/60 mt-1">
-                        {item.rentalCount} borrows
+                        {item.rentalCount} {t("most_borrowed.borrows") as string}
                       </p>
                     )}
                   </Link>
@@ -126,13 +122,13 @@ export const MostBorrowed = () => {
               ))}
             </div>
 
-            {/* ── Top rated row ── */}
+            {/* Top rated row */}
             {topRated.length > 0 && (
               <div>
                 <div className="flex items-center gap-3 mb-6">
                   <div className="h-px flex-1 bg-[#e2e0e7]" />
                   <p className="text-xs font-black uppercase tracking-[0.18em] text-[#374151]/60">
-                    Top Rated by Students
+                    {t("most_borrowed.top_rated") as string}
                   </p>
                   <div className="h-px flex-1 bg-[#e2e0e7]" />
                 </div>
@@ -162,24 +158,14 @@ export const MostBorrowed = () => {
                             {item.book.title}
                           </h4>
                           <p className="text-xs text-[#6b7280] mb-1.5">{item.book.author?.name}</p>
-                          {/* Star display */}
                           <div className="flex items-center gap-1.5">
                             <div className="flex">
                               {Array.from({ length: 5 }).map((_, s) => (
-                                <span
-                                  key={s}
-                                  className={`text-[11px] ${s < Math.round(item.avgRating) ? "text-[#f5c518]" : "text-[#e2e0e7]"}`}
-                                >
-                                  ★
-                                </span>
+                                <span key={s} className={`text-[11px] ${s < Math.round(item.avgRating) ? "text-[#f5c518]" : "text-[#e2e0e7]"}`}>★</span>
                               ))}
                             </div>
-                            <span className="text-[10px] font-bold text-[#374151]">
-                              {item.avgRating.toFixed(1)}
-                            </span>
-                            <span className="text-[10px] text-[#9ca3af]">
-                              ({item.reviewCount})
-                            </span>
+                            <span className="text-[10px] font-bold text-[#374151]">{item.avgRating.toFixed(1)}</span>
+                            <span className="text-[10px] text-[#9ca3af]">({item.reviewCount})</span>
                           </div>
                         </div>
                       </Link>
@@ -195,14 +181,14 @@ export const MostBorrowed = () => {
   );
 };
 
-/* Fallback when no trending data yet */
-function RecentBooksGrid() {
+function RecentBooksGrid({ unavailableLabel }: { unavailableLabel: string }) {
   const { data, isLoading } = useQuery({
     queryKey: ["home-recent-books"],
     queryFn: () => fetchApi("/books?limit=6&sort=-created_at"),
     staleTime: 5 * 60 * 1000,
   });
-  const books = (data as { books?: Array<{ id: string; title: string; cover_image_url?: string; author?: { name?: string }; available?: number }> })?.books ?? [];
+  type BookItem = { id: string; title: string; cover_image_url?: string; author?: { name?: string }; available?: number };
+  const books = (data as { books?: BookItem[] })?.books ?? [];
 
   if (isLoading) {
     return (
@@ -238,7 +224,7 @@ function RecentBooksGrid() {
               {book.available === 0 && (
                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                   <span className="text-[10px] font-black text-white bg-black/60 px-2 py-0.5 rounded-full">
-                    Unavailable
+                    {unavailableLabel}
                   </span>
                 </div>
               )}

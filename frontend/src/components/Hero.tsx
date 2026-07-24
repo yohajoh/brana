@@ -42,7 +42,7 @@ export const Hero = () => {
             transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
             className="text-[11px] font-black uppercase tracking-[0.22em] text-[#f5c518] mb-5"
           >
-            ASTU Campus Library · Digital &amp; Physical
+            {t("hero.eyebrow") as string}
           </motion.p>
 
           {/* Headline */}
@@ -86,7 +86,7 @@ export const Hero = () => {
               href="/auth/create-account"
               className="inline-flex items-center gap-2 rounded-full px-8 py-3.5 text-sm font-bold text-white border border-white/20 hover:bg-white/08 hover:border-white/35 transition-all"
             >
-              Create free account
+              {t("hero.cta_secondary") as string}
             </Link>
           </motion.div>
         </div>

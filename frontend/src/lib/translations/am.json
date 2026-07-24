@@ -112,7 +112,9 @@
     "signup_free": "ነፃ ይመዝገቡ",
     "loan_period": "ከፍተኛ የብድር ጊዜ",
     "per_student": "ለተማሪ ገደብ",
-    "late_fee": "የዘገየ ቅጣት"
+    "late_fee": "የዘገየ ቅጣት",
+    "days_unit": "ቀናት",
+    "books_unit": "መጽሐፍት"
   },
   "footer": {
     "description": "በዘመናዊ ዲጂታል የመጽሐፍ ኪራይ ስርዓት የንባብ ህይወትዎን ቀላል ለማድረግ እዚህ ተገኝተናል።",

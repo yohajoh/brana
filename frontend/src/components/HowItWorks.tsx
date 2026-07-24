@@ -4,65 +4,53 @@ import React, { useState } from "react";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { motion, AnimatePresence } from "framer-motion";
 
-type Step = {
-  num: string;
-  label: string;
-  title: string;
-  description: string;
-  detail: string;
-};
-
 export const HowItWorks = () => {
   const { t } = useLanguage();
   const [activeStep, setActiveStep] = useState(0);
 
-  const steps: Step[] = [
+  const steps = [
     {
       num: "01",
-      label: "Sign Up",
+      label: t("how_it_works.steps.create_account.label") as string,
       title: t("how_it_works.steps.create_account.title") as string,
       description: t("how_it_works.steps.create_account.description") as string,
-      detail:
-        "Use your university email to create an account in under 60 seconds. Your student profile is verified automatically.",
+      detail: t("how_it_works.steps.create_account.detail") as string,
     },
     {
       num: "02",
-      label: "Discover",
+      label: t("how_it_works.steps.choose_book.label") as string,
       title: t("how_it_works.steps.choose_book.title") as string,
       description: t("how_it_works.steps.choose_book.description") as string,
-      detail:
-        "Search across thousands of physical and digital titles. Filter by subject, author, availability, or rating.",
+      detail: t("how_it_works.steps.choose_book.detail") as string,
     },
     {
       num: "03",
-      label: "Borrow",
+      label: t("how_it_works.steps.dorm_delivery.label") as string,
       title: t("how_it_works.steps.dorm_delivery.title") as string,
       description: t("how_it_works.steps.dorm_delivery.description") as string,
-      detail:
-        "Reserve online and collect from the library counter, or request delivery to your dorm block. You'll get notified when it's ready.",
+      detail: t("how_it_works.steps.dorm_delivery.detail") as string,
     },
     {
       num: "04",
-      label: "Return",
+      label: t("how_it_works.steps.return_pay.label") as string,
       title: t("how_it_works.steps.return_pay.title") as string,
       description: t("how_it_works.steps.return_pay.description") as string,
-      detail:
-        "Return before the due date to avoid fines. Pay any balance instantly via Chapa. Your history is saved to your profile.",
+      detail: t("how_it_works.steps.return_pay.detail") as string,
     },
   ];
 
   const accentColors = [
-    { bg: "bg-[#142b6f]",    text: "text-white",     ring: "ring-[#142b6f]/20"   },
-    { bg: "bg-[#f5c518]",    text: "text-[#0d0d0d]", ring: "ring-[#f5c518]/30"   },
-    { bg: "bg-[#142b6f]",    text: "text-white",     ring: "ring-[#142b6f]/20"   },
-    { bg: "bg-[#0d0d0d]",    text: "text-white",     ring: "ring-[#0d0d0d]/15"   },
+    { bg: "bg-[#142b6f]", text: "text-white",     ring: "ring-[#142b6f]/20" },
+    { bg: "bg-[#f5c518]", text: "text-[#0d0d0d]", ring: "ring-[#f5c518]/30" },
+    { bg: "bg-[#142b6f]", text: "text-white",     ring: "ring-[#142b6f]/20" },
+    { bg: "bg-[#0d0d0d]", text: "text-white",     ring: "ring-[#0d0d0d]/15" },
   ];
 
   return (
     <section className="w-full bg-[#f8f7fb] py-20 overflow-hidden">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
 
-        {/* ── Header row ─────────────────────────────────────────── */}
+        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -72,18 +60,18 @@ export const HowItWorks = () => {
         >
           <div>
             <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#f5c518] mb-2">
-              How It Works
+              {t("how_it_works.eyebrow") as string}
             </p>
             <h2 className="text-3xl sm:text-4xl font-serif font-black text-[#0d0d0d] leading-tight">
               {t("how_it_works.title") as string}
             </h2>
           </div>
           <p className="text-sm text-[#6b7280] max-w-xs leading-relaxed">
-            From signup to return — four simple steps, nothing more.
+            {t("how_it_works.subtitle") as string}
           </p>
         </motion.div>
 
-        {/* ── Main layout: step selector left + detail right ─────── */}
+        {/* Main layout */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.4fr] gap-8 lg:gap-12">
 
           {/* LEFT: step tabs */}
@@ -99,22 +87,18 @@ export const HowItWorks = () => {
                   viewport={{ once: true }}
                   transition={{ duration: 0.45, delay: i * 0.08, ease: [0.16, 1, 0.3, 1] }}
                   onClick={() => setActiveStep(i)}
-                  className={`group relative w-full text-left rounded-2xl p-5
-                              border transition-all duration-300 cursor-pointer
-                              ${isActive
-                                ? "bg-white border-[#142b6f]/12 shadow-[0_4px_24px_rgba(20,43,111,0.10)]"
-                                : "bg-white/50 border-[#e2e0e7]/60 hover:bg-white hover:border-[#e2e0e7] hover:shadow-sm"}`}
+                  className={`group relative w-full text-left rounded-2xl p-5 border transition-all duration-300 cursor-pointer ${
+                    isActive
+                      ? "bg-white border-[#142b6f]/12 shadow-[0_4px_24px_rgba(20,43,111,0.10)]"
+                      : "bg-white/50 border-[#e2e0e7]/60 hover:bg-white hover:border-[#e2e0e7] hover:shadow-sm"
+                  }`}
                 >
                   <div className="flex items-center gap-4">
-                    {/* Step badge */}
-                    <div className={`relative shrink-0 w-11 h-11 rounded-xl
-                                     flex items-center justify-center
-                                     ring-4 transition-all duration-300
-                                     ${isActive
-                                       ? `${color.bg} ${color.text} ${color.ring}`
-                                       : "bg-[#f1f0f4] text-[#9ca3af] ring-transparent"}`}>
+                    {/* Badge */}
+                    <div className={`relative shrink-0 w-11 h-11 rounded-xl flex items-center justify-center ring-4 transition-all duration-300 ${
+                      isActive ? `${color.bg} ${color.text} ${color.ring}` : "bg-[#f1f0f4] text-[#9ca3af] ring-transparent"
+                    }`}>
                       <span className="text-sm font-black">{step.num}</span>
-                      {/* animated dot for active */}
                       {isActive && (
                         <motion.span
                           layoutId="step-dot"
@@ -126,11 +110,9 @@ export const HowItWorks = () => {
                     {/* Text */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
-                        <span className={`text-xs font-black uppercase tracking-wider transition-colors
-                                          ${isActive ? "text-[#142b6f]" : "text-[#9ca3af]"}`}>
+                        <span className={`text-xs font-black uppercase tracking-wider transition-colors ${isActive ? "text-[#142b6f]" : "text-[#9ca3af]"}`}>
                           {step.label}
                         </span>
-                        {/* progress indicator */}
                         {isActive && (
                           <motion.div
                             initial={{ scaleX: 0 }}
@@ -140,8 +122,7 @@ export const HowItWorks = () => {
                           />
                         )}
                       </div>
-                      <p className={`text-sm font-bold mt-0.5 transition-colors leading-snug
-                                     ${isActive ? "text-[#0d0d0d]" : "text-[#374151]"}`}>
+                      <p className={`text-sm font-bold mt-0.5 transition-colors leading-snug ${isActive ? "text-[#0d0d0d]" : "text-[#374151]"}`}>
                         {step.title}
                       </p>
                     </div>
@@ -149,15 +130,13 @@ export const HowItWorks = () => {
                     {/* Chevron */}
                     <motion.svg
                       animate={{ x: isActive ? 2 : 0, opacity: isActive ? 1 : 0.3 }}
-                      width="16" height="16" viewBox="0 0 16 16" fill="none"
-                      className="shrink-0"
+                      width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0"
                     >
-                      <path d="M6 4l4 4-4 4" stroke={isActive ? "#142b6f" : "#9ca3af"}
-                            strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M6 4l4 4-4 4" stroke={isActive ? "#142b6f" : "#9ca3af"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                     </motion.svg>
                   </div>
 
-                  {/* Inline description — only on mobile (hidden on lg where panel shows) */}
+                  {/* Mobile inline detail */}
                   <AnimatePresence>
                     {isActive && (
                       <motion.p
@@ -165,8 +144,7 @@ export const HowItWorks = () => {
                         animate={{ height: "auto", opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
                         transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
-                        className="lg:hidden overflow-hidden text-sm text-[#374151]
-                                   leading-relaxed mt-3 pt-3 border-t border-[#e2e0e7]/60"
+                        className="lg:hidden overflow-hidden text-sm text-[#374151] leading-relaxed mt-3 pt-3 border-t border-[#e2e0e7]/60"
                       >
                         {step.detail}
                       </motion.p>
@@ -189,60 +167,36 @@ export const HowItWorks = () => {
                 className="h-full"
               >
                 {(() => {
-                  const step  = steps[activeStep];
+                  const step = steps[activeStep];
                   const color = accentColors[activeStep];
                   return (
-                    <div className="h-full rounded-3xl border border-[#e2e0e7] bg-white
-                                    shadow-[0_4px_24px_rgba(20,43,111,0.07)]
-                                    overflow-hidden flex flex-col">
-
-                      {/* Top colour band */}
+                    <div className="h-full rounded-3xl border border-[#e2e0e7] bg-white shadow-[0_4px_24px_rgba(20,43,111,0.07)] overflow-hidden flex flex-col">
                       <div className={`h-2 w-full ${color.bg}`} />
-
                       <div className="flex-1 p-10 flex flex-col justify-between">
-                        {/* Top: number + step label */}
                         <div className="flex items-start justify-between mb-8">
                           <div>
-                            <p className={`text-[11px] font-black uppercase tracking-[0.22em] mb-2
-                                           ${activeStep === 1 ? "text-[#d4a800]" : "text-[#142b6f]/50"}`}>
-                              Step {step.num}  ·  {step.label}
+                            <p className={`text-[11px] font-black uppercase tracking-[0.22em] mb-2 ${activeStep === 1 ? "text-[#d4a800]" : "text-[#142b6f]/50"}`}>
+                              {t("how_it_works.step_label") as string} {step.num} · {step.label}
                             </p>
-                            <h3 className="text-2xl sm:text-3xl font-serif font-black text-[#0d0d0d]
-                                           leading-tight max-w-xs">
+                            <h3 className="text-2xl sm:text-3xl font-serif font-black text-[#0d0d0d] leading-tight max-w-xs">
                               {step.title}
                             </h3>
                           </div>
-
-                          {/* Large muted step number */}
-                          <span className="text-7xl font-serif font-black text-[#0d0d0d]/04
-                                           select-none leading-none -mt-2">
+                          <span className="text-7xl font-serif font-black text-[#0d0d0d]/04 select-none leading-none -mt-2">
                             {step.num}
                           </span>
                         </div>
 
-                        {/* Body */}
                         <div className="space-y-4 flex-1">
-                          <p className="text-base text-[#374151] leading-relaxed">
-                            {step.description}
-                          </p>
-                          <p className="text-sm text-[#6b7280] leading-relaxed">
-                            {step.detail}
-                          </p>
+                          <p className="text-base text-[#374151] leading-relaxed">{step.description}</p>
+                          <p className="text-sm text-[#6b7280] leading-relaxed">{step.detail}</p>
                         </div>
 
-                        {/* Bottom: step progress dots */}
                         <div className="mt-10 flex items-center gap-2">
                           {steps.map((_, i) => (
-                            <button
-                              key={i}
-                              onClick={() => setActiveStep(i)}
-                              className="transition-all duration-300"
-                            >
+                            <button key={i} onClick={() => setActiveStep(i)} className="transition-all duration-300">
                               <motion.div
-                                animate={{
-                                  width: i === activeStep ? 24 : 8,
-                                  opacity: i === activeStep ? 1 : 0.3,
-                                }}
+                                animate={{ width: i === activeStep ? 24 : 8, opacity: i === activeStep ? 1 : 0.3 }}
                                 className={`h-2 rounded-full ${color.bg}`}
                               />
                             </button>

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { fetchApi } from "@/lib/api";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 import { motion } from "framer-motion";
 
 type Category = {
@@ -13,17 +14,18 @@ type Category = {
   _count?: { books?: number };
 };
 
-// Simple deterministic colour palette — no randomness
 const PALETTE = [
-  { bg: "bg-[#142b6f]",   text: "text-white"      },
-  { bg: "bg-[#f5c518]",   text: "text-[#0d0d0d]"  },
-  { bg: "bg-[#0d0d0d]",   text: "text-white"      },
-  { bg: "bg-[#e2e0e7]",   text: "text-[#0d0d0d]"  },
-  { bg: "bg-[#142b6f]/10", text: "text-[#142b6f]" },
-  { bg: "bg-[#f5c518]/20", text: "text-[#0d0d0d]" },
+  { bg: "bg-[#142b6f]",    text: "text-white"       },
+  { bg: "bg-[#f5c518]",    text: "text-[#0d0d0d]"   },
+  { bg: "bg-[#0d0d0d]",    text: "text-white"       },
+  { bg: "bg-[#e2e0e7]",    text: "text-[#0d0d0d]"   },
+  { bg: "bg-[#142b6f]/10", text: "text-[#142b6f]"   },
+  { bg: "bg-[#f5c518]/20", text: "text-[#0d0d0d]"   },
 ];
 
 export const CategoriesStrip = () => {
+  const { t } = useLanguage();
+
   const { data, isLoading } = useQuery({
     queryKey: ["home-categories"],
     queryFn: () => fetchApi("/categories?limit=12"),
@@ -36,28 +38,29 @@ export const CategoriesStrip = () => {
   return (
     <section className="w-full bg-[#f8f7fb] py-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
+
         {/* Header */}
         <div className="flex items-end justify-between mb-8">
           <div>
             <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#f5c518] mb-1.5">
-              Browse by Subject
+              {t("categories_strip.eyebrow") as string}
             </p>
             <h2 className="text-2xl sm:text-3xl font-serif font-black text-[#0d0d0d] leading-tight">
-              Find Your Next Read
+              {t("categories_strip.title") as string}
             </h2>
           </div>
           <Link
             href="/books"
             className="hidden sm:flex items-center gap-1.5 text-sm font-bold text-[#374151] hover:text-[#0d0d0d] transition-colors group"
           >
-            Browse all
+            {t("categories_strip.browse_all") as string}
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="group-hover:translate-x-1 transition-transform">
               <path d="M2 7h10M7 2l5 5-5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </Link>
         </div>
 
-        {/* Grid */}
+        {/* Pills */}
         {isLoading ? (
           <div className="flex flex-wrap gap-3">
             {Array.from({ length: 8 }).map((_, i) => (
@@ -82,9 +85,7 @@ export const CategoriesStrip = () => {
                   >
                     {cat.name}
                     {cat._count?.books !== undefined && (
-                      <span className="opacity-60 text-xs font-semibold">
-                        {cat._count.books}
-                      </span>
+                      <span className="opacity-60 text-xs font-semibold">{cat._count.books}</span>
                     )}
                   </Link>
                 </motion.div>
