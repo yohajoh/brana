@@ -67,7 +67,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
           transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
           className="w-full max-w-[520px]"
         >
-          <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-[0_8px_48px_rgba(20,43,111,0.11)] border border-[#e2e0e7]/70 px-8 sm:px-12 py-10">
+          <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-[0_8px_48px_rgba(20,43,111,0.11)] border border-[#e2e0e7]/70 px-6 sm:px-12 py-8 sm:py-10">
             {/* Badge */}
             {badge && (
               <div className="inline-flex items-center gap-2 rounded-full bg-[#142b6f]/08 border border-[#142b6f]/12 px-3.5 py-1.5 mb-6">
@@ -132,7 +132,7 @@ export const SplitAuthLayout: React.FC<SplitAuthLayoutProps> = ({
      * Full-screen dark backdrop — card floats centered.
      * Background: very dark charcoal + two soft orbs.
      */
-    <div className="min-h-screen w-full bg-white flex items-center justify-center relative overflow-hidden">
+    <div className="min-h-screen w-full bg-white flex lg:items-center justify-center relative lg:overflow-hidden">
 
       {/* ── Background decoration ────────────────────────────── */}
       <div className="pointer-events-none absolute inset-0">
@@ -147,35 +147,39 @@ export const SplitAuthLayout: React.FC<SplitAuthLayoutProps> = ({
 
       {/*
        * THE CARD
-       * w-[70vw] — 70% of viewport width
-       * h-[80vh] — 80% of viewport height
-       * Fixed dimensions: the card itself never grows.
-       * Left (image) = 40%, Right (form) = 60%
-       * Right has overflow-y-auto — only the form scrolls.
+       *
+       * DESKTOP (lg+):
+       *   w-[70vw] h-[80vh] — 70% width, 80% height, fixed, scrolls inside
+       *   Left = 40% image panel, Right = 60% form
+       *
+       * MOBILE (< lg):
+       *   Full-screen, no image panel, form scrolls naturally
        */}
       <motion.div
         initial={{ opacity: 0, scale: 0.96, y: 16 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-        className="relative z-10 w-[70vw] h-[80vh] min-w-[720px] max-w-[1100px] flex rounded-[28px] overflow-hidden"
-        style={{ border: "1px solid rgba(20,43,111,0.10)", boxShadow: "0 40px 120px rgba(20,43,111,0.18), 0 16px 48px rgba(0,0,0,0.10), 0 4px 16px rgba(0,0,0,0.06)" }}
+        className="relative z-10 w-full h-full lg:w-[70vw] lg:h-[80vh] lg:max-w-[1100px] flex flex-col lg:flex-row lg:rounded-[28px] overflow-hidden"
+        style={{
+          border: "1px solid rgba(20,43,111,0.10)",
+          boxShadow: "0 40px 120px rgba(20,43,111,0.18), 0 16px 48px rgba(0,0,0,0.10), 0 4px 16px rgba(0,0,0,0.06)",
+        }}
       >
 
-        {/* ── LEFT PANEL: 40% — image with overlays ───────────── */}
-        <div className="relative w-[40%] shrink-0 flex flex-col overflow-hidden">
+        {/* ── LEFT PANEL: image — hidden on mobile, 40% on desktop ── */}
+        <div className="relative hidden lg:flex lg:w-[40%] shrink-0 flex-col overflow-hidden">
           {/* Photo */}
           <div
             className="absolute inset-0 bg-cover bg-center"
             style={{ backgroundImage: `url(${imageSrc})` }}
           />
-          {/* Layered overlays for depth */}
+          {/* Layered overlays */}
           <div className="absolute inset-0 bg-gradient-to-br from-[#0d0d0d]/70 via-[#142b6f]/40 to-[#0d0d0d]/80" />
           <div className="absolute inset-0 bg-gradient-to-t from-[#0d0d0d]/90 via-transparent to-transparent" />
-
           {/* Gold accent top stripe */}
           <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#f5c518]/80 via-[#f5c518] to-transparent" />
 
-          {/* Logo — top */}
+          {/* Logo */}
           <div className="relative z-10 p-8">
             <Link href="/" className="flex items-center gap-2.5">
               <div className="relative w-9 h-9 shrink-0">
@@ -189,71 +193,59 @@ export const SplitAuthLayout: React.FC<SplitAuthLayoutProps> = ({
 
           {/* Bottom content */}
           <div className="relative z-10 mt-auto p-8">
-            {/* Stats */}
             {imageStats && imageStats.length > 0 && (
               <div className="flex gap-5 mb-7">
                 {imageStats.map(({ value, label }) => (
-                  <motion.div
-                    key={label}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4, duration: 0.45 }}
-                  >
+                  <motion.div key={label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4, duration: 0.45 }}>
                     <div className="text-xl font-serif font-black text-white leading-none">{value}</div>
                     <div className="text-[10px] text-white/50 font-semibold mt-1 uppercase tracking-wider">{label}</div>
                   </motion.div>
                 ))}
               </div>
             )}
-
-            {/* Divider */}
             <div className="h-px bg-white/15 mb-5" />
-
-            {/* Eyebrow */}
             <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#f5c518] mb-2">
               Birana Library · ASTU
             </p>
-
-            {/* Title */}
-            <h2 className="text-xl font-serif font-black text-white leading-tight mb-2">
-              {imageTitle}
-            </h2>
-
-            {/* Tagline */}
-            <p className="text-xs text-white/50 leading-relaxed">
-              {imageTagline}
-            </p>
+            <h2 className="text-xl font-serif font-black text-white leading-tight mb-2">{imageTitle}</h2>
+            <p className="text-xs text-white/50 leading-relaxed">{imageTagline}</p>
           </div>
         </div>
 
-        {/* ── RIGHT PANEL: 60% — form, scrollable ─────────────── */}
-        <div className="relative flex-1 bg-[#f8f7fc] flex flex-col overflow-hidden">
+        {/* ── RIGHT PANEL: form ─────────────────────────────────── */}
+        {/* On mobile this IS the full card — no left panel */}
+        <div className="relative flex-1 bg-[#f8f7fc] flex flex-col overflow-hidden min-h-screen lg:min-h-0">
 
-          {/* Very subtle right-panel background accents */}
+          {/* Decorative blobs */}
           <div className="pointer-events-none absolute -top-20 -right-20 w-64 h-64 rounded-full bg-[#142b6f]/04 blur-3xl" />
           <div className="pointer-events-none absolute -bottom-16 -left-16 w-48 h-48 rounded-full bg-[#f5c518]/05 blur-3xl" />
 
-          {/* ── Top bar (fixed inside right panel) ── */}
-          <div className="relative z-10 shrink-0 flex items-center justify-between px-8 py-5 border-b border-[#e2e0e7]/60">
-            {/* Back to home */}
-            <Link href="/" className="flex items-center gap-1.5 text-xs font-semibold text-[#9ca3af] hover:text-[#142b6f] transition-colors">
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <path d="M9 2L4 7l5 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              {t("auth.common.home") as string}
+          {/* Top bar */}
+          <div className="relative z-10 shrink-0 flex items-center justify-between px-6 sm:px-8 py-4 border-b border-[#e2e0e7]/60">
+            {/* Mobile: full logo. Desktop: just "Home" back link */}
+            <Link href="/" className="flex items-center gap-2 lg:gap-1.5">
+              {/* Mobile logo mark */}
+              <div className="relative w-7 h-7 shrink-0 lg:hidden">
+                <div className="absolute inset-0 rounded-lg bg-[#142b6f]" />
+                <div className="absolute top-0 right-0 w-2 h-2 bg-[#f5c518] rounded-tr-lg rounded-bl-md" />
+                <span className="absolute inset-0 flex items-center justify-center text-white font-serif font-black text-xs select-none">ብ</span>
+              </div>
+              <span className="text-base font-serif font-black text-[#142b6f] lg:hidden">ብራና</span>
+              {/* Desktop: text back link */}
+              <span className="hidden lg:flex items-center gap-1.5 text-xs font-semibold text-[#9ca3af] hover:text-[#142b6f] transition-colors">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M9 2L4 7l5 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                {t("auth.common.home") as string}
+              </span>
             </Link>
-            {/* Right slot (sign up / sign in link) */}
-            {topRight}
+            {topRight && <div>{topRight}</div>}
           </div>
 
-          {/*
-           * ── Scrollable form content ──
-           * This div is the ONLY thing that scrolls.
-           * overflow-y-auto + flex-1 means it fills remaining height
-           * and scrolls when content overflows.
-           */}
+          {/* Scrollable form — fills height, scrolls if content overflows */}
           <div className="relative z-10 flex-1 overflow-y-auto">
-            <div className="px-8 py-7">
+            <div className="px-6 sm:px-8 py-7 max-w-[440px] mx-auto lg:max-w-none">
               {/* Badge */}
               {badge && (
                 <div className="inline-flex items-center gap-2 rounded-full bg-[#142b6f]/08 border border-[#142b6f]/12 px-3.5 py-1.5 mb-5">
@@ -261,26 +253,20 @@ export const SplitAuthLayout: React.FC<SplitAuthLayoutProps> = ({
                   <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#142b6f]">{badge}</span>
                 </div>
               )}
-
-              {/* Title */}
-              <h1 className="text-2xl font-serif font-black text-[#0d0d0d] leading-tight mb-1">
+              <h1 className="text-2xl sm:text-3xl font-serif font-black text-[#0d0d0d] leading-tight mb-1">
                 {rightTitle}
               </h1>
               {rightSubtitle && (
                 <p className="text-sm text-[#6b7280] leading-relaxed mb-6">{rightSubtitle}</p>
               )}
               {!rightSubtitle && <div className="mb-6" />}
-
-              {/* Form content */}
               {children}
-
-              {/* Bottom padding so last element isn't flush against edge */}
-              <div className="h-6" />
+              <div className="h-8" />
             </div>
           </div>
 
-          {/* ── Footer strip (fixed inside right panel) ── */}
-          <div className="relative z-10 shrink-0 px-8 py-3 border-t border-[#e2e0e7]/60">
+          {/* Footer strip */}
+          <div className="relative z-10 shrink-0 px-6 sm:px-8 py-3 border-t border-[#e2e0e7]/60">
             <p className="text-[10px] text-[#c0bfca]">
               &copy; {new Date().getFullYear()} Birana Library System — ASTU
             </p>
