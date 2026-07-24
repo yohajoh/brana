@@ -23,6 +23,7 @@ import statsRoutes from "./routes/stats.routes.js";
 import reservationRoutes from "./routes/reservation.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import studentRoutes from "./routes/student.routes.js";
+import publicStatsRoutes from "./routes/publicStats.routes.js";
 
 import { globalErrorHandler, AppError } from "./middlewares/error.middleware.js";
 
@@ -113,6 +114,7 @@ app.use("/api/stats", statsRoutes);
 app.use("/api/reservations", reservationRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/student", studentRoutes);
+app.use("/api/public/stats", publicStatsRoutes);
 
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
