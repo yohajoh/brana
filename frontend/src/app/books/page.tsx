@@ -50,14 +50,14 @@ const FILTER_KEYS = ["category_id", "author_id", "min_rating"] as const;
 const FilterInput = ({ ...props }: React.InputHTMLAttributes<HTMLInputElement>) => (
   <input
     {...props}
-    className="w-full rounded-xl border border-[#e2e0e7] bg-white px-3 py-2.5 text-sm text-[#0d0d0d] placeholder:text-[#b0afc0] outline-none focus:border-[#142b6f] focus:shadow-[0_0_0_3px_rgba(20,43,111,0.08)] transition-all"
+    className="w-full rounded-xl border border-[#e2e0e7] bg-white px-3 py-2.5 text-sm text-[#0d0d0d] placeholder:text-[#b0afc0] outline-none focus:border-[#0d0d0d] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.08)] transition-all"
   />
 );
 
 const FilterSelect = ({ ...props }: React.SelectHTMLAttributes<HTMLSelectElement>) => (
   <select
     {...props}
-    className="w-full rounded-xl border border-[#e2e0e7] bg-white px-3 py-2.5 text-sm text-[#0d0d0d] outline-none focus:border-[#142b6f] focus:shadow-[0_0_0_3px_rgba(20,43,111,0.08)] transition-all cursor-pointer appearance-none"
+    className="w-full rounded-xl border border-[#e2e0e7] bg-white px-3 py-2.5 text-sm text-[#0d0d0d] outline-none focus:border-[#0d0d0d] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.08)] transition-all cursor-pointer appearance-none"
   />
 );
 
@@ -197,22 +197,31 @@ function BooksContent() {
       <Navbar />
 
       {/* ── Page header ─────────────────────────────────────── */}
-      <div className="bg-white border-b border-[#e2e0e7]">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 py-8">
+      <div className="relative bg-[#0d0d0d] overflow-hidden">
+        {/* Background decorations */}
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -top-32 -right-32 w-[500px] h-[500px] rounded-full bg-[#f5c518]/06 blur-[100px]" />
+          <div className="absolute -bottom-20 -left-20 w-[400px] h-[400px] rounded-full bg-white/03 blur-[80px]" />
+          <div className="absolute inset-0 opacity-[0.025]"
+            style={{ backgroundImage: "radial-gradient(circle at 1px 1px, #f5c518 1px, transparent 0)", backgroundSize: "36px 36px" }} />
+        </div>
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 py-10">
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
           >
-            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#f5c518] mb-1">
+            <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#f5c518] mb-2">
               {t("navbar.books") as string}
             </p>
-            <h1 className="text-3xl sm:text-4xl font-serif font-black text-[#0d0d0d] mb-5">
+            <h1 className="text-3xl sm:text-4xl font-serif font-black text-white mb-6">
               {t("books_page.title") as string || "Explore the Collection"}
             </h1>
             <SearchBar onSearch={(q) => updateQuery({ search: q || null }, true)} />
           </motion.div>
         </div>
+        {/* Bottom fade */}
+        <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-b from-transparent to-[#f8f7fc]" />
       </div>
 
       <main className="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 py-8">
@@ -224,12 +233,12 @@ function BooksContent() {
             <div className="flex lg:hidden mb-4">
               <button
                 onClick={() => setFiltersOpen(v => !v)}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[#e2e0e7] bg-white text-sm font-bold text-[#374151] hover:border-[#142b6f] hover:text-[#142b6f] transition-all"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[#e2e0e7] bg-white text-sm font-bold text-[#374151] hover:border-[#0d0d0d] hover:text-[#0d0d0d] transition-all"
               >
                 <SlidersHorizontal size={16} />
                 {t("books_page.filters_label") as string || "Filters"}
                 {hasActiveFilters && (
-                  <span className="w-2 h-2 rounded-full bg-[#142b6f]" />
+                  <span className="w-2 h-2 rounded-full bg-[#f5c518]" />
                 )}
               </button>
             </div>
@@ -287,13 +296,13 @@ function BooksContent() {
                       key={m}
                       onClick={() => updateQuery({ mode: m }, true)}
                       className={`relative px-4 py-1.5 rounded-lg text-xs font-black transition-all ${
-                        mode === m ? "text-white" : "text-[#374151] hover:text-[#142b6f]"
+                        mode === m ? "text-white" : "text-[#374151] hover:text-[#0d0d0d]"
                       }`}
                     >
                       {mode === m && (
                         <motion.span
                           layoutId="mode-pill"
-                          className="absolute inset-0 rounded-lg bg-[#142b6f]"
+                          className="absolute inset-0 rounded-lg bg-[#0d0d0d]"
                           style={{ zIndex: -1 }}
                           transition={{ type: "spring", stiffness: 400, damping: 35 }}
                         />
@@ -326,13 +335,13 @@ function BooksContent() {
             <div className="bg-white rounded-2xl border border-[#e2e0e7] overflow-hidden shadow-[0_2px_8px_rgba(20,43,111,0.04)]">
               <button
                 onClick={() => setFiltersOpen(v => !v)}
-                className="w-full flex items-center justify-between px-5 py-3.5 text-sm font-bold text-[#374151] hover:text-[#142b6f] transition-colors"
+                className="w-full flex items-center justify-between px-5 py-3.5 text-sm font-bold text-[#374151] hover:text-[#0d0d0d] transition-colors"
               >
                 <div className="flex items-center gap-2">
                   <SlidersHorizontal size={15} />
                   {t("books_page.advanced_filters") as string || "Advanced Filters"}
                   {hasActiveFilters && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#142b6f]/10 text-[#142b6f] text-[10px] font-black">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#f5c518]/20 text-[#7a5c00] text-[10px] font-black">
                       Active
                     </span>
                   )}

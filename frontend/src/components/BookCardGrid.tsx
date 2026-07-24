@@ -68,8 +68,8 @@ export const BookCardGrid = ({ books, loading, listQuery = "" }: Props) => {
         animate={{ opacity: 1, y: 0 }}
         className="flex flex-col items-center justify-center py-24 text-center"
       >
-        <div className="w-16 h-16 rounded-2xl bg-[#142b6f]/08 flex items-center justify-center mb-5">
-          <BookOpen size={28} className="text-[#142b6f]/40" />
+        <div className="w-16 h-16 rounded-2xl bg-[#0d0d0d]/06 flex items-center justify-center mb-5">
+          <BookOpen size={28} className="text-[#0d0d0d]/30" />
         </div>
         <h3 className="text-lg font-serif font-black text-[#0d0d0d] mb-2">No books found</h3>
         <p className="text-sm text-[#6b7280]">Try adjusting your search or filter criteria</p>
@@ -104,7 +104,7 @@ export const BookCardGrid = ({ books, loading, listQuery = "" }: Props) => {
                 {/* Availability badge */}
                 <div className={`absolute top-2 right-2 flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-black backdrop-blur-sm ${
                   isDigital
-                    ? "bg-[#142b6f]/90 text-white"
+                    ? "bg-[#0d0d0d]/85 text-white"
                     : isAvailable
                       ? "bg-emerald-500/90 text-white"
                       : "bg-red-500/90 text-white"
@@ -129,7 +129,7 @@ export const BookCardGrid = ({ books, loading, listQuery = "" }: Props) => {
                 <motion.div
                   initial={{ opacity: 0 }}
                   whileHover={{ opacity: 1 }}
-                  className="absolute inset-0 bg-[#142b6f]/55 flex items-end justify-center pb-5"
+                  className="absolute inset-0 bg-[#0d0d0d]/60 flex items-end justify-center pb-5"
                 >
                   <span className="text-white text-xs font-black tracking-wide uppercase bg-white/15 backdrop-blur-sm px-4 py-1.5 rounded-full border border-white/30">
                     View Details
@@ -139,7 +139,7 @@ export const BookCardGrid = ({ books, loading, listQuery = "" }: Props) => {
 
               {/* Info */}
               <div className="space-y-0.5">
-                <h3 className="text-xs font-bold text-[#0d0d0d] line-clamp-2 leading-snug group-hover:text-[#142b6f] transition-colors">
+                <h3 className="text-xs font-bold text-[#0d0d0d] line-clamp-2 leading-snug group-hover:text-[#f5c518] transition-colors">
                   {book.title}
                 </h3>
                 <p className="text-[11px] text-[#6b7280] line-clamp-1">{book.author.name}</p>

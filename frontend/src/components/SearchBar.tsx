@@ -39,10 +39,10 @@ export const SearchBar = ({ onSearch }: Props) => {
         }}
         transition={{ duration: 0.2 }}
         className="relative flex items-center rounded-2xl border border-[#e2e0e7] bg-white overflow-hidden"
-        style={{ borderColor: focused ? "#142b6f" : undefined }}
+        style={{ borderColor: focused ? "#0d0d0d" : undefined }}
       >
         <div className="pl-4 pr-2 shrink-0">
-          <SearchIcon size={18} className={`transition-colors ${focused ? "text-[#142b6f]" : "text-[#9ca3af]"}`} />
+          <SearchIcon size={18} className={`transition-colors ${focused ? "text-[#0d0d0d]" : "text-[#9ca3af]"}`} />
         </div>
 
         <input
@@ -78,7 +78,7 @@ export const SearchBar = ({ onSearch }: Props) => {
           type="submit"
           whileHover={{ scale: 1.03 }}
           whileTap={{ scale: 0.96 }}
-          className="m-1.5 px-4 py-2 rounded-xl bg-[#142b6f] text-white text-xs font-black shrink-0 shadow-[0_2px_8px_rgba(20,43,111,0.28)] hover:shadow-[0_4px_14px_rgba(20,43,111,0.36)] transition-shadow"
+          className="m-1.5 px-4 py-2 rounded-xl bg-[#f5c518] text-[#0d0d0d] text-xs font-black shrink-0 shadow-[0_2px_8px_rgba(245,197,24,0.35)] hover:shadow-[0_4px_14px_rgba(245,197,24,0.50)] transition-shadow"
         >
           <SearchIcon size={14} />
         </motion.button>

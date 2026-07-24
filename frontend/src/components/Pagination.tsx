@@ -37,7 +37,7 @@ export const Pagination = ({ currentPage, totalPages, onPageChange }: Props) => 
         onClick={() => onPageChange(Math.max(1, currentPage - 1))}
         disabled={currentPage === 1}
         aria-label={t("common.pagination.previous") as string}
-        className="w-9 h-9 flex items-center justify-center rounded-xl border border-[#e2e0e7] bg-white text-[#374151] hover:border-[#142b6f] hover:text-[#142b6f] disabled:opacity-35 disabled:cursor-not-allowed transition-colors"
+        className="w-9 h-9 flex items-center justify-center rounded-xl border border-[#e2e0e7] bg-white text-[#374151] hover:border-[#0d0d0d] hover:text-[#0d0d0d] disabled:opacity-35 disabled:cursor-not-allowed transition-colors"
       >
         <ChevronLeft size={16} />
       </motion.button>
@@ -59,16 +59,16 @@ export const Pagination = ({ currentPage, totalPages, onPageChange }: Props) => 
               whileHover={isActive ? {} : { scale: 1.06 }}
               whileTap={{ scale: 0.94 }}
               onClick={() => onPageChange(page)}
-              className={`relative w-9 h-9 flex items-center justify-center rounded-xl text-sm font-bold transition-colors ${
+                    className={`relative w-9 h-9 flex items-center justify-center rounded-xl text-sm font-bold transition-colors ${
                 isActive
-                  ? "bg-[#142b6f] text-white shadow-[0_4px_12px_rgba(20,43,111,0.28)]"
-                  : "border border-[#e2e0e7] bg-white text-[#374151] hover:border-[#142b6f] hover:text-[#142b6f]"
+                  ? "bg-[#0d0d0d] text-white shadow-[0_4px_12px_rgba(0,0,0,0.22)]"
+                  : "border border-[#e2e0e7] bg-white text-[#374151] hover:border-[#0d0d0d] hover:text-[#0d0d0d]"
               }`}
             >
               {isActive && (
                 <motion.span
                   layoutId="page-active"
-                  className="absolute inset-0 rounded-xl bg-[#142b6f]"
+                  className="absolute inset-0 rounded-xl bg-[#0d0d0d]"
                   style={{ zIndex: -1 }}
                   transition={{ type: "spring", stiffness: 400, damping: 35 }}
                 />
@@ -86,7 +86,7 @@ export const Pagination = ({ currentPage, totalPages, onPageChange }: Props) => 
         onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
         disabled={currentPage === totalPages}
         aria-label={t("common.pagination.next") as string}
-        className="w-9 h-9 flex items-center justify-center rounded-xl border border-[#e2e0e7] bg-white text-[#374151] hover:border-[#142b6f] hover:text-[#142b6f] disabled:opacity-35 disabled:cursor-not-allowed transition-colors"
+        className="w-9 h-9 flex items-center justify-center rounded-xl border border-[#e2e0e7] bg-white text-[#374151] hover:border-[#0d0d0d] hover:text-[#0d0d0d] disabled:opacity-35 disabled:cursor-not-allowed transition-colors"
       >
         <ChevronRight size={16} />
       </motion.button>

@@ -26,10 +26,10 @@ export const CategorySidebar = ({ categories, selectedCategory, onCategoryChange
     <aside className="w-full lg:w-56 xl:w-60 shrink-0">
       {/* Header */}
       <div className="flex items-center gap-2.5 mb-5">
-        <div className="w-7 h-7 rounded-lg bg-[#142b6f] flex items-center justify-center">
-          <Layers size={14} className="text-white" />
+        <div className="w-7 h-7 rounded-lg bg-[#0d0d0d] flex items-center justify-center">
+          <Layers size={14} className="text-[#f5c518]" />
         </div>
-        <h2 className="text-sm font-black uppercase tracking-[0.15em] text-[#142b6f]">
+        <h2 className="text-sm font-black uppercase tracking-[0.15em] text-[#0d0d0d]">
           {t("books_page.sidebar_title") as string || "Categories"}
         </h2>
       </div>
@@ -47,14 +47,14 @@ export const CategorySidebar = ({ categories, selectedCategory, onCategoryChange
             onClick={() => onCategoryChange(null)}
             className={`group relative flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
               selectedCategory === null
-                ? "bg-[#142b6f] text-white shadow-[0_4px_12px_rgba(20,43,111,0.25)]"
-                : "text-[#374151] hover:bg-[#f1f0f4] hover:text-[#142b6f]"
+                ? "bg-[#0d0d0d] text-white shadow-[0_4px_12px_rgba(0,0,0,0.20)]"
+                : "text-[#374151] hover:bg-[#0d0d0d]/05 hover:text-[#0d0d0d]"
             }`}
           >
             {selectedCategory === null && (
               <motion.span
                 layoutId="cat-active"
-                className="absolute inset-0 rounded-xl bg-[#142b6f]"
+                className="absolute inset-0 rounded-xl bg-[#0d0d0d]"
                 style={{ zIndex: -1 }}
               />
             )}
@@ -62,7 +62,7 @@ export const CategorySidebar = ({ categories, selectedCategory, onCategoryChange
             <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
               selectedCategory === null
                 ? "bg-white/20 text-white"
-                : "bg-[#142b6f]/08 text-[#142b6f]"
+                : "bg-[#0d0d0d]/06 text-[#374151]"
             }`}>
               {totalBooks}
             </span>
@@ -84,15 +84,15 @@ export const CategorySidebar = ({ categories, selectedCategory, onCategoryChange
                 onClick={() => onCategoryChange(cat.name)}
                 className={`group relative flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
                   isSelected
-                    ? "bg-[#142b6f] text-white shadow-[0_4px_12px_rgba(20,43,111,0.25)]"
-                    : "text-[#374151] hover:bg-[#f1f0f4] hover:text-[#142b6f]"
+                    ? "bg-[#0d0d0d] text-white shadow-[0_4px_12px_rgba(0,0,0,0.20)]"
+                    : "text-[#374151] hover:bg-[#0d0d0d]/05 hover:text-[#0d0d0d]"
                 }`}
               >
                 <span className="truncate">{cat.name}</span>
                 <span className={`ml-2 text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 ${
                   isSelected
                     ? "bg-white/20 text-white"
-                    : "bg-[#142b6f]/08 text-[#142b6f]"
+                    : "bg-[#0d0d0d]/06 text-[#374151]"
                 }`}>
                   {count}
                 </span>
