@@ -1,4 +1,7 @@
-import "dotenv/config";
+import { config as dotenvConfig } from "dotenv";
+import { resolve, dirname } from "path";
+import { fileURLToPath } from "url";
+dotenvConfig({ path: resolve(dirname(fileURLToPath(import.meta.url)), "../.env") });
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { prisma } from "../prisma.js";

@@ -1,9 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
-import { Mail, Phone, MapPin } from "lucide-react";
-import { Facebook, Twitter, Instagram } from "lucide-react";
+import { Mail, Phone, MapPin, Facebook, Twitter, Instagram } from "lucide-react";
 import { RiTiktokLine } from "react-icons/ri";
 import { LiaTelegram } from "react-icons/lia";
 import { useLanguage } from "@/components/providers/LanguageProvider";
@@ -28,7 +26,9 @@ export const Footer = () => {
       <div className="border-b border-white/06 py-10">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
           <Link href="/" className="flex items-center gap-3">
-            <Image src="/icons/icon.png" alt="Brana" width={36} height={36} className="rounded-xl" />
+            <div className="w-9 h-9 rounded-lg bg-[#142b6f] flex items-center justify-center shadow-[0_2px_8px_rgba(20,43,111,0.4)]">
+              <span className="text-white font-serif font-black text-sm leading-none select-none">ብ</span>
+            </div>
             <span className="text-2xl font-serif font-black text-white">ብራና</span>
           </Link>
           <p className="text-sm text-white/40 max-w-sm">

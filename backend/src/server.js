@@ -1,4 +1,7 @@
-import "dotenv/config";
+import { config as dotenvConfig } from "dotenv";
+import { resolve, dirname } from "path";
+import { fileURLToPath } from "url";
+dotenvConfig({ path: resolve(dirname(fileURLToPath(import.meta.url)), ".env") });
 import cluster from "node:cluster";
 import os from "node:os";
 import { createServer } from "http";

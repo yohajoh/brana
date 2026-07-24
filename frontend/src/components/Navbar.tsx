@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NotificationDropdown } from "@/components/notifications/NotificationDropdown";
 import { AdminNotificationDropdown } from "@/components/notifications/AdminNotificationDropdown";
-import Image from "next/image";
 import { PersonaSwitcher } from "@/components/PersonaSwitcher";
 import { usePersona } from "@/components/providers/PersonaProvider";
 import { useLanguage } from "@/components/providers/LanguageProvider";
@@ -146,10 +145,10 @@ export const Navbar = () => {
 
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 shrink-0 group">
-            <div className="relative w-9 h-9 flex items-center justify-center rounded-xl bg-[#142b6f] shadow-[0_4px_12px_rgba(20,43,111,0.3)] group-hover:shadow-[0_6px_20px_rgba(20,43,111,0.4)] transition-shadow">
-              <BookOpen size={18} className="text-white" />
+            <div className="w-8 h-8 rounded-lg bg-[#142b6f] flex items-center justify-center shadow-[0_2px_8px_rgba(20,43,111,0.28)] group-hover:shadow-[0_4px_14px_rgba(20,43,111,0.38)] transition-shadow">
+              <span className="text-white font-serif font-black text-sm leading-none select-none">ብ</span>
             </div>
-            <span className="text-xl font-serif font-bold tracking-tight text-[#142b6f]">
+            <span className="text-xl font-serif font-black tracking-tight text-[#142b6f]">
               ብራና
             </span>
           </Link>
