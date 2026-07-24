@@ -1,4 +1,15 @@
 {
+  "stats_band": {
+    "books": "Books in catalog",
+    "categories": "Subject categories",
+    "borrowed": "Books borrowed",
+    "students": "Registered students"
+  },
+  "categories_strip": {
+    "eyebrow": "Browse by Subject",
+    "title": "Find Your Next Read",
+    "browse_all": "Browse all"
+  },
   "common": {
     "dashboard_redirect": "Redirecting to your dashboard...",
     "error_occurred": "Something went wrong. Please try again.",
@@ -18,32 +29,55 @@
   "hero": {
     "title_part1": "Your Next Read, Just a Click",
     "title_italic": "Away",
+    "eyebrow": "ASTU Campus Library · Digital & Physical",
     "description": "Experience the simplest way to borrow books within our gibi gubae. Search our online catalog, request instantly, and get your book delivered to your dorm. Built for students who love reading without the hassle.",
-    "cta": "Explore Collections"
+    "cta": "Explore Collections",
+    "cta_secondary": "Create free account"
+  },
+  "most_borrowed": {
+    "eyebrow": "Most Borrowed",
+    "title": "What Our Community Is Reading",
+    "all_books": "All books",
+    "borrows": "borrows",
+    "top_rated": "Top Rated by Students",
+    "unavailable": "Unavailable"
   },
   "how_it_works": {
     "title": "How It Works",
+    "eyebrow": "How It Works",
+    "subtitle": "From signup to return — four simple steps, nothing more.",
+    "step_label": "Step",
     "steps": {
       "create_account": {
+        "label": "Sign Up",
         "title": "Create Account",
-        "description": "Register your journey, beat a bookshelf's limit."
+        "description": "Register your journey, beat a bookshelf's limit.",
+        "detail": "Use your university email to create an account in under 60 seconds. Your student profile is verified automatically."
       },
       "choose_book": {
+        "label": "Discover",
         "title": "Choose a Book",
-        "description": "Explore our vast library, find your next read."
+        "description": "Explore our vast library, find your next read.",
+        "detail": "Search across thousands of physical and digital titles. Filter by subject, author, availability, or rating."
       },
       "dorm_delivery": {
+        "label": "Borrow",
         "title": "Dorm Delivery",
-        "description": "Your book delivered to your dorm, stress-free."
+        "description": "Your book delivered to your dorm, stress-free.",
+        "detail": "Reserve online and collect from the library counter, or request delivery to your dorm block. You'll get notified when it's ready."
       },
       "return_pay": {
+        "label": "Return",
         "title": "Return & Pay",
-        "description": "Use your book share, pay for the next time, and keep the cycle going."
+        "description": "Use your book share, pay for the next time, and keep the cycle going.",
+        "detail": "Return before the due date to avoid fines. Pay any balance instantly via Chapa. Your history is saved to your profile."
       }
     }
   },
   "faq": {
     "title": "Frequently Asked Questions",
+    "contact_prompt": "Got more questions? Reach out to the library team.",
+    "contact_us": "Contact us",
     "questions": [
       {
         "question": "How do I borrow a book?",
@@ -74,12 +108,22 @@
   "cta_section": {
     "title": "Ready to dive into your next great read?",
     "description": "Experience the simplest way to borrow books within our gibi gubae. Built for students who love reading—without the hassle.",
-    "button": "Explore Collections"
+    "button": "Explore Collections",
+    "signup_free": "Sign up free",
+    "loan_period": "Max loan period",
+    "per_student": "Per student limit",
+    "late_fee": "Late fee",
+    "days_unit": "days",
+    "books_unit": "books"
   },
   "footer": {
     "description": "We are here to make your reading life easier through a modern digital book rental system.",
     "links_title": "Links",
     "contact_title": "Contact",
+    "categories_title": "Categories",
+    "legal_title": "Legal",
+    "signup": "Sign Up",
+    "login": "Log In",
     "privacy": "Privacy Policy",
     "terms": "Terms of Service",
     "rights": "All rights reserved."

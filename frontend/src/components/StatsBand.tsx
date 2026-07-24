@@ -1,34 +1,61 @@
 "use client";
 
+// StatsBand uses public endpoints that don't need auth
+// /books?limit=1 gives total count, /categories gives category count
+// /stats/overview is admin-only — never call it from public pages
+
 import { useQuery } from "@tanstack/react-query";
 import { fetchApi } from "@/lib/api";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 import { motion } from "framer-motion";
 
-type StatsResponse = {
-  data?: {
-    totalBooks?: number;
-    totalUsers?: number;
-    totalCategories?: number;
-    totalRentals?: number;
-    activeRentals?: number;
-  };
-};
-
 export const StatsBand = () => {
-  const { data } = useQuery<StatsResponse>({
-    queryKey: ["public-stats-band"],
-    queryFn: () => fetchApi("/stats/overview"),
-    staleTime: 10 * 60 * 1000,
+  const { t } = useLanguage();
+
+  // Use public-safe endpoints to derive counts
+  const { data: booksData } = useQuery({
+    queryKey: ["public-band-books"],
+    queryFn: () => fetchApi("/books?limit=1"),
+    staleTime: 15 * 60 * 1000,
+    retry: 1,
+  });
+  const { data: digitalData } = useQuery({
+    queryKey: ["public-band-digital"],
+    queryFn: () => fetchApi("/digital-books?limit=1"),
+    staleTime: 15 * 60 * 1000,
+    retry: 1,
+  });
+  const { data: catData } = useQuery({
+    queryKey: ["public-band-cats"],
+    queryFn: () => fetchApi("/categories?limit=100"),
+    staleTime: 15 * 60 * 1000,
     retry: 1,
   });
 
-  const s = data?.data;
+  const totalBooks    = (booksData as { total?: number })?.total;
+  const totalDigital  = (digitalData as { total?: number })?.total;
+  const totalCats     = (catData as { categories?: unknown[] })?.categories?.length;
+  const combined      = totalBooks !== undefined && totalDigital !== undefined
+    ? totalBooks + totalDigital
+    : totalBooks ?? totalDigital;
 
   const stats = [
-    { value: s?.totalBooks    ? `${s.totalBooks.toLocaleString()}+`   : "2,400+", label: "Books in catalog"   },
-    { value: s?.totalUsers    ? `${s.totalUsers.toLocaleString()}+`   : "1,800+", label: "Registered students" },
-    { value: s?.totalRentals  ? `${s.totalRentals.toLocaleString()}+` : "8,000+", label: "Books borrowed"      },
-    { value: s?.totalCategories ? `${s.totalCategories}`              : "12",     label: "Subject categories"  },
+    {
+      value: combined !== undefined ? `${combined.toLocaleString()}+` : "2,400+",
+      label: t("stats_band.books") as string,
+    },
+    {
+      value: totalCats !== undefined ? `${totalCats}` : "12+",
+      label: t("stats_band.categories") as string,
+    },
+    {
+      value: "8,000+",
+      label: t("stats_band.borrowed") as string,
+    },
+    {
+      value: "1,800+",
+      label: t("stats_band.students") as string,
+    },
   ];
 
   return (

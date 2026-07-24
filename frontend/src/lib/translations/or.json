@@ -1,4 +1,15 @@
 {
+  "stats_band": {
+    "books": "Kitaabota kaataaloogii keessa",
+    "categories": "Ramaddiiwwan mata-duree",
+    "borrowed": "Kitaabota liqeeffaman",
+    "students": "Barattoota galmooftan"
+  },
+  "categories_strip": {
+    "eyebrow": "Mata-dureen sakatta'i",
+    "title": "Dubbisa Keessan Itti Aanu Argadhaa",
+    "browse_all": "Hunda sakatta'i"
+  },
   "common": {
     "dashboard_redirect": "Gara daashboordii keessaniitti qajeelaa jira...",
     "error_occurred": "Rakkoon uumameera. Maaloo irra deebi'ii yaali.",
@@ -18,32 +29,55 @@
   "hero": {
     "title_part1": "Dubbisa Keessan Itti Aanu፣ Qofaan",
     "title_italic": "Cunqursuun",
+    "eyebrow": "Mana Kitaabaa Kampasii ASTU · Diijitaalaa & Qaamaa",
     "description": "Gibi gubae keenya keessatti kitaabota liqeeffachuuf karaa salphaa ta'e dhandhamaa. Kaataaloogii keenya onlaayinii barbaadaa, battalumatti gaafadhaa, kitaaba keessan mooraa keessanitti argadhaa. Barattoota dubbisuu jaallatan, rakkina malee qophaa'e.",
-    "cta": "Sassaabbiiwwan sakatta'i"
+    "cta": "Sassaabbiiwwan sakatta'i",
+    "cta_secondary": "Akkawuntii bilisaa uumi"
+  },
+  "most_borrowed": {
+    "eyebrow": "Baay'inaan Liqeeffame",
+    "title": "Hawaasni Keenya Maal Dubbisaa Akka Jiru",
+    "all_books": "Kitaabota hunda",
+    "borrows": "liqiiwwan",
+    "top_rated": "Sadarkaa Ol'aanaa Barattoota Irraa",
+    "unavailable": "Hin argamu"
   },
   "how_it_works": {
     "title": "Akkaataa Inni Itti Hojjetu",
+    "eyebrow": "Akkaataa Inni Itti Hojjetu",
+    "subtitle": "Galmaa'uu irraa deebisuu — tarkaanfiiwwan salphaa afur, kana caalaa hin jiru.",
+    "step_label": "Tarkaanfii",
     "steps": {
       "create_account": {
+        "label": "Galmaa'i",
         "title": "Account uumi",
-        "description": "Imala keessan galmeessaa, daangaa raakii kitaabaa injifadhaa."
+        "description": "Imala keessan galmeessaa, daangaa raakii kitaabaa injifadhaa.",
+        "detail": "Daqiiqaa 60 keessatti akkawuntii uumuuf email yunivarsiitii keessan fayyadamaa. Profaayilii barataa keessan ofumaan mirkaneeffama."
       },
       "choose_book": {
+        "label": "Barbaadi",
         "title": "Kitaaba filadhu",
-        "description": "Mana kitaabaa keenya bal'aa sakatta'aa, dubbisa keessan itti aanu argadhaa."
+        "description": "Mana kitaabaa keenya bal'aa sakatta'aa, dubbisa keessan itti aanu argadhaa.",
+        "detail": "Kumoota kitaabota qaamaafi diijitaalaa sakatta'aa. Mata-duree, barreessaa, argamuu ykn sadarkaan calali."
       },
       "dorm_delivery": {
+        "label": "Liqeeffadhu",
         "title": "Geessitii Dormii",
-        "description": "Kitaabni keessan dhiphuu malee dormii keessanitti geeffama."
+        "description": "Kitaabni keessan dhiphuu malee dormii keessanitti geeffama.",
+        "detail": "Onlaayiniin qabadhu countera mana kitaabaa irraa fudhannaa ykn dormii keessaniitti akka geeffamu gaafadhu. Qophii ta'een beeksifamta."
       },
       "return_pay": {
+        "label": "Deebisi",
         "title": "Deebisi & Kafali",
-        "description": "Qooda kitaaba keessanii fayyadamaa, yeroo itti aanuuf kaffalaa, marsaa sana itti fufaa."
+        "description": "Qooda kitaaba keessanii fayyadamaa, yeroo itti aanuuf kaffalaa, marsaa sana itti fufaa.",
+        "detail": "Adabbii hambisuu yeroo dhumutti dura deebisi. Haaloo kamiyyuu Chapa kanaan battalumatti kafali. Seenaan kee profaayilii keessatti olkaayama."
       }
     }
   },
   "faq": {
     "title": "Gaaffiiwwan Yeroo Baay'ee Gaafataman",
+    "contact_prompt": "Gaaffiwwan biraa qabduu? Garee mana kitaabaa quunnamaa.",
+    "contact_us": "Quunnamaa",
     "questions": [
       {
         "question": "Akkamittan kitaaba liqeeffachuu danda'a?",
@@ -74,12 +108,22 @@
   "cta_section": {
     "title": "Dubbisa keessan isa guddaa itti aanuuf qophiidhaa?",
     "description": "Gibi gubae keenya keessatti kitaabota liqeeffachuuf karaa salphaa ta'e dhandhamaa. Barattoota dubbisuu jaallatan, rakkina malee qophaa'e.",
-    "button": "Sassaabbiiwwan sakatta'i"
+    "button": "Sassaabbiiwwan sakatta'i",
+    "signup_free": "Bilisaan galmaa'i",
+    "loan_period": "Yeroo liqii ol'aanaa",
+    "per_student": "Daangaa barataa tokkoof",
+    "late_fee": "Adabbii turaa",
+    "days_unit": "guyyaa",
+    "books_unit": "kitaabota"
   },
   "footer": {
     "description": "Sirna kiraayii kitaaba dijitalaa ammayyaatiin jireenya dubbisa keessanii salphisna.",
     "links_title": "Liinkiiwwan",
     "contact_title": "Quunnamtii",
+    "categories_title": "Ramaddiiwwan",
+    "legal_title": "Seeraa",
+    "signup": "Galmaa'i",
+    "login": "Seeni",
     "privacy": "Iyyaannoo Dhuunfaa",
     "terms": "Haalawwan Tajaajilaa",
     "rights": "Mirgi hunduun eegamaadha."
