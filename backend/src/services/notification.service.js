@@ -51,12 +51,23 @@ export const createNotification = async ({ userId, message, type = 'INFO', io, d
 
   let notification;
   try {
+    // If a dedupe key is provided, check first to avoid a noisy P2002 Prisma log.
+    // Prisma logs constraint violations at the driver level before our catch block
+    // can suppress them — so we prevent the violation from happening at all.
+    if (dedupeKey) {
+      const exists = await prisma.notification.findFirst({
+        where: { user_id: userId, dedupe_key: dedupeKey },
+        select: { id: true },
+      });
+      if (exists) return null; // Already sent — skip silently
+    }
+
     notification = await prisma.notification.create({
       data: dedupeKey ? { ...data, dedupe_key: dedupeKey } : data,
       select: NOTIFICATION_SELECT,
     });
   } catch (error) {
-    // Duplicate dedupe key means this notification was already created.
+    // Safety net: another worker may have inserted between our check and create.
     if (error?.code === 'P2002' && dedupeKey) {
       return null;
     }

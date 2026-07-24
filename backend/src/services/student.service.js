@@ -240,7 +240,7 @@ export const getStudentPopularity = async (limit = 8) => {
       by: ["book_id"],
       _count: { book_id: true },
       orderBy: { _count: { book_id: "desc" } },
-      take: limit,
+      take: 20, // fetch more candidates so after filtering deleted we still get 12
     }),
     prisma.review.groupBy({
       by: ["physical_book_id"],
@@ -248,19 +248,19 @@ export const getStudentPopularity = async (limit = 8) => {
       _avg: { rating: true },
       _count: { rating: true },
       orderBy: [{ _avg: { rating: "desc" } }, { _count: { rating: "desc" } }],
-      take: limit,
+      take: 15, // fetch more candidates so after filtering deleted we still get 6
     }),
   ]);
 
-  const ids = Array.from(
-    new Set([
-      ...mostRented.map((r) => r.book_id),
-      ...topRated.map((r) => r.physical_book_id).filter(Boolean),
-    ]),
-  );
+  // Fetch trending books and top-rated books separately so they don't
+  // share the same ID pool — previously topRated books missing from
+  // mostRented IDs were silently filtered out.
+  const trendingIds = mostRented.map((r) => r.book_id).filter(Boolean);
+  const topRatedIds = topRated.map((r) => r.physical_book_id).filter(Boolean);
+  const allIds = Array.from(new Set([...trendingIds, ...topRatedIds]));
 
   const books = await prisma.book.findMany({
-    where: { id: { in: ids }, deleted_at: null },
+    where: { id: { in: allIds }, deleted_at: null },
     select: {
       id: true,
       title: true,
@@ -274,7 +274,7 @@ export const getStudentPopularity = async (limit = 8) => {
   const map = Object.fromEntries(books.map((b) => [b.id, b]));
 
   const trending = mostRented
-    .slice(0, 3)
+    .slice(0, 12)
     .map((row) => ({
       book: map[row.book_id],
       rentalCount: row._count.book_id,
@@ -282,15 +282,13 @@ export const getStudentPopularity = async (limit = 8) => {
     .filter((item) => item.book);
 
   const topRatedBooks = topRated
-    .slice(0, 5)
+    .slice(0, 6)
     .map((row) => ({
       book: map[row.physical_book_id || ""],
       avgRating: Number(Number(row._avg.rating || 0).toFixed(2)),
       reviewCount: row._count.rating,
     }))
     .filter((item) => item.book);
-
-  console.log(trending);
 
   return {
     trending,

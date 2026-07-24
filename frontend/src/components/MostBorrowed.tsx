@@ -34,7 +34,7 @@ type PopularityResponse = {
 function useHomePageData() {
   return useQuery<PopularityResponse>({
     queryKey: ["home-popularity"],
-    queryFn: () => fetchApi("/student/popularity?limit=6"),
+    queryFn: () => fetchApi("/student/popularity?limit=12"),
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
     retry: 1,
@@ -72,7 +72,7 @@ export const MostBorrowed = () => {
 
         {isLoading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-            {Array.from({ length: 6 }).map((_, i) => (
+            {Array.from({ length: 12 }).map((_, i) => (
               <div key={i} className="space-y-3">
                 <div className="skeleton aspect-[2/3] rounded-xl" />
                 <div className="skeleton h-3 w-3/4 rounded" />
@@ -133,7 +133,7 @@ export const MostBorrowed = () => {
                   <div className="h-px flex-1 bg-[#e2e0e7]" />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {topRated.slice(0, 3).map((item, i) => (
+                  {topRated.slice(0, 6).map((item, i) => (
                     <motion.div
                       key={item.book.id}
                       initial={{ opacity: 0, y: 16 }}
