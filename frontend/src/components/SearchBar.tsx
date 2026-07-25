@@ -30,7 +30,7 @@ export const SearchBar = ({ onSearch }: Props) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="relative w-full max-w-2xl">
+    <form onSubmit={handleSubmit} className="relative w-full">
       <motion.div
         animate={{
           boxShadow: focused

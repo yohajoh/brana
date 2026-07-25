@@ -70,6 +70,9 @@ function BooksContent() {
   /* Track whether the page header (search bar) has scrolled out of view */
   const [headerHidden, setHeaderHidden] = useState(false);
   const headerRef = useRef<HTMLDivElement>(null);
+  /* Track whether the main filters section has scrolled out of view */
+  const [filtersHidden, setFiltersHidden] = useState(false);
+  const filtersRef = useRef<HTMLDivElement>(null);
 
   const page           = parsePositiveInt(searchParams.get("page"), 1);
   const selectedCategory = searchParams.get("category") || null;
@@ -230,7 +233,9 @@ function BooksContent() {
             <h1 className="text-3xl sm:text-4xl font-serif font-black text-white mb-6">
               {t("books_page.title") as string || "Explore the Collection"}
             </h1>
-            <SearchBar onSearch={(q) => updateQuery({ search: q || null }, true)} />
+            <div className="max-w-2xl">
+              <SearchBar onSearch={(q) => updateQuery({ search: q || null }, true)} />
+            </div>
           </motion.div>
         </div>
         {/* Bottom fade */}
