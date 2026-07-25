@@ -210,36 +210,6 @@
       "topics_placeholder": "Mata-duree (daddabalataan)"
     }
   },
-    "sort_by": "Kanaan addaan baasi:",
-    "sort_options": {
-      "title_asc": "Mata-duree (A-Z)",
-      "title_desc": "Mata-duree (Z-A)",
-      "most_available": "Baay'inaan kan jiru",
-      "least_available": "Xiqqummaan kan jiru",
-      "shortest": "Gabaabaa",
-      "longest": "Dheeraa"
-    },
-    "modes": {
-      "all": "Hunda",
-      "physical": "Waraqaa",
-      "digital": "Dijitaalaa"
-    },
-    "status": {
-      "loading": "Fe'amaa jira...",
-      "no_books": "Kitaabni hin argamne",
-      "showing": "Kitaabota {total} {mode}keessaa {start}-{end} argisiisaa jira"
-    },
-    "filters": {
-      "all_authors": "Barreessitoota hunda",
-      "availability": "Argamuu",
-      "available": "Kan jiru",
-      "unavailable": "Kan hin jirre",
-      "min_rating_placeholder": "Sadarkaa xiqqaa ( fkn. 4)",
-      "year_placeholder": "Waggaa maxxansaa",
-      "tags_placeholder": "Tags (comma separated)",
-      "topics_placeholder": "Topics (comma separated)"
-    }
-  },
   "auth": {
     "common": {
       "home": "Mana",

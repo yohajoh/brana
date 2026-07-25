@@ -210,36 +210,6 @@
       "topics_placeholder": "ርዕሶች (በነጠላ ሠረዝ ይለዩ)"
     }
   },
-    "sort_by": "በዚህ ደርድር፦",
-    "sort_options": {
-      "title_asc": "ርዕስ (ከሀ-ፐ)",
-      "title_desc": "ርዕስ (ከፐ-ሀ)",
-      "most_available": "በጣም የሚገኙ",
-      "least_available": "በትንሹ የሚገኙ",
-      "shortest": "አጭር",
-      "longest": "ረጅም"
-    },
-    "modes": {
-      "all": "ሁሉም",
-      "physical": "ወረቀት",
-      "digital": "ዲጂታል"
-    },
-    "status": {
-      "loading": "በመጫን ላይ...",
-      "no_books": "ምንም መጽሐፍ አልተገኘም",
-      "showing": "ከ{total} {mode}መጽሐፍት ውስጥ ከ{start}-{end} ያሉት እየታዩ ነው"
-    },
-    "filters": {
-      "all_authors": "ሁሉም ደራሲያን",
-      "availability": "መገኘት",
-      "available": "የሚገኝ",
-      "unavailable": "የማይገኝ",
-      "min_rating_placeholder": "ዝቅተኛ ደረጃ (ምሳሌ፡ 4)",
-      "year_placeholder": "የታተመበት ዓመት",
-      "tags_placeholder": "መለያዎች (በኮማ የተለዩ)",
-      "topics_placeholder": "ርዕሶች (በኮማ የተለዩ)"
-    }
-  },
   "auth": {
     "common": {
       "home": "መነሻ",
