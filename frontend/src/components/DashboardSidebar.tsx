@@ -71,7 +71,7 @@ export const DashboardSidebar = ({ variant = "default" }: DashboardSidebarProps)
   /* ─────────────────────────────────────────────────────────────── */
   /* Shared inner — controlled by isCollapsed on desktop            */
   /* ─────────────────────────────────────────────────────────────── */
-  const SidebarContent = ({ collapsed }: { collapsed: boolean }) => (
+  const renderSidebar = (collapsed: boolean) => (
     <div
       className="relative flex flex-col h-full overflow-hidden"
       style={{
