@@ -36,9 +36,18 @@ app.disable("x-powered-by");
 app.set("etag", "strong");
 app.set("json spaces", 0);
 
+// Trust proxy — required on Render, Railway, Heroku, and any platform that
+// sits behind a load balancer / reverse proxy that sets X-Forwarded-For.
+// Without this, express-rate-limit throws ERR_ERL_UNEXPECTED_X_FORWARDED_FOR
+// and IP-based rate limiting doesn't work correctly.
 if (process.env.TRUST_PROXY) {
+  // Explicit override via env var (e.g. TRUST_PROXY=1 or TRUST_PROXY=loopback)
   const trustProxyValue = Number(process.env.TRUST_PROXY);
   app.set("trust proxy", Number.isNaN(trustProxyValue) ? process.env.TRUST_PROXY : trustProxyValue);
+} else if (process.env.NODE_ENV === "production") {
+  // On Render (and most PaaS providers) there is exactly 1 proxy in front of the app.
+  // Setting trust proxy to 1 tells Express to trust the first X-Forwarded-For hop.
+  app.set("trust proxy", 1);
 }
 
 app.use(
