@@ -6,7 +6,7 @@ export default function PrivacyPolicyPage() {
     <div className="min-h-screen bg-background text-foreground flex flex-col selection:bg-primary/10">
       <Navbar />
 
-      <main className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-8 lg:px-12">
+      <main className="mx-auto w-full max-w-4xl px-4 pt-24 pb-10 sm:px-8 lg:px-12">
         <h1 className="text-3xl font-serif font-bold text-primary sm:text-4xl">Privacy Policy</h1>
         <p className="mt-3 text-sm text-foreground/70">Last updated: April 2, 2026</p>
 

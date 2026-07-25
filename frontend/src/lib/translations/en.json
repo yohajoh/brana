@@ -150,6 +150,15 @@
     },
     "involvement": {
       "title": "Be Part of the Story",
+      "hero_eyebrow": "About Birana",
+      "story_section_eyebrow": "Our Story",
+      "mission_section_eyebrow": "Our Mission",
+      "get_involved_eyebrow": "Get Involved",
+      "final_cta_eyebrow": "Start Today",
+      "final_cta_title": "Ready to start your reading journey?",
+      "explore_btn": "Explore Books",
+      "join_free_btn": "Join free",
+      "create_account_btn": "Create account",
       "borrow": {
         "title": "Borrow Books",
         "description": "The easiest way to get involved! Sign up and start reading."
@@ -167,6 +176,11 @@
     }
   },
   "books_page": {
+    "title": "Explore the Collection",
+    "sidebar_title": "Categories",
+    "all_categories": "All Books",
+    "filters_label": "Filters",
+    "advanced_filters": "Advanced Filters",
     "sort_by": "Sort by:",
     "sort_options": {
       "title_asc": "Title (A-Z)",

@@ -150,6 +150,15 @@
     },
     "involvement": {
       "title": "Seenichatti Makamaa",
+      "hero_eyebrow": "Waa'ee Birana",
+      "story_section_eyebrow": "Seenaa Keenya",
+      "mission_section_eyebrow": "Ergaa Keenya",
+      "get_involved_eyebrow": "Hirmaadhu",
+      "final_cta_eyebrow": "Har'a Jalqabi",
+      "final_cta_title": "Imala dubbisa keessan jalqabuuf qophaattuu?",
+      "explore_btn": "Sassaabbiiwwan sakatta'i",
+      "join_free_btn": "Bilisaan makama",
+      "create_account_btn": "Akkawuntii uumi",
       "borrow": {
         "title": "Kitaabota Liqeeffachuuf",
         "description": "Karaa itti hirmaattan isa salphaa! Galmaa'aa dubbisuu jalqabaa."
@@ -167,6 +176,40 @@
     }
   },
   "books_page": {
+    "title": "Sassaabbiiwwan sakatta'i",
+    "sidebar_title": "Ramaddiiwwan",
+    "all_categories": "Kitaabota hunda",
+    "filters_label": "Calallii",
+    "advanced_filters": "Calallii Dabalata",
+    "sort_options": {
+      "title_asc": "Maqaa (A-Z)",
+      "title_desc": "Maqaa (Z-A)",
+      "most_available": "Baay'inaan Argama",
+      "least_available": "Xiqqaa Argama",
+      "shortest": "Gabaabaa",
+      "longest": "Dheeraa"
+    },
+    "modes": {
+      "all": "Hunda",
+      "physical": "Qaamaa",
+      "digital": "Diijitaalaa"
+    },
+    "status": {
+      "loading": "Fe'amaa jira...",
+      "no_books": "Kitaabni hin argamne",
+      "showing": "{start}-{end} / {total} {mode}kitaabota agarsiisaa"
+    },
+    "filters": {
+      "all_authors": "Barreessitota hunda",
+      "availability": "Argamummaa",
+      "available": "Argama",
+      "unavailable": "Hin Argamu",
+      "min_rating_placeholder": "Sadarkaa xiqqaa (fkn. 4)",
+      "year_placeholder": "Waggaa maxxansaa",
+      "tags_placeholder": "Maakii (daddabalataan)",
+      "topics_placeholder": "Mata-duree (daddabalataan)"
+    }
+  },
     "sort_by": "Kanaan addaan baasi:",
     "sort_options": {
       "title_asc": "Mata-duree (A-Z)",

@@ -48,7 +48,7 @@ export const BookCardGrid = ({ books, loading, listQuery = "" }: Props) => {
   /* ── Loading skeleton ── */
   if (loading) {
     return (
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-x-5 gap-y-8">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-x-3 sm:gap-x-5 gap-y-6 sm:gap-y-8">
         {Array.from({ length: 10 }).map((_, i) => (
           <div key={i} className="space-y-3">
             <div className="aspect-[2/3] rounded-2xl bg-[#f1f0f4] animate-pulse" />

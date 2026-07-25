@@ -15,12 +15,12 @@ type Category = {
 };
 
 const PILL_PALETTE = [
-  { bg: "bg-white",          text: "text-[#0d0d0d]",  glow: "hover:shadow-[0_4px_18px_rgba(255,255,255,0.2)]"   },
-  { bg: "bg-[#f5c518]",      text: "text-[#0d0d0d]",  glow: "hover:shadow-[0_4px_18px_rgba(245,197,24,0.45)]"   },
-  { bg: "bg-white/12",       text: "text-white",       glow: "hover:shadow-[0_4px_14px_rgba(255,255,255,0.12)]"  },
-  { bg: "bg-[#f5c518]/20",   text: "text-[#f5c518]",  glow: "hover:shadow-[0_4px_12px_rgba(245,197,24,0.25)]"   },
-  { bg: "bg-white/08",       text: "text-white/80",    glow: "hover:shadow-[0_4px_12px_rgba(255,255,255,0.08)]"  },
-  { bg: "bg-[#f5c518]/10",   text: "text-[#f5c518]",  glow: "hover:shadow-[0_4px_12px_rgba(245,197,24,0.18)]"   },
+  { bg: "bg-[#0d0d0d]",      text: "text-white",      glow: "hover:shadow-[0_4px_18px_rgba(0,0,0,0.25)]"       },
+  { bg: "bg-[#f5c518]",      text: "text-[#0d0d0d]",  glow: "hover:shadow-[0_4px_18px_rgba(245,197,24,0.45)]"  },
+  { bg: "bg-white/50",       text: "text-[#0d0d0d]",  glow: "hover:shadow-[0_4px_14px_rgba(0,0,0,0.12)]"       },
+  { bg: "bg-[#f5c518]/25",   text: "text-[#5a3d00]",  glow: "hover:shadow-[0_4px_12px_rgba(245,197,24,0.25)]"  },
+  { bg: "bg-white/35",       text: "text-[#374151]",  glow: "hover:shadow-[0_4px_12px_rgba(0,0,0,0.10)]"       },
+  { bg: "bg-[#f5c518]/15",   text: "text-[#5a3d00]",  glow: "hover:shadow-[0_4px_12px_rgba(245,197,24,0.18)]"  },
 ];
 
 const STEP_ACCENTS = [
@@ -80,28 +80,12 @@ export const CategoriesAndHowItWorks = () => {
           Strong, premium, not blue
       ───────────────────────────────────────────────────── */}
 
-      {/* Base: deep warm charcoal — editorial, not cold */}
-      <div className="absolute inset-0 bg-[#18180f]" />
-
-      {/* Warm amber radial at top-right — the dominant colour */}
-      <div className="absolute -top-32 -right-32 w-[640px] h-[640px] rounded-full blur-[110px]"
-        style={{ background: "radial-gradient(circle, rgba(245,197,24,0.18) 0%, rgba(200,140,20,0.10) 50%, transparent 70%)" }} />
-
-      {/* Warm sienna/terracotta at bottom-left — second accent */}
-      <div className="absolute -bottom-28 -left-28 w-[520px] h-[520px] rounded-full blur-[100px]"
-        style={{ background: "radial-gradient(circle, rgba(210,120,50,0.14) 0%, rgba(180,90,30,0.08) 55%, transparent 75%)" }} />
-
-      {/* Centre warm glow lifts the mid-section */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] rounded-full blur-[120px]"
-        style={{ background: "radial-gradient(ellipse, rgba(245,197,24,0.06) 0%, transparent 70%)" }} />
-
-      {/* Ultra-fine cross-hatch texture — barely visible on dark */}
-      <div className="pointer-events-none absolute inset-0"
-        style={{
-          backgroundImage: "linear-gradient(rgba(245,197,24,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(245,197,24,0.04) 1px, transparent 1px)",
-          backgroundSize: "48px 48px",
-        }}
-      />
+      {/* Background: muted grey-blue, transparent so underlying page bg shows */}
+      <div className="absolute inset-0" style={{ background: "rgba(139,145,158,0.82)" }} />
+      <div className="absolute inset-0"
+        style={{ background: "radial-gradient(ellipse at 50% 40%, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.07) 45%, transparent 70%)" }} />
+      <div className="absolute -top-20 -right-20 w-[400px] h-[400px] rounded-full blur-[90px]"
+        style={{ background: "radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 70%)" }} />
 
       {/* ─────────────────────────────────────────────────────
           CONTENT
@@ -124,13 +108,13 @@ export const CategoriesAndHowItWorks = () => {
               <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#f5c518] mb-2">
                 {t("categories_strip.eyebrow") as string}
               </p>
-              <h2 className="text-3xl sm:text-4xl font-serif font-black text-white leading-tight">
+              <h2 className="text-3xl sm:text-4xl font-serif font-black text-[#0d0d0d] leading-tight">
                 {t("categories_strip.title") as string}
               </h2>
             </div>
             <Link
               href="/books"
-              className="group inline-flex items-center gap-2 text-sm font-bold text-white/55 hover:text-white transition-colors self-start sm:self-end"
+              className="group inline-flex items-center gap-2 text-sm font-bold text-[#0d0d0d]/60 hover:text-[#0d0d0d] transition-colors self-start sm:self-end"
             >
               {t("categories_strip.browse_all") as string}
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="group-hover:translate-x-1 transition-transform">
@@ -183,7 +167,7 @@ export const CategoriesAndHowItWorks = () => {
         </motion.div>
 
         {/* Thin divider — tighter spacing */}
-        <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-8" />
+        <div className="h-px bg-gradient-to-r from-transparent via-[#0d0d0d]/15 to-transparent mb-8" />
 
         {/* ═══════════════════════════════════════════════════
             BOTTOM: HOW IT WORKS
@@ -202,11 +186,11 @@ export const CategoriesAndHowItWorks = () => {
               <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#f5c518] mb-2">
                 {t("how_it_works.eyebrow") as string}
               </p>
-              <h2 className="text-3xl sm:text-4xl font-serif font-black text-white leading-tight">
+              <h2 className="text-3xl sm:text-4xl font-serif font-black text-[#0d0d0d] leading-tight">
                 {t("how_it_works.title") as string}
               </h2>
             </div>
-            <p className="text-sm text-white/45 max-w-xs leading-relaxed">
+            <p className="text-sm text-[#374151]/70 max-w-xs leading-relaxed">
               {t("how_it_works.subtitle") as string}
             </p>
           </motion.div>
@@ -229,8 +213,8 @@ export const CategoriesAndHowItWorks = () => {
                     onClick={() => setActiveStep(i)}
                     className={`group w-full text-left rounded-2xl border transition-all duration-300 overflow-hidden cursor-pointer ${
                       isActive
-                        ? "border-white/25 bg-white shadow-[0_4px_24px_rgba(0,0,0,0.3)]"
-                        : "border-white/08 bg-white/06 hover:bg-white/12 hover:border-white/15"
+                        ? "border-[#0d0d0d]/15 bg-white shadow-[0_4px_24px_rgba(0,0,0,0.18)]"
+                        : "border-[#0d0d0d]/10 bg-white/30 hover:bg-white/55 hover:border-[#0d0d0d]/20"
                     }`}
                   >
                     {/* Always-visible row */}
@@ -238,8 +222,8 @@ export const CategoriesAndHowItWorks = () => {
                       {/* Badge */}
                       <div className={`relative shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black transition-all duration-300 ${
                         isActive
-                          ? `${accent.badgeBg} ${accent.badgeText} shadow-[0_4px_14px_rgba(0,0,0,0.3)]`
-                          : "bg-white/10 text-white/40"
+                          ? `${accent.badgeBg} ${accent.badgeText} shadow-[0_4px_14px_rgba(0,0,0,0.22)]`
+                          : "bg-[#0d0d0d]/15 text-[#0d0d0d]/50"
                       }`}>
                         {step.num}
                         {isActive && (
@@ -252,12 +236,12 @@ export const CategoriesAndHowItWorks = () => {
 
                       <div className="flex-1 min-w-0">
                         <span className={`block text-[10px] font-black uppercase tracking-widest mb-0.5 transition-colors ${
-                          isActive ? accent.labelColor : "text-white/30"
+                          isActive ? accent.labelColor : "text-[#0d0d0d]/45"
                         }`}>
                           {step.label}
                         </span>
                         <span className={`block text-sm font-bold leading-snug transition-colors ${
-                          isActive ? "text-[#0d0d0d]" : "text-white/55"
+                          isActive ? "text-[#0d0d0d]" : "text-[#0d0d0d]/60"
                         }`}>
                           {step.title}
                         </span>
@@ -273,7 +257,7 @@ export const CategoriesAndHowItWorks = () => {
                         />
                       ) : (
                         <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
-                          className="text-white/25 group-hover:text-white/60 transition-colors shrink-0">
+                          className="text-[#0d0d0d]/30 group-hover:text-[#0d0d0d]/60 transition-colors shrink-0">
                           <path d="M5 3l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                       )}
@@ -291,7 +275,7 @@ export const CategoriesAndHowItWorks = () => {
                           className="lg:hidden overflow-hidden"
                         >
                           <div className="px-4 pb-4">
-                            <div className="h-px bg-white/15 mb-3" />
+                            <div className="h-px bg-[#0d0d0d]/12 mb-3" />
                             <p className="text-sm text-[#374151] leading-relaxed mb-1">
                               {step.description}
                             </p>
@@ -317,7 +301,7 @@ export const CategoriesAndHowItWorks = () => {
                     />
                   </button>
                 ))}
-                <span className="ml-auto text-[11px] font-bold text-white/35">
+                <span className="ml-auto text-[11px] font-bold text-[#0d0d0d]/40">
                   {steps[activeStep].num} / {String(steps.length).padStart(2, "0")}
                 </span>
               </div>
@@ -341,8 +325,8 @@ export const CategoriesAndHowItWorks = () => {
                       /* Card with 50% transparent frosted glass look */
                       <div
                         className="h-full min-h-[340px] rounded-3xl overflow-hidden flex flex-col
-                                   border border-white/80
-                                   shadow-[0_8px_40px_rgba(20,43,111,0.10)]"
+                                   border border-[#0d0d0d]/12
+                                   shadow-[0_8px_40px_rgba(0,0,0,0.12)]"
                         style={{
                           background: "rgba(255,255,255,0.65)",
                           backdropFilter: "blur(20px)",

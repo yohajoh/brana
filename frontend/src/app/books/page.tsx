@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
@@ -50,14 +50,14 @@ const FILTER_KEYS = ["category_id", "author_id", "min_rating"] as const;
 const FilterInput = ({ ...props }: React.InputHTMLAttributes<HTMLInputElement>) => (
   <input
     {...props}
-    className="w-full rounded-xl border border-[#e2e0e7] bg-white px-3 py-2.5 text-sm text-[#0d0d0d] placeholder:text-[#b0afc0] outline-none focus:border-[#0d0d0d] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.08)] transition-all"
+    className="w-full rounded-xl border border-[#e2e0e7] bg-white px-3 py-2.5 text-sm text-[#0d0d0d] placeholder:text-[#b0afc0] outline-none focus:border-[#0d0d0d] focus:shadow-[0_0_0_3px_rgba(245,197,24,0.25)] transition-all"
   />
 );
 
 const FilterSelect = ({ ...props }: React.SelectHTMLAttributes<HTMLSelectElement>) => (
   <select
     {...props}
-    className="w-full rounded-xl border border-[#e2e0e7] bg-white px-3 py-2.5 text-sm text-[#0d0d0d] outline-none focus:border-[#0d0d0d] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.08)] transition-all cursor-pointer appearance-none"
+    className="w-full rounded-xl border border-[#e2e0e7] bg-white px-3 py-2.5 text-sm text-[#0d0d0d] outline-none focus:border-[#0d0d0d] focus:shadow-[0_0_0_3px_rgba(245,197,24,0.25)] transition-all cursor-pointer appearance-none"
   />
 );
 
@@ -67,6 +67,9 @@ function BooksContent() {
   const searchParams = useSearchParams();
   const { t } = useLanguage();
   const [filtersOpen, setFiltersOpen] = useState(false);
+  /* Track whether the page header (search bar) has scrolled out of view */
+  const [headerHidden, setHeaderHidden] = useState(false);
+  const headerRef = useRef<HTMLDivElement>(null);
 
   const page           = parsePositiveInt(searchParams.get("page"), 1);
   const selectedCategory = searchParams.get("category") || null;
@@ -184,6 +187,18 @@ function BooksContent() {
     if (page > totalPages) updateQuery({ page: String(totalPages) });
   }, [page, totalPages, updateQuery]);
 
+  /* Observe when page header scrolls out — triggers sidebar search/filter */
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setHeaderHidden(!entry.isIntersecting),
+      { threshold: 0, rootMargin: "-80px 0px 0px 0px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   const hasActiveFilters = Boolean(selectedAuthor || availability || minRating || year || tags || topics);
 
   const modeLabels: Record<CatalogMode, string> = {
@@ -197,15 +212,13 @@ function BooksContent() {
       <Navbar />
 
       {/* ── Page header ─────────────────────────────────────── */}
-      <div className="relative bg-[#0d0d0d] overflow-hidden">
-        {/* Background decorations */}
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -top-32 -right-32 w-[500px] h-[500px] rounded-full bg-[#f5c518]/06 blur-[100px]" />
-          <div className="absolute -bottom-20 -left-20 w-[400px] h-[400px] rounded-full bg-white/03 blur-[80px]" />
-          <div className="absolute inset-0 opacity-[0.025]"
-            style={{ backgroundImage: "radial-gradient(circle at 1px 1px, #f5c518 1px, transparent 0)", backgroundSize: "36px 36px" }} />
+      <div ref={headerRef} className="relative overflow-hidden" style={{ background: "rgba(14,12,10,0.72)" }}>
+        {/* Faint background image */}
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 bg-cover bg-center opacity-20"
+            style={{ backgroundImage: "url('/reading img 9.jpg')" }} />
         </div>
-        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 py-10">
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 pt-24 pb-10">
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -225,10 +238,166 @@ function BooksContent() {
       </div>
 
       <main className="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
+        {/* Outer flex row — min-height ensures sticky has room to work */}
+        <div className="flex flex-col lg:flex-row gap-8 items-start">
 
           {/* ── Sidebar ─── */}
-          <div className="lg:block">
+          <div className="w-full lg:w-56 xl:w-60 shrink-0 self-start lg:sticky lg:top-[80px]">
+
+            {/* ── Sticky search + filter bar — appears when page header scrolls away ── */}
+            <AnimatePresence>
+              {headerHidden && (
+                <motion.div
+                  key="sidebar-controls"
+                  initial={{ opacity: 0, y: -16, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -12, scale: 0.97 }}
+                  transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}
+                  className="hidden lg:flex flex-col gap-2 mb-4"
+                >
+                  {/* Mini search */}
+                  <motion.div
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.05, duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+                    className="bg-white/95 backdrop-blur-xl rounded-2xl border border-[#e2e0e7] shadow-[0_4px_20px_rgba(0,0,0,0.08)] overflow-hidden"
+                  >
+                    <SearchBar
+                      onSearch={(q) => updateQuery({ search: q || null }, true)}
+                    />
+                  </motion.div>
+
+                  {/* Compact filter toggles: mode pills */}
+                  <motion.div
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.10, duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+                    className="bg-white/95 backdrop-blur-xl rounded-2xl border border-[#e2e0e7] shadow-[0_4px_20px_rgba(0,0,0,0.08)] p-2"
+                  >
+                    <div className="flex items-center gap-1 rounded-xl bg-[#f1f0f4] p-1">
+                      {(["all", "physical", "digital"] as CatalogMode[]).map((m) => (
+                        <button
+                          key={m}
+                          onClick={() => updateQuery({ mode: m }, true)}
+                          className={`relative flex-1 rounded-lg py-1.5 text-[10px] font-black transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f5c518] ${
+                            mode === m ? "text-white" : "text-[#374151] hover:text-[#0d0d0d]"
+                          }`}
+                        >
+                          {mode === m && (
+                            <motion.span
+                              layoutId="sidebar-mode-pill"
+                              className="absolute inset-0 rounded-lg bg-[#0d0d0d]"
+                              style={{ zIndex: -1 }}
+                              transition={{ type: "spring", stiffness: 400, damping: 35 }}
+                            />
+                          )}
+                          <span className="relative z-10">{modeLabels[m]}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </motion.div>
+
+                  {/* Advanced filter toggle */}
+                  <motion.div
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.15, duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+                    className="bg-white/95 backdrop-blur-xl rounded-2xl border border-[#e2e0e7] shadow-[0_4px_20px_rgba(0,0,0,0.08)] overflow-hidden"
+                  >
+                    <button
+                      onClick={() => setFiltersOpen(v => !v)}
+                      className="w-full flex items-center justify-between px-4 py-3 text-xs font-bold text-[#374151] hover:text-[#0d0d0d] transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <SlidersHorizontal size={13} />
+                        {t("books_page.advanced_filters") as string || "Filters"}
+                        {hasActiveFilters && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#f5c518]" />
+                        )}
+                      </div>
+                      <motion.div
+                        animate={{ rotate: filtersOpen ? 180 : 0 }}
+                        transition={{ duration: 0.22 }}
+                      >
+                        <ChevronDown size={12} />
+                      </motion.div>
+                    </button>
+
+                    <AnimatePresence>
+                      {filtersOpen && (
+                        <motion.div
+                          key="sidebar-filters"
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                          className="overflow-hidden border-t border-[#e2e0e7]"
+                        >
+                          <div className="px-4 py-3 flex flex-col gap-2.5">
+                            {/* Author */}
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-[#374151] uppercase tracking-wider">
+                                {t("books_page.filters.all_authors") as string}
+                              </label>
+                              <div className="relative">
+                                <FilterSelect
+                                  value={selectedAuthor}
+                                  onChange={(e) => updateQuery({ author: e.target.value || null }, true)}
+                                >
+                                  <option value="">{t("books_page.filters.all_authors") as string}</option>
+                                  {authors.map((a) => (
+                                    <option key={a.id} value={a.name}>{a.name}</option>
+                                  ))}
+                                </FilterSelect>
+                                <ChevronDown size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#9ca3af] pointer-events-none" />
+                              </div>
+                            </div>
+                            {/* Availability */}
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-[#374151] uppercase tracking-wider">
+                                {t("books_page.filters.availability") as string}
+                              </label>
+                              <div className="relative">
+                                <FilterSelect
+                                  value={availability}
+                                  onChange={(e) => updateQuery({ availability: e.target.value || null }, true)}
+                                >
+                                  <option value="">{t("books_page.filters.availability") as string}</option>
+                                  <option value="true">{t("books_page.filters.available") as string}</option>
+                                  <option value="false">{t("books_page.filters.unavailable") as string}</option>
+                                </FilterSelect>
+                                <ChevronDown size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#9ca3af] pointer-events-none" />
+                              </div>
+                            </div>
+                            {/* Min rating */}
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-[#374151] uppercase tracking-wider">
+                                {t("books_page.filters.min_rating_placeholder") as string}
+                              </label>
+                              <FilterInput
+                                type="number" min={1} max={5} step="0.1" value={minRating}
+                                onChange={(e) => updateQuery({ minRating: e.target.value || null }, true)}
+                                placeholder="e.g. 4"
+                              />
+                            </div>
+                            {hasActiveFilters && (
+                              <button
+                                onClick={() => updateQuery({ author: null, availability: null, minRating: null, year: null, tags: null, topics: null }, true)}
+                                className="flex items-center gap-1.5 text-[10px] font-bold text-red-500 hover:text-red-600 transition-colors self-start"
+                              >
+                                <X size={11} />
+                                Clear filters
+                              </button>
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* Mobile: toggle button */}
             <div className="flex lg:hidden mb-4">
               <button
@@ -243,24 +412,16 @@ function BooksContent() {
               </button>
             </div>
 
-            {/* Sidebar — always visible on lg, toggle on mobile */}
-            <AnimatePresence>
-              {(filtersOpen || true) && (
-                <motion.div
-                  initial={false}
-                  className="hidden lg:block"
-                >
-                  <CategorySidebar
-                    categories={categories}
-                    selectedCategory={selectedCategory}
-                    onCategoryChange={(cat) => updateQuery({ category: cat }, true)}
-                    loading={categoriesLoading}
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {/* Sidebar — desktop: always visible; mobile: animated toggle */}
+            <div className="hidden lg:block">
+              <CategorySidebar
+                categories={categories}
+                selectedCategory={selectedCategory}
+                onCategoryChange={(cat) => updateQuery({ category: cat }, true)}
+                loading={categoriesLoading}
+              />
+            </div>
 
-            {/* Mobile sidebar */}
             <AnimatePresence>
               {filtersOpen && (
                 <motion.div
@@ -270,7 +431,7 @@ function BooksContent() {
                   transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
                   className="lg:hidden overflow-hidden mb-4"
                 >
-                  <div className="bg-white rounded-2xl border border-[#e2e0e7] p-5 shadow-[0_4px_20px_rgba(20,43,111,0.08)]">
+                  <div className="bg-white rounded-2xl border border-[#e2e0e7] p-5 shadow-[0_4px_20px_rgba(0,0,0,0.08)]">
                     <CategorySidebar
                       categories={categories}
                       selectedCategory={selectedCategory}
@@ -287,7 +448,7 @@ function BooksContent() {
           <div className="flex-1 min-w-0 space-y-6">
 
             {/* ── Top controls bar ─── */}
-            <div className="bg-white rounded-2xl border border-[#e2e0e7] p-4 shadow-[0_2px_8px_rgba(20,43,111,0.04)]">
+            <div className="bg-white rounded-2xl border border-[#e2e0e7] p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
               <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                 {/* Mode tabs */}
                 <div className="flex items-center gap-1 rounded-xl bg-[#f1f0f4] p-1">
@@ -295,7 +456,7 @@ function BooksContent() {
                     <button
                       key={m}
                       onClick={() => updateQuery({ mode: m }, true)}
-                      className={`relative px-4 py-1.5 rounded-lg text-xs font-black transition-all ${
+                      className={`relative px-4 py-1.5 rounded-lg text-xs font-black transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f5c518] focus-visible:ring-offset-1 ${
                         mode === m ? "text-white" : "text-[#374151] hover:text-[#0d0d0d]"
                       }`}
                     >
@@ -332,7 +493,7 @@ function BooksContent() {
             </div>
 
             {/* ── Advanced filters ─── */}
-            <div className="bg-white rounded-2xl border border-[#e2e0e7] overflow-hidden shadow-[0_2px_8px_rgba(20,43,111,0.04)]">
+            <div className="bg-white rounded-2xl border border-[#e2e0e7] overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
               <button
                 onClick={() => setFiltersOpen(v => !v)}
                 className="w-full flex items-center justify-between px-5 py-3.5 text-sm font-bold text-[#374151] hover:text-[#0d0d0d] transition-colors"

@@ -45,11 +45,11 @@ const Stars = ({ rating, size = 14 }: { rating: number; size?: number }) => (
 
 /* ── Primary action button ── */
 function ActionBtn({ label, onClick, disabled, loading, loadingLabel, variant = "primary" }: { label: string; onClick?: () => void; disabled?: boolean; loading?: boolean; loadingLabel?: string; variant?: "primary" | "outline" | "ghost" }) {
-  const base = "w-full rounded-2xl px-5 py-3.5 text-sm font-black transition-all disabled:cursor-not-allowed disabled:opacity-50 flex items-center justify-center gap-2";
-  const styles = { primary: "bg-[#0d0d0d] text-white shadow-[0_4px_16px_rgba(0,0,0,0.22)] hover:shadow-[0_8px_28px_rgba(0,0,0,0.30)] hover:-translate-y-0.5 active:translate-y-0", outline: "border-2 border-[#0d0d0d] text-[#0d0d0d] hover:bg-[#0d0d0d] hover:text-white", ghost: "border border-[#e2e0e7] text-[#374151] hover:border-[#0d0d0d] hover:text-[#0d0d0d]" };
+  const base = "rounded-xl px-4 py-2 text-xs font-black transition-all disabled:cursor-not-allowed disabled:opacity-50 flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0";
+  const styles = { primary: "bg-[#f5c518] text-[#0d0d0d] shadow-[0_3px_12px_rgba(245,197,24,0.40)] hover:shadow-[0_6px_20px_rgba(245,197,24,0.50)] hover:-translate-y-0.5 active:translate-y-0", outline: "border border-white/30 text-white/80 hover:bg-white/10 hover:text-white hover:border-white/50", ghost: "border border-white/20 text-white/60 hover:border-white/40 hover:text-white" };
   return (
     <button type="button" onClick={onClick} disabled={disabled || loading} className={`${base} ${styles[variant]}`}>
-      {loading ? (<><span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />{loadingLabel}</>): label}
+      {loading ? (<><span className="w-3.5 h-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin shrink-0" />{loadingLabel}</>): label}
     </button>
   );
 }
@@ -297,19 +297,21 @@ export default function BookDetailPage() {
     return (
       <div className="min-h-screen bg-[#f8f7fc] flex flex-col">
         <Navbar />
-        <div className="relative bg-[#0d0d0d] overflow-hidden">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 py-10">
-            <div className="h-4 w-24 bg-white/10 rounded-lg animate-pulse mb-4" />
-            <div className="flex gap-10">
-              <div className="w-52 h-72 rounded-2xl bg-white/08 animate-pulse shrink-0" />
-              <div className="flex-1 space-y-4 pt-2">
-                <div className="h-8 w-3/4 bg-white/10 rounded-xl animate-pulse" />
-                <div className="h-5 w-1/3 bg-white/08 rounded-lg animate-pulse" />
-                <div className="h-4 w-1/4 bg-white/06 rounded-lg animate-pulse" />
-                <div className="flex gap-3 mt-6">
-                  <div className="h-12 w-36 rounded-2xl bg-white/10 animate-pulse" />
-                  <div className="h-12 w-36 rounded-2xl bg-white/08 animate-pulse" />
-                </div>
+        <div className="relative overflow-hidden" style={{ height: "60vh", minHeight: "520px", maxHeight: "780px", background: "#8b919e" }}>
+          {/* Subtle radial highlight — same grey-blue tone as the screenshot */}
+          <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at 55% 40%, rgba(255,255,255,0.10) 0%, transparent 60%)" }} />
+          <div className="absolute inset-0 flex items-center px-8">
+            <div className="w-[50%] flex items-center justify-center">
+              <div className="rounded-2xl animate-pulse" style={{ width: "68%", height: "80%", background: "rgba(0,0,0,0.15)" }} />
+            </div>
+            <div className="flex-1 space-y-4 pl-8">
+              <div className="h-3 w-24 rounded-full animate-pulse bg-white/20" />
+              <div className="h-8 w-4/5 rounded-xl animate-pulse bg-white/25" />
+              <div className="h-5 w-2/5 rounded-lg animate-pulse bg-white/18" />
+              <div className="h-4 w-1/3 rounded-lg animate-pulse bg-white/15 mt-2" />
+              <div className="flex gap-2 mt-4">
+                <div className="h-8 w-24 rounded-xl animate-pulse bg-white/20" />
+                <div className="h-8 w-24 rounded-xl animate-pulse bg-white/15" />
               </div>
             </div>
           </div>
@@ -321,3 +323,482 @@ export default function BookDetailPage() {
       </div>
     );
   }
+
+  /* ── Main render ── */
+  const isAvailable = bookType === "digital" || (physicalBook?.available ?? 0) > 0;
+  const statusLabel = bookType === "digital"
+    ? (book as DigitalBook).pdf_access === "RESTRICTED" ? t("book_details.status.read_only") as string : t("book_details.status.download") as string
+    : displayedAvailableCopies > 0 ? t("book_details.status.available", { count: displayedAvailableCopies }) as string : t("book_details.status.unavailable") as string;
+
+  const tabs = [
+    { id: "about",   label: t("book_details.about_book") as string },
+    { id: "reviews", label: `${t("book_details.reviews.title") as string} (${book.reviews?.length ?? 0})` },
+    { id: "related", label: relatedSource === "author" ? t("book_details.sections.more_by", { name: book.author.name }) as string : t("book_details.sections.related_in", { name: book.category.name }) as string },
+  ] as const;
+
+  return (
+    <div className="min-h-screen bg-[#f8f7fc] text-[#0d0d0d] flex flex-col">
+      <Navbar />
+
+      {/* ── Hero band — 60vh fixed height ── */}
+      <section
+        className="relative overflow-hidden"
+        style={{ height: "60vh", minHeight: "520px", maxHeight: "780px" }}
+      >
+        {/* Background = blurred book cover fills the entire section */}
+        <div className="absolute inset-0">
+          <Image
+            src={activeImage || book.cover_image_url || "/reading_illustration.png"}
+            alt="" fill priority className="object-cover object-top scale-110"
+            style={{ filter: "blur(28px)", transform: "scale(1.15)" }}
+          />
+          {/* Lighter overlay — 38% opacity so cover colours bleed through */}
+          <div className="absolute inset-0 bg-black/38" />
+          {/* Subtle gold tint at top */}
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#f5c518]/60 via-[#f5c518] to-transparent" />
+        </div>
+
+        {/* ── Left panel: full width on mobile, 50% on desktop ── */}
+        <div className="absolute top-0 left-0 bottom-0 w-full lg:w-[50%] flex items-center justify-center">
+
+          {/* Card — object-contain so full cover shows with no crop */}
+          <AnimatePresence mode="wait">
+            <motion.div key={activeImage}
+              initial={{ opacity: 0, y: 10, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -6, scale: 0.97 }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+              className="relative rounded-2xl overflow-hidden shadow-[0_24px_72px_rgba(0,0,0,0.75)] border border-white/15 bg-black/30"
+              style={{ width: "55%", height: "88%" }}
+            >
+              <Image
+                src={activeImage || book.cover_image_url || "/reading_illustration.png"}
+                alt={book.title} fill priority
+                className="object-contain"
+              />
+              {/* Bottom badges */}
+              <div className="absolute bottom-3 left-3 flex items-center gap-2 z-10">
+                <div className={`px-2 py-1 rounded-lg text-[10px] font-black backdrop-blur-md border ${
+                  bookType === "digital" ? "bg-black/70 text-white border-white/15" :
+                  isAvailable ? "bg-emerald-600/85 text-white border-emerald-400/25" : "bg-red-600/85 text-white border-red-400/25"
+                }`}>{statusLabel}</div>
+                {bookType === "digital" && <div className="px-2 py-1 rounded-lg bg-[#f5c518] text-[10px] font-black text-[#0d0d0d]">Digital</div>}
+              </div>
+              {/* Counter */}
+              {galleryImages.length > 1 && (
+                <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-sm text-[10px] font-black text-white/80 border border-white/10">
+                  {galleryImages.indexOf(activeImage) + 1}/{galleryImages.length}
+                </div>
+              )}
+              {/* Prev/Next */}
+              {galleryImages.length > 1 && (
+                <>
+                  <button onClick={() => { const idx = galleryImages.indexOf(activeImage); setActiveImage(galleryImages[(idx - 1 + galleryImages.length) % galleryImages.length]); }}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white/80 hover:bg-black/75 hover:text-white transition-all z-10">
+                    <ChevronLeft size={13} />
+                  </button>
+                  <button onClick={() => { const idx = galleryImages.indexOf(activeImage); setActiveImage(galleryImages[(idx + 1) % galleryImages.length]); }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white/80 hover:bg-black/75 hover:text-white transition-all z-10">
+                    <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M5 3l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  </button>
+                </>
+              )}
+            </motion.div>
+          </AnimatePresence>
+
+          {/* Thumbnail strip */}
+          {galleryImages.length > 1 && (
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.35, duration: 0.4 }}
+              className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5"
+              style={{ scrollbarWidth: "none" }}
+            >
+              {galleryImages.map((img, i) => {
+                const isAct = activeImage === img;
+                return (
+                  <motion.button key={i} whileHover={{ y: -2, scale: 1.06 }} whileTap={{ scale: 0.93 }}
+                    onClick={() => setActiveImage(img)}
+                    className={`relative overflow-hidden rounded-lg border-2 transition-all ${isAct ? "w-8 h-11 border-[#f5c518] opacity-100" : "w-6 h-8 border-white/15 opacity-40 hover:opacity-80"}`}>
+                    <Image src={img} alt="" fill className="object-cover" />
+                    {isAct && <div className="absolute inset-0 bg-[#f5c518]/12" />}
+                  </motion.button>
+                );
+              })}
+            </motion.div>
+          )}
+        </div>
+
+        {/* ── RIGHT: text — desktop only at 50%→right, mobile shown below hero ── */}
+        <div className="hidden lg:flex absolute top-0 bottom-0 flex-col justify-between px-8 lg:px-12 py-8"
+          style={{ left: "50%", right: 0 }}>
+          {/* Breadcrumb */}
+          <motion.nav initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            className="flex items-center gap-2 text-[11px] font-semibold text-white/35">
+            <Link href={booksHref} className="hover:text-white/70 transition-colors flex items-center gap-1">
+              <ChevronLeft size={12} />{t("book_details.breadcrumb.books") as string}
+            </Link>
+            <span>/</span>
+            <span className="text-white/45">{bookType === "digital" ? t("book_details.breadcrumb.digital") as string : t("book_details.breadcrumb.physical") as string}</span>
+          </motion.nav>
+
+          {/* Book info — vertically centred */}
+          <div className="flex-1 flex flex-col justify-center py-3">
+            <motion.div custom={0} variants={fadeUp} initial="hidden" animate="visible">
+              <span className="inline-block text-[10px] font-black uppercase tracking-[0.22em] text-[#f5c518] mb-2">{book.category.name}</span>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-serif font-black text-white leading-tight mb-2 line-clamp-3">{book.title}</h1>
+              <p className="text-white/50 text-sm mb-4">by <span className="text-white/75 font-semibold">{book.author.name}</span></p>
+            </motion.div>
+
+            <motion.div custom={1} variants={fadeUp} initial="hidden" animate="visible"
+              className="flex items-center gap-3 mb-5 flex-wrap">
+              <div className="flex items-center gap-1.5">
+                <Stars rating={book.rating.average} size={13} />
+                <span className="text-white font-bold text-xs">{book.rating.total > 0 ? book.rating.average.toFixed(1) : "—"}</span>
+                <span className="text-white/35 text-[11px]">({book.rating.total})</span>
+              </div>
+              {book.pages > 0 && <span className="text-white/35 text-[11px] border-l border-white/15 pl-3">{book.pages} pages</span>}
+              {bookType === "physical" && <span className="text-white/35 text-[11px] border-l border-white/15 pl-3">{(physicalBook?._count?.rentals ?? 0)} borrows</span>}
+            </motion.div>
+
+            <motion.div custom={2} variants={fadeUp} initial="hidden" animate="visible"
+              className="flex flex-row flex-wrap gap-2">
+              {bookType === "physical" ? (!isAdmin ? (
+                <>
+                  {hasFullyBorrowed && <ActionBtn label={t("book_details.actions.currently_borrowed") as string} disabled variant="outline" />}
+                  {hasPendingBorrowPayment && <ActionBtn label={t("book_details.actions.complete_payment") as string} loading={borrowLoading} loadingLabel={t("shared.loading") as string || "Loading..."} onClick={handleBorrow} />}
+                  {canBorrow && <ActionBtn label={t("book_details.actions.borrow") as string} loading={borrowLoading} loadingLabel={t("shared.loading") as string || "Loading..."} onClick={handleBorrow} />}
+                  {shouldShowReserve && (
+                    <div className="flex flex-col gap-1.5">
+                      <ActionBtn label={physicalBook?.userContext?.hasActiveReservation ? t("book_details.labels.already_reserved") as string : t("book_details.actions.reserve_label") as string}
+                        loading={reserveLoading} loadingLabel={t("admin_reservations.modal.issuing") as string}
+                        disabled={Boolean(physicalBook?.userContext?.hasActiveReservation)} onClick={handleReserve} variant="outline" />
+                      <p className="text-[11px] text-white/35">{t("book_details.labels.students_in_queue", { count: reserveCount }) as string}</p>
+                    </div>
+                  )}
+                  {!hasFullyBorrowed && !hasPendingBorrowPayment && !canBorrow && !shouldShowReserve && (
+                    <ActionBtn label={t("book_details.status.unavailable") as string} disabled variant="outline" />
+                  )}
+                </>
+              ) : null) : isStudent ? (
+                <>
+                  <ActionBtn label={digitalLoading ? t("book_details.actions.opening_pdf") as string : t("book_details.actions.read_now") as string}
+                    loading={digitalLoading} loadingLabel={t("book_details.actions.opening_pdf") as string} onClick={() => openDigital(false)} />
+                  {(book as DigitalBook).pdf_access !== "RESTRICTED" && (
+                    <ActionBtn label={t("book_details.actions.download_pdf") as string}
+                      loading={digitalLoading} loadingLabel={t("book_details.actions.preparing_download") as string} onClick={() => openDigital(true)} variant="outline" />
+                  )}
+                </>
+              ) : null}
+              {isStudent && (
+                <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.95 }}
+                  onClick={handleWishlist} disabled={wishlistLoading}
+                  className={`flex items-center gap-1.5 rounded-xl px-3 py-2.5 text-xs font-bold whitespace-nowrap transition-all border ${book.userContext?.isInWishlist ? "border-[#f5c518] bg-[#f5c518]/12 text-[#f5c518]" : "border-white/20 text-white/60 hover:border-white/45 hover:text-white"} disabled:opacity-50`}>
+                  <Heart size={13} fill={book.userContext?.isInWishlist ? "currentColor" : "none"} />
+                  {wishlistLoading ? t("book_details.actions.updating_wishlist") as string : book.userContext?.isInWishlist ? t("book_details.actions.in_wishlist") as string : t("book_details.actions.wishlist") as string}
+                </motion.button>
+              )}
+            </motion.div>
+          </div>
+
+          {/* Gold accent line — bottom */}
+          <div className="h-px bg-gradient-to-r from-[#f5c518]/40 via-[#f5c518]/15 to-transparent" />
+        </div>
+
+        {/* Bottom fade */}
+        <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-b from-transparent to-[#f8f7fc] pointer-events-none" />
+      </section>
+
+      {/* ── MOBILE: book info (visible only on mobile, below hero) ── */}
+      <div className="lg:hidden bg-[#0d0d0d] px-5 py-6">
+        <span className="inline-block text-[10px] font-black uppercase tracking-[0.22em] text-[#f5c518] mb-1">{book.category.name}</span>
+        <h1 className="text-2xl font-serif font-black text-white leading-tight mb-1 break-words">{book.title}</h1>
+        <p className="text-white/50 text-sm mb-4">by <span className="text-white/75 font-semibold">{book.author.name}</span></p>
+        <div className="flex items-center gap-3 mb-5 flex-wrap">
+          <div className="flex items-center gap-1.5"><Stars rating={book.rating.average} size={13} /><span className="text-white font-bold text-xs">{book.rating.total > 0 ? book.rating.average.toFixed(1) : "—"}</span><span className="text-white/35 text-[11px]">({book.rating.total})</span></div>
+          {book.pages > 0 && <span className="text-white/35 text-[11px] border-l border-white/15 pl-3">{book.pages} pages</span>}
+        </div>
+        <div className="flex flex-row flex-wrap gap-2">
+          {bookType === "physical" ? (!isAdmin ? (<>
+            {hasFullyBorrowed && <ActionBtn label={t("book_details.actions.currently_borrowed") as string} disabled variant="outline" />}
+            {hasPendingBorrowPayment && <ActionBtn label={t("book_details.actions.complete_payment") as string} loading={borrowLoading} loadingLabel="..." onClick={handleBorrow} />}
+            {canBorrow && <ActionBtn label={t("book_details.actions.borrow") as string} loading={borrowLoading} loadingLabel="..." onClick={handleBorrow} />}
+            {shouldShowReserve && <ActionBtn label={physicalBook?.userContext?.hasActiveReservation ? t("book_details.labels.already_reserved") as string : t("book_details.actions.reserve_label") as string} loading={reserveLoading} loadingLabel="..." disabled={Boolean(physicalBook?.userContext?.hasActiveReservation)} onClick={handleReserve} variant="outline" />}
+          </>) : null) : isStudent ? (<>
+            <ActionBtn label={t("book_details.actions.read_now") as string} loading={digitalLoading} loadingLabel="..." onClick={() => openDigital(false)} />
+            {(book as DigitalBook).pdf_access !== "RESTRICTED" && <ActionBtn label={t("book_details.actions.download_pdf") as string} loading={digitalLoading} loadingLabel="..." onClick={() => openDigital(true)} variant="outline" />}
+          </>) : null}
+          {isStudent && (<motion.button whileTap={{ scale: 0.95 }} onClick={handleWishlist} disabled={wishlistLoading}
+            className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold whitespace-nowrap border transition-all ${book.userContext?.isInWishlist ? "border-[#f5c518] bg-[#f5c518]/12 text-[#f5c518]" : "border-white/20 text-white/60 hover:border-white/45 hover:text-white"} disabled:opacity-50`}>
+            <Heart size={13} fill={book.userContext?.isInWishlist ? "currentColor" : "none"} />
+            {book.userContext?.isInWishlist ? t("book_details.actions.in_wishlist") as string : t("book_details.actions.wishlist") as string}
+          </motion.button>)}
+        </div>
+      </div>
+
+      {/* ── Stats strip ── */}
+      <div className="bg-white border-b border-[#e2e0e7]">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <div className="flex gap-px bg-[#e2e0e7] overflow-x-auto">
+            {[
+              { label: t("book_details.labels.rating") as string, value: book.rating.total > 0 ? book.rating.average.toFixed(1) + " ★" : "—" },
+              { label: t("book_details.labels.category") as string, value: book.category.name },
+              { label: bookType === "digital" ? t("book_details.labels.access") as string : t("book_details.labels.available_on_shelf") as string,
+                value: bookType === "digital" ? ((book as DigitalBook).pdf_access === "RESTRICTED" ? t("book_details.status.read_only") as string : t("book_details.labels.read_and_download") as string) : (displayedAvailableCopies === 1 ? t("book_details.labels.copy", { count: displayedAvailableCopies }) as string : t("book_details.labels.copies", { count: displayedAvailableCopies }) as string) },
+              ...(book.pages > 0 ? [{ label: "Pages", value: String(book.pages) }] : []),
+            ].map(({ label, value }) => (
+              <div key={label} className="flex-1 min-w-[120px] bg-white px-5 py-4 text-center">
+                <div className="text-[10px] font-black uppercase tracking-widest text-[#9ca3af] mb-1">{label}</div>
+                <div className="text-sm font-black text-[#0d0d0d]">{value}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Tabs + content ── */}
+      <main className="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 py-8">
+        <div className="flex flex-col lg:flex-row gap-8">
+
+          {/* ── Left: tab content ── */}
+          <div className="flex-1 min-w-0">
+            {/* Tab bar */}
+            <div className="flex items-center gap-1 bg-white rounded-2xl border border-[#e2e0e7] p-1.5 mb-6 overflow-x-auto shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+              {tabs.map(tab => (
+                <button key={tab.id} onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                  className={`relative flex-1 min-w-max px-4 py-2 rounded-xl text-xs font-bold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f5c518] focus-visible:ring-offset-1 ${activeTab === tab.id ? "text-white" : "text-[#374151] hover:text-[#0d0d0d]"}`}
+                >
+                  {activeTab === tab.id && (
+                    <motion.span layoutId="tab-active" className="absolute inset-0 rounded-xl bg-[#0d0d0d]"
+                      style={{ zIndex: -1 }} transition={{ type: "spring", stiffness: 400, damping: 35 }} />
+                  )}
+                  <span className="relative z-10">{tab.label}</span>
+                </button>
+              ))}
+            </div>
+
+            <AnimatePresence mode="wait">
+              {activeTab === "about" && (
+                <motion.div key="about" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }} className="space-y-6">
+
+                  {/* Description */}
+                  <div className="bg-white rounded-2xl border border-[#e2e0e7] p-6 shadow-[0_2px_8px_rgba(0,0,0,0.04)] overflow-hidden">
+                    <h2 className="text-lg font-serif font-black text-[#0d0d0d] mb-4 flex items-center gap-2">
+                      <BookOpen size={18} className="text-[#f5c518]" />
+                      {t("book_details.about_book") as string}
+                    </h2>
+                    <p className="text-sm text-[#374151] leading-relaxed break-words">{book.description}</p>
+                  </div>
+
+                  {/* Author */}
+                  {(book.author.bio || book.author.image) && (
+                    <div className="bg-white rounded-2xl border border-[#e2e0e7] p-6 shadow-[0_2px_8px_rgba(0,0,0,0.04)] overflow-hidden">
+                      <h2 className="text-lg font-serif font-black text-[#0d0d0d] mb-4">{t("book_details.about_author") as string}</h2>
+                      <div className="flex items-start gap-4 min-w-0">
+                        <div className="relative w-16 h-16 rounded-xl overflow-hidden border border-[#e2e0e7] shrink-0 bg-[#f1f0f4]">
+                          <Image src={book.author.image || "/reading_illustration.png"} alt={book.author.name} fill className="object-cover" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-black text-[#0d0d0d] mb-1 break-words">{book.author.name}</p>
+                          <p className="text-sm text-[#374151] leading-relaxed break-words">{book.author.bio || t("book_details.labels.no_bio") as string}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Write review */}
+                  {!isAdmin && canManageReview && (
+                    <div className="bg-white rounded-2xl border border-[#e2e0e7] p-6 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+                      <h2 className="text-lg font-serif font-black text-[#0d0d0d] mb-5">{t("book_details.reviews.write_title") as string}</h2>
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-1">
+                          {[1,2,3,4,5].map(n => (
+                            <motion.button key={n} whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }}
+                              onClick={() => setReviewRating(n)} className="text-[#f5c518]">
+                              <Star size={22} fill={reviewRating >= n ? "currentColor" : "none"} strokeWidth={1.5} />
+                            </motion.button>
+                          ))}
+                        </div>
+                        <textarea value={reviewComment} onChange={e => setReviewComment(e.target.value)}
+                          placeholder={t("book_details.reviews.placeholder") as string}
+                          className="w-full rounded-2xl border border-[#e2e0e7] bg-[#f8f7fc] px-4 py-3 text-sm text-[#0d0d0d] outline-none focus:border-[#0d0d0d] focus:shadow-[0_0_0_3px_rgba(245,197,24,0.25)] transition-all resize-none"
+                          rows={4} />
+                        <div className="flex gap-3">
+                          <ActionBtn label={isSubmittingReview ? t("book_details.actions.submitting_review") as string : myReview ? t("book_details.actions.update_review") as string : t("book_details.actions.submit_review") as string}
+                            onClick={submitReview} disabled={reviewBusy || reviewRating < 1 || !isReviewTextValid} loading={isSubmittingReview} loadingLabel={t("book_details.actions.submitting_review") as string} />
+                          {myReview && (
+                            <ActionBtn label={isRemovingReview ? t("book_details.actions.removing_review") as string : t("book_details.reviews.remove") as string}
+                              onClick={removeReview} disabled={reviewBusy} loading={isRemovingReview} loadingLabel={t("book_details.actions.removing_review") as string} variant="ghost" />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {!isAdmin && bookType === "digital" && isStudent && !canManageReview && (
+                    <div className="rounded-2xl border border-[#e2e0e7] bg-white p-5">
+                      <div className="flex items-center gap-3">
+                        <Eye size={18} className="text-[#9ca3af] shrink-0" />
+                        <p className="text-sm text-[#6b7280]">{t("book_details.reviews.unlock_digital") as string}</p>
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+
+              {activeTab === "reviews" && (
+                <motion.div key="reviews" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}>
+                  {book.reviews.length === 0 ? (
+                    <div className="bg-white rounded-2xl border border-[#e2e0e7] p-10 text-center">
+                      <Star size={28} className="text-[#e2e0e7] mx-auto mb-3" />
+                      <p className="text-sm text-[#9ca3af]">No reviews yet</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {pagedReviews.map((review, i) => (
+                        <motion.div key={review.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: i * 0.05, duration: 0.35 }}
+                          className="bg-white rounded-2xl border border-[#e2e0e7] p-5 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
+                          <div className="flex items-start justify-between gap-3 mb-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-xl bg-[#0d0d0d] flex items-center justify-center text-white text-xs font-black shrink-0">
+                                {review.user.name.charAt(0).toUpperCase()}
+                              </div>
+                              <div>
+                                <p className="text-sm font-bold text-[#0d0d0d]">{review.user.name}</p>
+                                <p className="text-[11px] text-[#9ca3af]">{new Date(review.created_at).toLocaleDateString()}</p>
+                              </div>
+                            </div>
+                            <Stars rating={review.rating} size={13} />
+                          </div>
+                          {review.comment && <p className="text-sm text-[#374151] leading-relaxed italic">&ldquo;{review.comment}&rdquo;</p>}
+                        </motion.div>
+                      ))}
+
+                      {book.reviews.length > REVIEWS_PER_PAGE && (
+                        <div className="flex items-center justify-between pt-2">
+                          <button onClick={() => setReviewsPage(p => Math.max(0, p-1))} disabled={!hasPrevReviews}
+                            className="text-xs font-bold text-[#374151] hover:text-[#0d0d0d] disabled:opacity-35 transition-colors">
+                            ← {t("digital_library.previous") as string}
+                          </button>
+                          <span className="text-xs text-[#9ca3af]">
+                            {reviewsPage * REVIEWS_PER_PAGE + 1}–{Math.min((reviewsPage+1)*REVIEWS_PER_PAGE, book.reviews.length)} / {book.reviews.length}
+                          </span>
+                          <button onClick={() => setReviewsPage(p => p+1)} disabled={!hasNextReviews}
+                            className="text-xs font-bold text-[#374151] hover:text-[#0d0d0d] disabled:opacity-35 transition-colors">
+                            {t("digital_library.next") as string} →
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </motion.div>
+              )}
+
+              {activeTab === "related" && (
+                <motion.div key="related" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}>
+                  {related.length === 0 ? (
+                    <div className="bg-white rounded-2xl border border-[#e2e0e7] p-10 text-center">
+                      <p className="text-sm text-[#9ca3af]">{t("book_details.sections.none_related") as string}</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {related.map((item, i) => (
+                        <motion.div key={`${item.type}-${item.id}`} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: i * 0.06, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}>
+                          <Link href={item.type === "digital" ? `/books/${item.id}?type=digital` : `/books/${item.id}`}
+                            className="group block bg-white rounded-2xl border border-[#e2e0e7] p-3 hover:border-[#0d0d0d] hover:shadow-[0_4px_16px_rgba(0,0,0,0.10)] transition-all">
+                            <div className="relative aspect-[2/3] rounded-xl overflow-hidden mb-3">
+                              <Image src={item.cover_image_url || "/reading_illustration.png"} alt={item.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                              {item.type === "digital" && (
+                                <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded-lg bg-[#f5c518] text-[9px] font-black text-[#0d0d0d]">Digital</div>
+                              )}
+                            </div>
+                            <p className="text-xs font-bold text-[#0d0d0d] line-clamp-2 group-hover:text-[#f5c518] transition-colors">{item.title}</p>
+                          </Link>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* ── Right: rating breakdown sidebar ── */}
+          <div className="lg:w-64 xl:w-72 shrink-0 space-y-4">
+            {/* Rating summary card */}
+            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+              className="bg-white rounded-2xl border border-[#e2e0e7] p-6 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#9ca3af] mb-4">
+                {t("book_details.labels.rating") as string}
+              </p>
+              <div className="flex items-end gap-3 mb-5">
+                <span className="text-5xl font-serif font-black text-[#0d0d0d] leading-none">
+                  {book.rating.total > 0 ? book.rating.average.toFixed(1) : "—"}
+                </span>
+                <div className="pb-1">
+                  <Stars rating={book.rating.average} size={15} />
+                  <p className="text-xs text-[#9ca3af] mt-1">
+                    {book.rating.total} {book.rating.total === 1 ? t("book_details.labels.review") as string : t("book_details.labels.reviews") as string}
+                  </p>
+                </div>
+              </div>
+              {/* Distribution bars */}
+              {book.rating.total > 0 && (
+                <div className="space-y-2">
+                  {([5,4,3,2,1] as const).map(n => {
+                    const count = book.rating.distribution[n] || 0;
+                    const pct = book.rating.total > 0 ? (count / book.rating.total) * 100 : 0;
+                    return (
+                      <div key={n} className="flex items-center gap-2">
+                        <span className="text-[11px] font-bold text-[#374151] w-3">{n}</span>
+                        <Star size={10} className="text-[#f5c518] fill-[#f5c518] shrink-0" />
+                        <div className="flex-1 h-1.5 bg-[#f1f0f4] rounded-full overflow-hidden">
+                          <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }}
+                            transition={{ delay: 0.4 + (5-n)*0.05, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                            className="h-full bg-[#f5c518] rounded-full" />
+                        </div>
+                        <span className="text-[10px] text-[#9ca3af] w-5 text-right">{count}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </motion.div>
+
+            {/* Wishlist / quick action */}
+            {isStudent && (
+              <motion.button initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3, duration: 0.5 }}
+                whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+                onClick={handleWishlist} disabled={wishlistLoading}
+                className={`w-full flex items-center justify-center gap-2 rounded-2xl px-5 py-3.5 text-sm font-bold border transition-all ${book.userContext?.isInWishlist ? "border-[#f5c518] bg-[#f5c518]/08 text-[#7a5c00]" : "border-[#e2e0e7] bg-white text-[#374151] hover:border-[#0d0d0d] hover:text-[#0d0d0d]"} disabled:opacity-50`}>
+                <Heart size={16} fill={book.userContext?.isInWishlist ? "currentColor" : "none"} />
+                {wishlistLoading ? t("book_details.actions.updating_wishlist") as string : book.userContext?.isInWishlist ? t("book_details.actions.in_wishlist") as string : t("book_details.actions.wishlist") as string}
+              </motion.button>
+            )}
+
+            {/* Download button for digital */}
+            {bookType === "digital" && isStudent && (book as DigitalBook).pdf_access !== "RESTRICTED" && (
+              <motion.button initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.35, duration: 0.5 }}
+                onClick={() => openDigital(true)} disabled={digitalLoading}
+                className="w-full flex items-center justify-center gap-2 rounded-2xl border border-[#e2e0e7] bg-white px-5 py-3 text-sm font-bold text-[#374151] hover:border-[#0d0d0d] hover:text-[#0d0d0d] disabled:opacity-50 transition-all">
+                <Download size={15} />
+                {t("book_details.actions.download_pdf") as string}
+              </motion.button>
+            )}
+          </div>
+
+        </div>
+      </main>
+
+      <Footer />
+    </div>
+  );
+}

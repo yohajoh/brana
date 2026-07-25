@@ -23,7 +23,7 @@ export const CategorySidebar = ({ categories, selectedCategory, onCategoryChange
   const totalBooks = categories.reduce((sum, cat) => sum + cat._count.books, 0);
 
   return (
-    <aside className="w-full lg:w-56 xl:w-60 shrink-0">
+    <aside className="w-full">
       {/* Header */}
       <div className="flex items-center gap-2.5 mb-5">
         <div className="w-7 h-7 rounded-lg bg-[#0d0d0d] flex items-center justify-center">

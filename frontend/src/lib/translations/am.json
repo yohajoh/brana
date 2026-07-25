@@ -150,6 +150,15 @@
     },
     "involvement": {
       "title": "የታሪኩ አካል ይሁኑ",
+      "hero_eyebrow": "ስለ ብራና",
+      "story_section_eyebrow": "ታሪካችን",
+      "mission_section_eyebrow": "ተልዕኳችን",
+      "get_involved_eyebrow": "ይሳተፉ",
+      "final_cta_eyebrow": "ዛሬ ይጀምሩ",
+      "final_cta_title": "የንባብ ጉዞዎን ለመጀመር ዝግጁ ነዎት?",
+      "explore_btn": "ስብስቦችን ያስሱ",
+      "join_free_btn": "ነፃ ይቀላቀሉ",
+      "create_account_btn": "መለያ ይፍጠሩ",
       "borrow": {
         "title": "መጽሐፍትን መበደር",
         "description": "ለመሳተፍ ቀላሉ መንገድ! ይመዝገቡ እና ማንበብ ይጀምሩ።"
@@ -167,6 +176,40 @@
     }
   },
   "books_page": {
+    "title": "ስብስቦቹን ያስሱ",
+    "sidebar_title": "ምድቦች",
+    "all_categories": "ሁሉም መጽሐፍት",
+    "filters_label": "ማጣሪያዎች",
+    "advanced_filters": "የተሻሻሉ ማጣሪያዎች",
+    "sort_options": {
+      "title_asc": "ርዕስ (ሀ-ፐ)",
+      "title_desc": "ርዕስ (ፐ-ሀ)",
+      "most_available": "በጣም ተደራሽ",
+      "least_available": "ትንሽ ተደራሽ",
+      "shortest": "አጭር",
+      "longest": "ረጅም"
+    },
+    "modes": {
+      "all": "ሁሉም",
+      "physical": "አካላዊ",
+      "digital": "ዲጂታል"
+    },
+    "status": {
+      "loading": "እየጫነ ነው...",
+      "no_books": "ምንም መጽሐፍ አልተገኘም",
+      "showing": "ከ {total} ውስጥ {start}-{end} {mode}እያሳየ ነው"
+    },
+    "filters": {
+      "all_authors": "ሁሉም ደራሲዎች",
+      "availability": "ተደራሽነት",
+      "available": "ተደራሽ",
+      "unavailable": "ተደራሽ ያልሆነ",
+      "min_rating_placeholder": "ዝቅተኛ ደረጃ (ምሳሌ 4)",
+      "year_placeholder": "የታተመበት ዓመት",
+      "tags_placeholder": "መለያዎች (በነጠላ ሠረዝ ይለዩ)",
+      "topics_placeholder": "ርዕሶች (በነጠላ ሠረዝ ይለዩ)"
+    }
+  },
     "sort_by": "በዚህ ደርድር፦",
     "sort_options": {
       "title_asc": "ርዕስ (ከሀ-ፐ)",
