@@ -668,7 +668,7 @@ export default function BookDetailPage() {
                       {pagedReviews.map((review, i) => (
                         <motion.div key={review.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: i * 0.05, duration: 0.35 }}
-                          className="bg-white rounded-2xl border border-[#e2e0e7] p-5 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
+                          className="bg-white rounded-2xl border border-[#e2e0e7] p-5 shadow-[0_2px_8px_rgba(0,0,0,0.03)] overflow-hidden min-w-0">
                           <div className="flex items-start justify-between gap-3 mb-3">
                             <div className="flex items-center gap-3">
                               <div className="w-9 h-9 rounded-xl bg-[#0d0d0d] flex items-center justify-center text-white text-xs font-black shrink-0">
@@ -681,7 +681,11 @@ export default function BookDetailPage() {
                             </div>
                             <Stars rating={review.rating} size={13} />
                           </div>
-                          {review.comment && <p className="text-sm text-[#374151] leading-relaxed italic">&ldquo;{review.comment}&rdquo;</p>}
+                          {review.comment && (
+                            <p className="text-sm text-[#374151] leading-relaxed italic break-words whitespace-pre-wrap min-w-0 w-full">
+                              &ldquo;{review.comment}&rdquo;
+                            </p>
+                          )}
                         </motion.div>
                       ))}
 

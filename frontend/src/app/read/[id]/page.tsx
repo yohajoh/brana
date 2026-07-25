@@ -1,6 +1,8 @@
 "use client";
+"use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useParams } from "next/navigation";
 import { API_BASE_URL } from "@/lib/api";
 
 /* PDF.js is loaded from CDN via a script tag injected below.
