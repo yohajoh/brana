@@ -25,12 +25,12 @@ const createTransporter = () => {
   return nodemailer.createTransport({
     host,
     port,
-    secure: port === 465,    // true for SSL (465), false for STARTTLS (587)
+    secure: true,            // Resend requires SSL/TLS on port 465 — always true
     auth: { user, pass },
-    connectionTimeout: 10000,  // 10s to establish TCP connection
-    greetingTimeout: 10000,    // 10s to receive SMTP greeting
-    socketTimeout: 15000,      // 15s of inactivity before giving up
-    pool: false,               // don't pool — create fresh connection per email
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
+    pool: false,
   });
 };
 
