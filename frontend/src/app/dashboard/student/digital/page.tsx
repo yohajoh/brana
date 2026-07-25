@@ -18,160 +18,138 @@ type DigitalBook = {
   category?: { name?: string };
 };
 
-type DigitalBooksApiResponse = {
+type ApiResponse = {
   books: DigitalBook[];
-  meta?: {
-    page?: number;
-    limit?: number;
-    total?: number;
-    totalPages?: number;
-    hasNextPage?: boolean;
-    hasPreviousPage?: boolean;
-  };
+  meta?: { page?: number; limit?: number; total?: number; totalPages?: number };
 };
 
-const FALLBACK_COVER = "https://placehold.co/640x440?text=Digital+Book";
-
-const toSlug = (value: string) =>
-  value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-");
-
-async function fetchDigitalBooksPage(page: number): Promise<DigitalBooksApiResponse> {
-  return fetchApi<DigitalBooksApiResponse>(`/digital-books?page=${page}&limit=20`);
-}
+const toSlug = (v: string) =>
+  v.toLowerCase().trim().replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-");
 
 function DigitalLibraryContent() {
   const { t } = useLanguage();
-  const [page, setPage] = useState(1);
+  const [page, setPage]       = useState(1);
   const [openingId, setOpeningId] = useState<string | null>(null);
 
-  const { data, isLoading, isFetching } = useQuery<DigitalBooksApiResponse>({
+  const { data, isLoading, isFetching } = useQuery<ApiResponse>({
     queryKey: ["digital-books", "student-page", page],
-    queryFn: () => fetchDigitalBooksPage(page),
-    staleTime: 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    queryFn: () => fetchApi<ApiResponse>(`/digital-books?page=${page}&limit=20`),
+    staleTime: 60_000,
+    gcTime: 10 * 60_000,
     retry: 1,
     refetchOnWindowFocus: false,
   });
 
-  const books = Array.isArray(data?.books) ? data.books : [];
+  const books      = Array.isArray(data?.books) ? data.books : [];
   const totalPages = Math.max(1, Number(data?.meta?.totalPages || 1));
-  const hasPrev = page > 1;
-  const hasNext = page < totalPages;
 
   const openReader = async (book: DigitalBook, download = false) => {
     try {
       setOpeningId(book.id);
-
-      const url = `${API_BASE_URL}/digital-books/${book.id}/pdf${download ? "?download=true" : ""}`;
+      const url      = `${API_BASE_URL}/digital-books/${book.id}/pdf${download ? "?download=true" : ""}`;
       const response = await fetch(url, { credentials: "include" });
-
       if (!response.ok) {
         const raw = await response.text();
-        try {
-          const parsed = JSON.parse(raw) as { message?: string };
-          throw new Error(parsed.message || `Failed to open PDF (${response.status})`);
-        } catch {
-          throw new Error(`Failed to open PDF (${response.status})`);
-        }
+        try { throw new Error((JSON.parse(raw) as { message?: string }).message || `Error ${response.status}`); }
+        catch { throw new Error(`Error ${response.status}`); }
       }
-
-      const contentType = response.headers.get("Content-Type");
       const blob = await response.blob();
-      if (!contentType?.includes("application/pdf") || blob.size === 0) {
-        throw new Error("PDF file is empty or invalid. Please contact the admin.");
-      }
-
+      if (!response.headers.get("Content-Type")?.includes("application/pdf") || blob.size === 0)
+        throw new Error("PDF file is empty or invalid.");
       const blobUrl = window.URL.createObjectURL(blob);
-      const disposition = response.headers.get("Content-Disposition");
-      const fileName = disposition?.split("filename=")[1]?.replace(/"/g, "") || `${book.title}.pdf`;
-
       if (download) {
-        const link = document.createElement("a");
-        link.href = blobUrl;
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        const a = document.createElement("a");
+        a.href = blobUrl; a.download = `${book.title}.pdf`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
       } else {
         window.open(blobUrl, "_blank", "noopener,noreferrer");
       }
-
       setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unable to open this PDF right now.";
-      toast.error(message);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Unable to open this PDF.");
     } finally {
       setOpeningId(null);
     }
   };
 
   return (
-    <div className="p-6 lg:p-12 space-y-8">
-      <div className="space-y-2">
-        <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-primary">{t("digital_library.title")}</h1>
-        <p className="text-secondary font-medium">{t("digital_library.subtitle")}</p>
+    <div className="max-w-5xl mx-auto px-4 py-7 sm:px-6 lg:px-8 space-y-7">
+
+      {/* Header */}
+      <div>
+        <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.2em] mb-1">Digital</p>
+        <h1 className="text-[28px] font-serif font-black text-[#0d0d0d]">{String(t("digital_library.title"))}</h1>
+        <p className="text-sm text-[#0d0d0d]/45 mt-1">{String(t("digital_library.subtitle"))}</p>
       </div>
 
       {isLoading ? (
-        <div className="py-16 text-center text-secondary text-sm">{t("digital_library.loading")}</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1,2,3,4,5,6].map(i => (
+            <div key={i} className="bg-white rounded-2xl border border-[#e8e6e1] overflow-hidden animate-pulse">
+              <div className="h-44 bg-[#f0eeea]" />
+              <div className="p-4 space-y-2">
+                <div className="h-4 bg-[#f0eeea] rounded w-3/4" />
+                <div className="h-3 bg-[#f0eeea] rounded w-1/2" />
+              </div>
+            </div>
+          ))}
+        </div>
       ) : books.length === 0 ? (
-        <div className="py-16 text-center text-secondary text-sm">{t("digital_library.none")}</div>
+        <div className="bg-white rounded-2xl border border-dashed border-[#e8e6e1] p-12 text-center">
+          <p className="text-sm text-[#0d0d0d]/35">{String(t("digital_library.none"))}</p>
+        </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-            {books.map((book) => (
-              <div key={book.id} className="group bg-white rounded-2xl border border-border/60 p-4 space-y-3">
-                <div className="relative h-44 rounded-xl bg-muted/40 overflow-hidden">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {books.map(book => (
+              <div key={book.id} className="group bg-white rounded-2xl border border-[#e8e6e1] overflow-hidden hover:shadow-md transition-shadow">
+                {/* Cover */}
+                <div className="relative h-44 bg-[#f0eeea] overflow-hidden">
                   <Image
-                    src={book.cover_image_url || FALLBACK_COVER}
+                    src={book.cover_image_url || "https://placehold.co/640x440?text=Book"}
                     alt={book.title}
-                    width={640}
-                    height={440}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    fill
+                    sizes="(max-width:640px) 100vw, 33vw"
+                    className="object-cover transition-transform duration-300 group-hover:scale-105"
                   />
-                  <Link
-                    href={`/books/${toSlug(book.title)}?type=digital`}
-                    className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-primary/70 text-background font-bold text-sm flex items-center justify-center"
-                  >
-                    {t("digital_library.view_details")}
-                  </Link>
+                  <div className={`absolute top-3 left-3 px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wide ${
+                    book.pdf_access === "RESTRICTED"
+                      ? "bg-[#0d0d0d]/70 text-white"
+                      : "bg-[#f5c518] text-[#0d0d0d]"
+                  }`}>
+                    {book.pdf_access === "RESTRICTED" ? "Read Only" : "Download OK"}
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-bold text-primary line-clamp-1">{book.title}</p>
-                  <p className="text-xs text-secondary">
-                    {book.author?.name || t("sidebar.authors")} • {book.category?.name || "Uncategorized"}
-                  </p>
-                </div>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-muted text-primary">
-                    {book.pdf_access === "RESTRICTED" ? t("book_details.status.read_only") : t("digital_library.download_allowed")}
-                  </span>
+                {/* Info */}
+                <div className="p-4 space-y-3">
+                  <div>
+                    <p className="text-[13px] font-bold text-[#0d0d0d] line-clamp-1">{book.title}</p>
+                    <p className="text-[11px] text-[#0d0d0d]/40 mt-0.5">
+                      {book.author?.name || "Unknown"} · {book.category?.name || "Uncategorized"}
+                    </p>
+                  </div>
+                  {/* Actions */}
                   <div className="flex gap-2">
                     <Link
                       href={`/books/${toSlug(book.title)}?type=digital`}
-                      className="px-3 py-1.5 text-xs font-bold text-primary border border-border rounded-lg"
+                      className="flex-1 py-2 text-center text-[11px] font-bold text-[#0d0d0d]/50 border border-[#e8e6e1] rounded-lg hover:border-[#0d0d0d]/20 hover:text-[#0d0d0d] transition-colors"
                     >
-                      {t("digital_library.details")}
+                      {String(t("digital_library.details"))}
                     </Link>
                     <button
-                      onClick={() => openReader(book, false)}
+                      onClick={() => openReader(book)}
                       disabled={openingId === book.id}
-                      className="px-3 py-1.5 text-xs font-bold text-primary border border-border rounded-lg disabled:opacity-50"
+                      className="flex-1 py-2 text-[11px] font-bold text-[#0d0d0d] bg-[#f5f4f0] border border-[#e8e6e1] rounded-lg hover:bg-[#ede9e3] transition-colors disabled:opacity-50"
                     >
-                      {openingId === book.id ? t("digital_library.opening") : t("digital_library.read")}
+                      {openingId === book.id ? String(t("digital_library.opening")) : String(t("digital_library.read"))}
                     </button>
                     {book.pdf_access !== "RESTRICTED" && (
                       <button
                         onClick={() => openReader(book, true)}
                         disabled={openingId === book.id}
-                        className="px-3 py-1.5 text-xs font-bold bg-primary text-background rounded-lg disabled:opacity-50"
+                        className="flex-1 py-2 text-[11px] font-bold bg-[#0d0d0d] text-white rounded-lg hover:bg-[#292524] transition-colors disabled:opacity-50"
                       >
-                        {openingId === book.id ? t("digital_library.preparing") : t("digital_library.download")}
+                        {openingId === book.id ? String(t("digital_library.preparing")) : String(t("digital_library.download"))}
                       </button>
                     )}
                   </div>
@@ -180,24 +158,26 @@ function DigitalLibraryContent() {
             ))}
           </div>
 
-          <div className="pt-3 flex items-center justify-between">
-            <p className="text-xs text-secondary">
-              {t("digital_library.page_info", { page, total: totalPages })} {isFetching ? `• ${t("digital_library.updating")}` : ""}
+          {/* Pagination */}
+          <div className="flex items-center justify-between pb-10">
+            <p className="text-[11px] text-[#0d0d0d]/35">
+              {String(t("digital_library.page_info", { page, total: totalPages }))}
+              {isFetching && " · updating…"}
             </p>
-            <div className="flex items-center gap-2">
+            <div className="flex gap-2">
               <button
-                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-                disabled={!hasPrev || isFetching}
-                className="px-3 py-1.5 text-xs font-bold border border-border rounded-lg text-primary disabled:opacity-50"
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page <= 1 || isFetching}
+                className="px-4 py-2 rounded-full text-[11px] font-bold border border-[#e8e6e1] text-[#0d0d0d]/50 hover:text-[#0d0d0d] disabled:opacity-30 transition-colors"
               >
-                {t("digital_library.previous")}
+                {String(t("digital_library.previous"))}
               </button>
               <button
-                onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
-                disabled={!hasNext || isFetching}
-                className="px-3 py-1.5 text-xs font-bold bg-primary text-background rounded-lg disabled:opacity-50"
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages || isFetching}
+                className="px-4 py-2 rounded-full text-[11px] font-bold bg-[#0d0d0d] text-white hover:bg-[#292524] disabled:opacity-30 transition-colors"
               >
-                {t("digital_library.next")}
+                {String(t("digital_library.next"))}
               </button>
             </div>
           </div>
@@ -209,13 +189,7 @@ function DigitalLibraryContent() {
 
 export default function StudentDigitalLibraryPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="p-6 lg:p-12">
-          <LoadingCard />
-        </div>
-      }
-    >
+    <Suspense fallback={<div className="p-6 lg:p-12"><LoadingCard /></div>}>
       <DigitalLibraryContent />
     </Suspense>
   );

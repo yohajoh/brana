@@ -1,114 +1,67 @@
 "use client";
 
-import { BookOpen, Wallet, Calculator, Calendar } from "lucide-react";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 
 type RentalItem = {
   id: string;
   loan_date: string;
-  due_date: string;
   return_date: string | null;
   status: string;
   fine: number | null;
   payment?: { amount: number; status: string } | null;
 };
 
-type SystemConfig = {
-  daily_fine: string | number;
-  max_loan_days: number;
-};
+type SystemConfig = { daily_fine: string | number; max_loan_days: number };
 
-type Props = {
-  rentals: RentalItem[];
-  config: SystemConfig | null;
-  loading?: boolean;
-};
+type Props = { rentals: RentalItem[]; config: SystemConfig | null; loading?: boolean };
 
-const daysBetween = (start: string, end: string) =>
-  Math.ceil((new Date(end).getTime() - new Date(start).getTime()) / (1000 * 60 * 60 * 24));
+const daysBetween = (a: string, b: string) =>
+  Math.ceil((new Date(b).getTime() - new Date(a).getTime()) / 86_400_000);
 
-export const HistorySummary = ({ rentals, config, loading }: Props) => {
+export const HistorySummary = ({ rentals, loading }: Props) => {
   const { t } = useLanguage();
-  void config;
+
+  const totalBorrowed = rentals.length;
+  const totalPaid = rentals.reduce((s, r) => {
+    const p = r.payment?.amount ? Number(r.payment.amount) : 0;
+    const f = r.fine ? Number(r.fine) : 0;
+    return s + Math.max(p, f);
+  }, 0);
+  const avgCost = totalBorrowed > 0 ? totalPaid / totalBorrowed : 0;
+  const totalDays = rentals.reduce((s, r) => {
+    if (r.return_date) return s + daysBetween(r.loan_date, r.return_date);
+    if (r.status === "BORROWED") return s + daysBetween(r.loan_date, new Date().toISOString());
+    return s;
+  }, 0);
+
+  const stats = [
+    { label: String(t("student_history.summary.total_borrowed")), value: totalBorrowed.toString(), sub: "books read" },
+    { label: String(t("student_history.summary.total_paid")),     value: String(t("student_history.summary.birr", { amount: totalPaid.toFixed(1) })), sub: "total fees" },
+    { label: String(t("student_history.summary.avg_cost")),       value: String(t("student_history.summary.birr", { amount: avgCost.toFixed(1) })),   sub: "per book" },
+    { label: String(t("student_history.summary.total_reading_days")), value: String(t("student_history.summary.days_suffix", { count: totalDays })), sub: "active reading" },
+  ];
+
   if (loading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {[1, 2, 3, 4].map((i) => (
-          <div
-            key={i}
-            className="bg-card rounded-2xl p-6 border border-border/50 shadow-sm animate-pulse"
-          >
-            <div className="h-20 bg-muted/50 rounded" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[1,2,3,4].map(i => (
+          <div key={i} className="bg-white rounded-2xl border border-[#e8e6e1] p-5 animate-pulse">
+            <div className="h-7 w-12 bg-[#f0eeea] rounded mb-2" />
+            <div className="h-3 w-20 bg-[#f0eeea] rounded" />
           </div>
         ))}
       </div>
     );
   }
 
-  // Calculate statistics
-  const totalBorrowed = rentals.length;
-  
-  // Total amount paid (from payments + fines)
-  const totalPaid = rentals.reduce((sum, r) => {
-    const paymentAmount = r.payment?.amount ? Number(r.payment.amount) : 0;
-    const fineAmount = r.fine ? Number(r.fine) : 0;
-    return sum + Math.max(paymentAmount, fineAmount);
-  }, 0);
-  
-  // Average cost per book
-  const avgCost = totalBorrowed > 0 ? totalPaid / totalBorrowed : 0;
-  
-  // Total days of reading (sum of all rental periods)
-  const totalDays = rentals.reduce((sum, r) => {
-    if (r.return_date) {
-      return sum + daysBetween(r.loan_date, r.return_date);
-    } else if (r.status === "BORROWED") {
-      return sum + daysBetween(r.loan_date, new Date().toISOString());
-    }
-    return sum;
-  }, 0);
-
-  const stats = [
-    {
-      label: t("student_history.summary.total_borrowed"),
-      value: totalBorrowed.toString(),
-      icon: <BookOpen className="text-secondary" size={24} />,
-    },
-    {
-      label: t("student_history.summary.total_paid"),
-      value: t("student_history.summary.birr", { amount: totalPaid.toFixed(1) }),
-      icon: <Wallet className="text-secondary" size={24} />,
-    },
-    {
-      label: t("student_history.summary.avg_cost"),
-      value: t("student_history.summary.birr", { amount: avgCost.toFixed(1) }),
-      icon: <Calculator className="text-secondary" size={24} />,
-    },
-    {
-      label: t("student_history.summary.total_reading_days"),
-      value: t("student_history.summary.days_suffix", { count: totalDays }),
-      icon: <Calendar className="text-secondary" size={24} />,
-    },
-  ];
-
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      {stats.map((stat, index) => (
-          <div
-            key={index}
-            className="bg-card rounded-2xl p-6 border border-border/50 shadow-sm flex flex-col gap-4"
-          >
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-muted/50 rounded-lg">{stat.icon}</div>
-              <p className="text-[10px] uppercase tracking-widest text-secondary font-bold">
-                {stat.label}
-              </p>
-            </div>
-            <p className="text-3xl font-serif font-extrabold text-primary">
-              {stat.value}
-            </p>
-          </div>
-        ))}
-      </div>
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      {stats.map((s, i) => (
+        <div key={i} className="bg-white rounded-2xl border border-[#e8e6e1] p-5">
+          <p className="text-[22px] font-serif font-black text-[#0d0d0d] leading-none">{s.value}</p>
+          <p className="text-[9px] font-black text-[#0d0d0d]/35 uppercase tracking-[0.15em] mt-2">{s.label}</p>
+        </div>
+      ))}
+    </div>
   );
 };

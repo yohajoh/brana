@@ -5,13 +5,15 @@ import { DashboardShellProvider } from "@/components/providers/DashboardShellPro
 
 export default function StudentDashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="dashboard-shell min-h-screen bg-[#FFFFFF] text-foreground flex selection:bg-primary/10">
+    <div className="min-h-screen bg-[#f5f4f0] text-[#0d0d0d] flex selection:bg-[#f5c518]/30">
       <StudentRouteGuard />
       <DashboardShellProvider>
         <DashboardSidebar />
-        <div className="flex-1 lg:ml-64 pt-16">
+        <div className="flex-1 lg:ml-72 min-w-0 flex flex-col">
           <Navbar />
-          <main className="h-[calc(100dvh-64px)] overflow-y-auto bg-[#FFFFFF]">{children}</main>
+          <main className="pt-14 flex-1">
+            {children}
+          </main>
         </div>
       </DashboardShellProvider>
     </div>

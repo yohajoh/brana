@@ -15,88 +15,101 @@ type Reservation = {
   book: { title: string; cover_image_url: string; author: { name: string } };
 };
 
-export default function StudentReservationsPage() {
-  const { t } = useLanguage();
-  const { data: reservationsData, isLoading } = useMyReservations();
-  const cancelReservation = useCancelReservation();
+const statusStyle = (s: string) => {
+  switch (s) {
+    case "NOTIFIED":  return "bg-[#fdf9e7] text-[#a07c00]";
+    case "FULFILLED": return "bg-emerald-100 text-emerald-700";
+    case "EXPIRED":
+    case "CANCELLED": return "bg-[#f0eeea] text-[#0d0d0d]/40";
+    default:          return "bg-[#f0eeea] text-[#0d0d0d]/60";
+  }
+};
 
-  const rows: Reservation[] = (reservationsData?.reservations || []) as unknown as Reservation[];
+export default function StudentReservationsPage() {
+  const { t }              = useLanguage();
+  const { data, isLoading } = useMyReservations();
+  const cancel             = useCancelReservation();
+  const rows: Reservation[] = (data?.reservations || []) as unknown as Reservation[];
+
+  const handleCancel = async (id: string) => {
+    try {
+      await cancel.mutateAsync(id);
+      toast.success(String(t("student_reservations.success_cancel")));
+    } catch {
+      toast.error(String(t("student_reservations.error_cancel")));
+    }
+  };
 
   const columns: ColumnDef<Reservation, unknown>[] = [
     {
       id: "book",
-      header: t("admin_reservations.table.book"),
+      header: String(t("admin_reservations.table.book")),
       cell: ({ row }) => (
         <div>
-          <p className="text-sm font-bold text-primary">{row.original.book.title}</p>
-          <p className="text-xs text-secondary">{row.original.book.author?.name}</p>
+          <p className="text-[13px] font-semibold text-[#0d0d0d]">{row.original.book.title}</p>
+          <p className="text-[11px] text-[#0d0d0d]/40">{row.original.book.author?.name}</p>
         </div>
       ),
     },
     {
       id: "queue",
-      header: t("admin_reservations.table.queue"),
-      cell: ({ row }) => <span className="text-sm text-primary/80">#{row.original.queue_position}</span>,
+      header: String(t("admin_reservations.table.queue")),
+      cell: ({ row }) => (
+        <span className="text-[13px] font-bold text-[#0d0d0d]">#{row.original.queue_position}</span>
+      ),
     },
     {
       id: "status",
-      header: t("admin_reservations.table.status"),
+      header: String(t("admin_reservations.table.status")),
       cell: ({ row }) => (
-        <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-muted text-primary w-fit block">
+        <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wide ${statusStyle(row.original.status)}`}>
           {row.original.status}
         </span>
       ),
     },
     {
       id: "expires",
-      header: t("admin_reservations.table.expires"),
+      header: String(t("admin_reservations.table.expires")),
       cell: ({ row }) => (
-        <span className="text-sm text-primary/70">
-          {row.original.expires_at ? new Date(row.original.expires_at).toLocaleString() : "-"}
+        <span className="text-[12px] text-[#0d0d0d]/40">
+          {row.original.expires_at
+            ? new Date(row.original.expires_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+            : "—"}
         </span>
       ),
     },
     {
       id: "action",
-      header: t("admin_reservations.table.action"),
+      header: "",
       cell: ({ row }) => (
         <button
-          disabled={!(["QUEUED", "NOTIFIED"] as string[]).includes(row.original.status)}
+          disabled={!(["QUEUED","NOTIFIED"] as string[]).includes(row.original.status)}
           onClick={() => handleCancel(row.original.id)}
-          className="px-3 py-1.5 text-xs font-bold text-primary border border-border rounded-lg disabled:opacity-40"
+          className="text-[11px] font-bold text-[#0d0d0d]/40 hover:text-red-600 transition-colors disabled:opacity-25 disabled:cursor-not-allowed"
         >
-          {cancelReservation.isPending && cancelReservation.variables === row.original.id
-            ? t("student_reservations.cancelling")
-            : t("student_reservations.cancel")}
+          {cancel.isPending && cancel.variables === row.original.id
+            ? String(t("student_reservations.cancelling"))
+            : String(t("student_reservations.cancel"))}
         </button>
       ),
     },
   ];
 
-  const handleCancel = async (id: string) => {
-    try {
-      await cancelReservation.mutateAsync(id);
-      toast.success(t("student_reservations.success_cancel"));
-    } catch {
-      toast.error(t("student_reservations.error_cancel"));
-    }
-  };
-
   return (
-    <div className="p-6 lg:p-12 space-y-8">
-      <div className="space-y-2">
-        <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-primary">
-          {t("student_reservations.title")}
+    <div className="max-w-4xl mx-auto px-4 py-7 sm:px-6 lg:px-8 space-y-7">
+      <div>
+        <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.2em] mb-1">Queue</p>
+        <h1 className="text-[28px] font-serif font-black text-[#0d0d0d]">
+          {String(t("student_reservations.title"))}
         </h1>
-        <p className="text-secondary font-medium">{t("student_reservations.subtitle")}</p>
+        <p className="text-sm text-[#0d0d0d]/45 mt-1">{String(t("student_reservations.subtitle"))}</p>
       </div>
-
-      <div className="bg-white rounded-2xl border border-border/60 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#e8e6e1] overflow-hidden pb-4">
         <TanStackTable
           data={rows}
           columns={columns}
           isLoading={isLoading}
-          emptyText={t("student_reservations.no_reservations")}
+          emptyText={String(t("student_reservations.no_reservations"))}
           skeletonRows={4}
         />
       </div>

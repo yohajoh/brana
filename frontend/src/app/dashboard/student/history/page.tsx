@@ -38,19 +38,27 @@ export default function BorrowingHistoryPage() {
 
   const rentals: RentalItem[] = (rentalsData?.rentals || []) as unknown as RentalItem[];
   const config: SystemConfig | null = configData?.data?.config as unknown as SystemConfig | null;
-
-  const totalPages = Math.max(1, Math.ceil(rentals.length / limit));
+  const totalPages = Math.max(1, Math.ceil((rentalsData?.total ?? rentals.length) / limit));
 
   return (
-    <div className="p-6 lg:p-12 space-y-12">
-      <div className="space-y-2">
-        <h1 className="text-4xl lg:text-5xl font-serif font-extrabold text-primary">{t("student_history.title")}</h1>
-        <p className="text-secondary font-medium">{t("student_history.subtitle")}</p>
+    <div className="max-w-5xl mx-auto px-4 py-7 sm:px-6 lg:px-8 space-y-7">
+
+      {/* Header */}
+      <div>
+        <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.2em] mb-1">
+          {String(t("student_dashboard.history.title"))}
+        </p>
+        <h1 className="text-[28px] font-serif font-black text-[#0d0d0d]">
+          {String(t("student_history.title"))}
+        </h1>
+        <p className="text-sm text-[#0d0d0d]/45 mt-1">{String(t("student_history.subtitle"))}</p>
       </div>
 
+      {/* Stats row */}
       <HistorySummary rentals={rentals} config={config} loading={isLoading} />
 
-      <div className="space-y-8">
+      {/* Table */}
+      <div className="space-y-5 pb-10">
         <DetailedHistoryTable rentals={rentals} config={config} loading={isLoading} />
         {totalPages > 1 && <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />}
       </div>
