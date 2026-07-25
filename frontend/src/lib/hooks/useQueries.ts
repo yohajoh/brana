@@ -1313,6 +1313,38 @@ export function useChangePassword() {
   });
 }
 
+// ─── Google Calendar ─────────────────────────────────────────────────────────
+
+export type CalendarStatus = {
+  connected: boolean;
+  email: string | null;
+  connected_at: string | null;
+};
+
+export function useCalendarStatus() {
+  return useQuery({
+    queryKey: ["calendar-status"],
+    queryFn: () =>
+      api.get<{ status: string; data: CalendarStatus }>("/auth/calendar-status"),
+    staleTime: 30 * 1000,
+    gcTime: 5 * 60 * 1000,
+    retry: 1,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: true,
+  });
+}
+
+export function useCalendarDisconnect() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.post<{ status: string; message: string }>("/auth/calendar-disconnect"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["calendar-status"] });
+    },
+  });
+}
+
 export function useUpdateSystemConfig() {
   const queryClient = useQueryClient();
   return useMutation({

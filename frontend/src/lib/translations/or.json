@@ -744,7 +744,22 @@
       "failed_update": "Profaayilii haaromsuun hin danda'amne",
       "email_readonly_btn": "Iimeelii jijjiiruun hin danda'amu"
     },
-    "security_title": "Nageenya Lakkoofsaa"
+    "security_title": "Nageenya Lakkoofsaa",
+    "calendar_title": "Google Calendar",
+    "calendar_subtitle": "Guyyoowwan deebisuuf Google Calendar walqabsiisi.",
+    "calendar_connected_label": "Herrega Walqabsiifame",
+    "calendar_connected_since": "Guyyaa walqabsiifame",
+    "calendar_connect_btn": "Google Calendar walqabsiisi",
+    "calendar_disconnect_btn": "Calendar addaan kuti",
+    "calendar_connecting": "Walqabsiisaa jira...",
+    "calendar_disconnecting": "Addaan kutaa jira...",
+    "calendar_connected_badge": "Walqabsiifameera",
+    "calendar_not_connected": "Hin walqabsiifamne",
+    "calendar_connect_info": "Erga walqabsiiftee booda guyyoowwan kitaaba deebisuuf Google Calendar irratti ni mul'atu.",
+    "calendar_disconnect_confirm": "Google Calendar addaan kutuuf mirkaneessita?",
+    "calendar_disconnect_success": "Google Calendar addaan bahee.",
+    "calendar_disconnect_error": "Google Calendar addaan kutuun hin milkaa'ine.",
+    "calendar_status_error": "Haala Calendar argachuun hin milkaa'ine."
   },
   "change_password": {
     "title": "Jecha Icctii Jijjiiri",

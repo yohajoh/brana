@@ -43,8 +43,11 @@ router.post("/reset-password/:token", authController.resetPassword);
 
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
 const CALENDAR_SCOPES = ["https://www.googleapis.com/auth/calendar.events"];
-const calendarRedirectUri =
-  process.env.CALENDAR_CALLBACK_URL || process.env.CALLBACK_URL || undefined;
+
+// Calendar redirect URI must match exactly what is registered in Google Cloud Console
+// Use CALENDAR_CALLBACK_URL for the dedicated calendar connect flow.
+// Do NOT fall back to CALLBACK_URL — that is the login redirect, not the calendar redirect.
+const calendarRedirectUri = process.env.CALENDAR_CALLBACK_URL || undefined;
 
 // Use consistent env var names — support both GOOGLE_CLIENT_ID and CLIENT_ID
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || process.env.CLIENT_ID;
@@ -61,16 +64,13 @@ const signCalendarState = (userId) =>
   });
 const verifyCalendarState = (token) => jwt.verify(token, calendarStateSecret);
 
-// Google OAuth - use passport's built-in callback
+// Google OAuth - basic login only (profile + email)
 router.get("/google", (req, res, next) => {
   if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
     return res.redirect(`${FRONTEND_URL}/auth/login?error=google_not_configured`);
   }
   passport.authenticate("google", {
-    scope: ["profile", "email", ...CALENDAR_SCOPES],
-    accessType: "offline",
-    prompt: "consent",
-    include_granted_scopes: true,
+    scope: ["profile", "email"],
     session: false,
   })(req, res, next);
 });
@@ -169,19 +169,86 @@ router.get("/google-calendar/callback", async (req, res) => {
       return res.redirect(`${FRONTEND_URL}/dashboard/student?error=google_calendar_no_refresh_token`);
     }
 
+    // Fetch the actual Google account email that granted the permission.
+    // This may differ from the user's library profile email if they authorized
+    // with a different Google account — we should store the real calendar account email.
+    let calendarEmail = user.email; // fallback to profile email
+    try {
+      calendarOAuthClient.setCredentials(tokens);
+      const oauth2 = google.oauth2({ version: "v2", auth: calendarOAuthClient });
+      const { data: googleProfile } = await oauth2.userinfo.get();
+      if (googleProfile.email) {
+        calendarEmail = googleProfile.email;
+      }
+    } catch (profileErr) {
+      console.warn("Could not fetch Google profile email, using profile email as fallback:", profileErr?.message);
+    }
+
     await prisma.user.update({
       where: { id: user.id },
       data: {
         google_refresh_token: refreshToken,
-        google_calendar_email: user.email,
+        google_calendar_email: calendarEmail,
         google_calendar_connected_at: new Date(),
       },
     });
 
-    return res.redirect(`${FRONTEND_URL}/dashboard/student?calendar=connected`);
+    return res.redirect(`${FRONTEND_URL}/dashboard/student/settings?calendar=connected`);
   } catch (error) {
     console.error("Google Calendar connect error:", error);
-    return res.redirect(`${FRONTEND_URL}/dashboard/student?error=google_calendar_callback_error`);
+    return res.redirect(`${FRONTEND_URL}/dashboard/student/settings?error=google_calendar_callback_error`);
+  }
+});
+
+// Returns calendar connection status for the authenticated user
+router.get("/calendar-status", protect, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: {
+        google_calendar_email: true,
+        google_calendar_connected_at: true,
+        google_refresh_token: true,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ status: "error", message: "User not found" });
+    }
+
+    return res.status(200).json({
+      status: "success",
+      data: {
+        connected: Boolean(user.google_refresh_token),
+        email: user.google_calendar_email || null,
+        connected_at: user.google_calendar_connected_at || null,
+      },
+    });
+  } catch (error) {
+    console.error("Calendar status error:", error);
+    return res.status(500).json({ status: "error", message: "Failed to fetch calendar status" });
+  }
+});
+
+// Disconnect Google Calendar
+router.post("/calendar-disconnect", protect, async (req, res) => {
+  try {
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: {
+        google_refresh_token: null,
+        google_calendar_email: null,
+        google_calendar_connected_at: null,
+      },
+    });
+
+    return res.status(200).json({
+      status: "success",
+      message: "Google Calendar disconnected successfully",
+    });
+  } catch (error) {
+    console.error("Calendar disconnect error:", error);
+    return res.status(500).json({ status: "error", message: "Failed to disconnect calendar" });
   }
 });
 

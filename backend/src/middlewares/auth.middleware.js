@@ -15,6 +15,9 @@ const AUTH_USER_SELECT = {
   is_confirmed: true,
   is_blocked: true,
   created_at: true,
+  google_calendar_email: true,
+  google_calendar_connected_at: true,
+  // Note: google_refresh_token is intentionally excluded — never send to client
 };
 
 const AUTH_USER_SELECT_LEGACY = {

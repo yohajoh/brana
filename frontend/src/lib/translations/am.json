@@ -744,7 +744,22 @@
       "failed_update": "ፕሮፋይል ማዘመን አልተቻለም",
       "email_readonly_btn": "ኢሜይል መቀየር አይቻልም"
     },
-    "security_title": "የመለያ ደህንነት"
+    "security_title": "የመለያ ደህንነት",
+    "calendar_title": "Google Calendar",
+    "calendar_subtitle": "የመጽሐፍ የመመለሻ ቀናት በራስሆነ ሁኔታ ለማመሳሰል Google Calendar ያስተሳስሩ።",
+    "calendar_connected_label": "የተሳሰረ መለያ",
+    "calendar_connected_since": "ከዚህ ጊዜ ጀምሮ ተሳስሯል",
+    "calendar_connect_btn": "Google Calendar ያስተሳስሩ",
+    "calendar_disconnect_btn": "Calendar ያቋርጡ",
+    "calendar_connecting": "በማስተሳሰር ላይ...",
+    "calendar_disconnecting": "በማቋረጥ ላይ...",
+    "calendar_connected_badge": "ተሳስሯል",
+    "calendar_not_connected": "አልተሳሰረም",
+    "calendar_connect_info": "ካስተሳሰሩ በኋላ የመጽሐፍ የመመለሻ ቀናት በGoogle Calendar ላይ ይታያሉ።",
+    "calendar_disconnect_confirm": "Google Calendar ማቋረጥ እርግጠኛ ነዎት?",
+    "calendar_disconnect_success": "Google Calendar ተቋርጧል።",
+    "calendar_disconnect_error": "Google Calendar ማቋረጥ አልተሳካም።",
+    "calendar_status_error": "የ Calendar ሁኔታ ማምጣት አልተሳካም።"
   },
   "change_password": {
     "title": "የይለፍ ቃል ቀይር",

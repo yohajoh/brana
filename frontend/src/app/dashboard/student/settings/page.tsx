@@ -3,6 +3,7 @@
 import { useCurrentUser } from "@/lib/hooks/useQueries";
 import { ProfileSettings } from "@/components/ProfileSettings";
 import { SecuritySettings } from "@/components/SecuritySettings";
+import { GoogleCalendarSettings } from "@/components/GoogleCalendarSettings";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 
 export type UserData = {
@@ -49,6 +50,10 @@ export default function SettingsPage() {
         <div className="h-px bg-border/40 w-full" />
 
         <SecuritySettings user={user || null} loading={isLoading} />
+
+        <div className="h-px bg-border/40 w-full" />
+
+        <GoogleCalendarSettings />
       </div>
     </div>
   );

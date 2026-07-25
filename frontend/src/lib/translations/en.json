@@ -745,7 +745,22 @@
       "failed_update": "Failed to update profile",
       "email_readonly_btn": "Email Cannot Be Changed"
     },
-    "security_title": "Account Security"
+    "security_title": "Account Security",
+    "calendar_title": "Google Calendar",
+    "calendar_subtitle": "Connect your Google Calendar to automatically sync book due dates and library events.",
+    "calendar_connected_label": "Connected Account",
+    "calendar_connected_since": "Connected since",
+    "calendar_connect_btn": "Connect Google Calendar",
+    "calendar_disconnect_btn": "Disconnect Calendar",
+    "calendar_connecting": "Connecting...",
+    "calendar_disconnecting": "Disconnecting...",
+    "calendar_connected_badge": "Connected",
+    "calendar_not_connected": "Not connected",
+    "calendar_connect_info": "Your book due dates will automatically appear in your Google Calendar once connected.",
+    "calendar_disconnect_confirm": "Are you sure you want to disconnect Google Calendar?",
+    "calendar_disconnect_success": "Google Calendar disconnected.",
+    "calendar_disconnect_error": "Failed to disconnect Google Calendar.",
+    "calendar_status_error": "Failed to load calendar status."
   },
   "change_password": {
     "title": "Change Password",

@@ -61,13 +61,10 @@ if (googleClientId && googleClientSecret && callbackUrl) {
         clientID: googleClientId,
         clientSecret: googleClientSecret,
         callbackURL: callbackUrl,
-        scope: [
-          "profile",
-          "email",
-          "https://www.googleapis.com/auth/calendar.events",
-        ],
-        accessType: "offline",     // required to get a refresh_token
-        prompt: "consent",         // force consent screen so refresh_token is always returned
+        // Only request basic profile scopes on login.
+        // Calendar access is requested separately via /api/auth/google-calendar
+        // after the user is logged in, to avoid the "app not verified" warning.
+        scope: ["profile", "email"],
       },
       async (accessToken, refreshToken, profile, done) => {
         try {
@@ -101,18 +98,6 @@ if (googleClientId && googleClientSecret && callbackUrl) {
                 }),
               );
             }
-            if (refreshToken) {
-              user = await withDbRetry(() =>
-                prisma.user.update({
-                  where: { id: user.id },
-                  data: {
-                    google_refresh_token: refreshToken,
-                    google_calendar_email: email,
-                    google_calendar_connected_at: new Date(),
-                  },
-                }),
-              );
-            }
             return done(null, user);
           }
 
@@ -126,9 +111,7 @@ if (googleClientId && googleClientSecret && callbackUrl) {
                 email,
                 password_hash: hashedPassword,
                 is_confirmed: true,
-                google_refresh_token: refreshToken || null,
-                google_calendar_email: refreshToken ? email : null,
-                google_calendar_connected_at: refreshToken ? new Date() : null,
+                // No calendar tokens at signup — user connects calendar separately
               },
             }),
           );
