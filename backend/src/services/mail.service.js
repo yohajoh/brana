@@ -1,61 +1,45 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
-// Build transporter lazily so it always reads the current env vars.
-// Explicit timeouts prevent the connection from hanging indefinitely
-// (which caused the 15s email_timeout in production).
-const createTransporter = () => {
-  const host = process.env.EMAIL_HOST;
-  const port = parseInt(process.env.EMAIL_PORT || "587", 10);
-  const user = process.env.EMAIL_USER;
-  const pass = process.env.EMAIL_PASS;
-  const from = process.env.EMAIL_FROM;
-
-  if (!host || !user || !pass || !from) {
-    const missing = [
-      !host && "EMAIL_HOST",
-      !user && "EMAIL_USER",
-      !pass && "EMAIL_PASS",
-      !from && "EMAIL_FROM",
-    ]
-      .filter(Boolean)
-      .join(", ");
-    throw new Error(`Email service misconfigured — missing env vars: ${missing}`);
+// Use Resend's HTTP API instead of SMTP.
+// SMTP (ports 465/587) is blocked by Render and most cloud platforms.
+// The HTTP API goes over port 443 (HTTPS) which is always open.
+const getResendClient = () => {
+  const apiKey = process.env.EMAIL_PASS || process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    throw new Error("Email service misconfigured — missing RESEND_API_KEY or EMAIL_PASS env var");
   }
-
-  return nodemailer.createTransport({
-    host,
-    port,
-    secure: true,            // Resend requires SSL/TLS on port 465 — always true
-    auth: { user, pass },
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 15000,
-    pool: false,
-  });
+  return new Resend(apiKey);
 };
 
 export const sendEmail = async (options) => {
-  const transporter = createTransporter();
+  const resend = getResendClient();
 
-  const mailOptions = {
-    from: `Brana Library <${process.env.EMAIL_FROM}>`,
-    to: options.email,
-    subject: options.subject,
-    text: options.message,
-    html: options.html,
-  };
+  const from = process.env.EMAIL_FROM;
+  if (!from) {
+    throw new Error("Email service misconfigured — missing EMAIL_FROM env var");
+  }
 
   try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`[Mail] ✅ Sent "${options.subject}" to ${options.email} — id: ${info.messageId}`);
-    return info;
-  } catch (error) {
-    console.error(`[Mail] ❌ Failed to send "${options.subject}" to ${options.email}:`, {
-      message: error?.message,
-      code: error?.code,
-      response: error?.response,
-      responseCode: error?.responseCode,
+    const { data, error } = await resend.emails.send({
+      from: `Brana Library <${from}>`,
+      to: options.email,
+      subject: options.subject,
+      text: options.message,
+      html: options.html,
     });
-    throw error;
+
+    if (error) {
+      console.error(`[Mail] ❌ Resend API error sending to ${options.email}:`, error);
+      throw new Error(error.message || "Resend API returned an error");
+    }
+
+    console.log(`[Mail] ✅ Sent "${options.subject}" to ${options.email} — id: ${data?.id}`);
+    return data;
+  } catch (err) {
+    console.error(`[Mail] ❌ Failed to send "${options.subject}" to ${options.email}:`, {
+      message: err?.message,
+      name: err?.name,
+    });
+    throw err;
   }
 };
