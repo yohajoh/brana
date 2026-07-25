@@ -343,9 +343,9 @@ export default function BookDetailPage() {
       {/* ── Hero band — 60vh ── */}
       <section
         className="relative overflow-hidden"
-        style={{ height: "calc(60vh + 64px)", minHeight: "584px", maxHeight: "844px", paddingTop: "64px" }}
+        style={{ height: "60vh", minHeight: "520px", maxHeight: "780px" }}
       >
-        {/* Background = blurred book cover fills the entire section */}
+        {/* Background starts at absolute top — navbar is transparent over it */}
         <div className="absolute inset-0">
           <Image
             src={activeImage || book.cover_image_url || "/reading_illustration.png"}
