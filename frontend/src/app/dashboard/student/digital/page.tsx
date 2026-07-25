@@ -1,68 +1,77 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
-import { fetchApi } from "@/lib/api";
+import { API_BASE_URL, fetchApi } from "@/lib/api";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { toast } from "sonner";
 
 type DigitalBook = {
-  id: string; title: string;
+  id: string;
+  title: string;
   cover_image_url?: string;
-  pdf_access: "FREE"|"PAID"|"RESTRICTED";
-  author?: { name?: string }; category?: { name?: string };
+  pdf_access: "FREE" | "PAID" | "RESTRICTED";
+  author?: { name?: string };
+  category?: { name?: string };
 };
-type ApiResponse = { books: DigitalBook[]; meta?: { total?:number; totalPages?:number } };
+type ApiResponse = { books: DigitalBook[]; meta?: { total?: number; totalPages?: number } };
 
-const fadeUp  = { hidden:{opacity:0,y:16}, show:{opacity:1,y:0,transition:{duration:0.38,ease:[0.16,1,0.3,1]}} };
-const stagger = { hidden:{}, show:{transition:{staggerChildren:0.05}} };
-const cardVar = { hidden:{opacity:0,y:12,scale:0.97}, show:{opacity:1,y:0,scale:1,transition:{duration:0.3,ease:[0.16,1,0.3,1]}} };
+const fadeUp  = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.38, ease: [0.16, 1, 0.3, 1] } } };
+const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
+const cardVar = { hidden: { opacity: 0, y: 12, scale: 0.97 }, show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] } } };
 
-function DigitalContent() {
-  const { t } = useLanguage();
-  const [page, setPage]        = useState(1);
-  const [openingId, setOpenId] = useState<string | null>(null);
+export default function StudentDigitalPage() {
+  const { t }  = useLanguage();
+  const router = useRouter();
+  const [page, setPage]          = useState(1);
+  const [downloadingId, setDlId] = useState<string | null>(null);
 
   const { data, isLoading, isFetching } = useQuery<ApiResponse>({
     queryKey: ["digital-books", page],
     queryFn: () => fetchApi<ApiResponse>(`/digital-books?page=${page}&limit=18`),
-    staleTime: 60_000, gcTime: 600_000, retry: 1, refetchOnWindowFocus: false,
+    staleTime: 60_000,
+    gcTime: 600_000,
+    retry: 1,
+    refetchOnWindowFocus: false,
   });
 
   const books      = Array.isArray(data?.books) ? data.books : [];
   const totalPages = Math.max(1, Number(data?.meta?.totalPages || 1));
 
-  const open = async (book: DigitalBook, download = false) => {
+  const handleRead = (book: DigitalBook) => {
+    router.push(`/read/${book.id}`);
+  };
+
+  const handleDownload = async (book: DigitalBook) => {
     try {
-      setOpenId(book.id);
-      const { API_BASE_URL } = await import("@/lib/api");
-      const url  = `${API_BASE_URL}/digital-books/${book.id}/pdf${download ? "?download=true" : ""}`;
+      setDlId(book.id);
+      const url  = `${API_BASE_URL}/digital-books/${book.id}/pdf?download=true`;
       const resp = await fetch(url, { credentials: "include" });
       if (!resp.ok) {
         const raw = await resp.text();
-        try { throw new Error((JSON.parse(raw) as { message?: string }).message || `Error ${resp.status}`); }
-        catch { throw new Error(`Error ${resp.status}`); }
+        let msg = `Error ${resp.status}`;
+        try { msg = (JSON.parse(raw) as { message?: string }).message || msg; } catch { /* ignore */ }
+        throw new Error(msg);
       }
       const blob = await resp.blob();
-      if (!resp.headers.get("Content-Type")?.includes("application/pdf") || blob.size === 0)
-        throw new Error("PDF is empty or invalid.");
-      const url2 = window.URL.createObjectURL(blob);
-      if (download) {
-        const a = document.createElement("a"); a.href = url2; a.download = `${book.title}.pdf`;
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      } else {
-        window.open(url2, "_blank", "noopener,noreferrer");
-      }
-      setTimeout(() => window.URL.revokeObjectURL(url2), 1000);
-    } catch (e) { toast.error(e instanceof Error ? e.message : "Unable to open PDF."); }
-    finally     { setOpenId(null); }
+      if (blob.size === 0) throw new Error("File is empty.");
+      const objUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objUrl; a.download = `${book.title}.pdf`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(() => window.URL.revokeObjectURL(objUrl), 2000);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Unable to download PDF.");
+    } finally {
+      setDlId(null);
+    }
   };
 
   return (
-    <motion.div variants={stagger} initial="hidden" animate="show"
-      className="p-4 sm:p-6 space-y-6">
+    <motion.div variants={stagger} initial="hidden" animate="show" className="p-4 sm:p-6 space-y-6">
 
       <motion.div variants={fadeUp}>
         <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.2em] mb-1">Digital</p>
@@ -81,16 +90,13 @@ function DigitalContent() {
           ))}
         </div>
       ) : books.length === 0 ? (
-        <motion.div variants={fadeUp}
-          className="bg-white rounded-2xl border border-dashed border-[#e8e4dc] p-12 text-center">
+        <motion.div variants={fadeUp} className="bg-white rounded-2xl border border-dashed border-[#e8e4dc] p-12 text-center">
           <p className="text-sm text-[#0d0d0d]/35">{String(t("digital_library.none"))}</p>
         </motion.div>
       ) : (
-        <motion.div variants={stagger}
-          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        <motion.div variants={stagger} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {books.map(book => (
             <motion.div key={book.id} variants={cardVar} className="group flex flex-col">
-              {/* Cover */}
               <div className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-[#e8e4dc] mb-3">
                 <Image
                   src={book.cover_image_url || "https://placehold.co/300x420?text=Book"}
@@ -103,25 +109,23 @@ function DigitalContent() {
                   {book.pdf_access === "RESTRICTED" ? "Read only" : "Free"}
                 </span>
               </div>
-              {/* Title */}
+
               <div className="flex-1 mb-3 px-0.5">
                 <p className="text-[12px] font-bold text-[#0d0d0d] line-clamp-2 leading-tight">{book.title}</p>
                 <p className="text-[10px] text-[#0d0d0d]/40 mt-0.5 truncate">
                   {book.author?.name || "Unknown"} · {book.category?.name || ""}
                 </p>
               </div>
-              {/* Actions */}
+
               <div className="flex gap-1.5 px-0.5">
-                <button onClick={() => open(book)}
-                  disabled={openingId === book.id}
-                  className="flex-1 py-2 text-[10px] font-bold bg-[#0d0d0d] text-white rounded-xl hover:bg-[#292524] disabled:opacity-50 transition-colors">
-                  {openingId === book.id ? String(t("digital_library.opening")) : String(t("digital_library.read"))}
+                <button onClick={() => handleRead(book)}
+                  className="flex-1 py-2 text-[10px] font-bold bg-[#0d0d0d] text-white rounded-xl hover:bg-[#292524] transition-colors">
+                  {String(t("digital_library.read"))}
                 </button>
                 {book.pdf_access !== "RESTRICTED" && (
-                  <button onClick={() => open(book, true)}
-                    disabled={openingId === book.id}
+                  <button onClick={() => handleDownload(book)} disabled={downloadingId === book.id}
                     className="flex-1 py-2 text-[10px] font-bold bg-[#f5c518] text-[#0d0d0d] rounded-xl hover:bg-[#e8b000] disabled:opacity-50 transition-colors">
-                    {openingId === book.id ? String(t("digital_library.preparing")) : String(t("digital_library.download"))}
+                    {downloadingId === book.id ? String(t("digital_library.preparing")) : String(t("digital_library.download"))}
                   </button>
                 )}
               </div>
@@ -130,7 +134,6 @@ function DigitalContent() {
         </motion.div>
       )}
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <motion.div variants={fadeUp} className="flex items-center justify-between pb-6">
           <p className="text-[11px] text-[#0d0d0d]/35">
@@ -138,7 +141,7 @@ function DigitalContent() {
             {isFetching && " · updating…"}
           </p>
           <div className="flex gap-2">
-            <button onClick={() => setPage(p => Math.max(1,p-1))} disabled={page<=1||isFetching}
+            <button onClick={() => setPage(p => Math.max(1, p-1))} disabled={page<=1||isFetching}
               className="px-4 py-2 rounded-full text-[11px] font-bold border border-[#e8e4dc] text-[#0d0d0d]/50 hover:text-[#0d0d0d] disabled:opacity-30 transition-colors">
               {String(t("digital_library.previous"))}
             </button>
@@ -150,17 +153,5 @@ function DigitalContent() {
         </motion.div>
       )}
     </motion.div>
-  );
-}
-
-export default function StudentDigitalPage() {
-  return (
-    <Suspense fallback={
-      <div className="px-4 py-6 sm:px-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-        {[1,2,3,4,5].map(i => <div key={i} className="aspect-[3/4] rounded-2xl bg-[#e8e4dc] animate-pulse" />)}
-      </div>
-    }>
-      <DigitalContent />
-    </Suspense>
   );
 }

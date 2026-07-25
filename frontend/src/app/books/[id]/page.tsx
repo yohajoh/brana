@@ -216,18 +216,26 @@ export default function BookDetailPage() {
       const currentUser = user ?? (await fetchCurrentUser());
       if (!currentUser) { router.push("/auth/login"); return; }
       if (!user) setUser(currentUser);
-      if (!download) await fetchApi(`/digital-books/${book.id}/read`, { method: "POST" });
-      const url = `${API_BASE_URL}/digital-books/${book.id}/pdf${download ? "?download=true" : ""}`;
-      const response = await fetch(url, { credentials: "include" });
-      if (!response.ok) { const t2 = await response.text(); try { const d = JSON.parse(t2); throw new Error(d.message || `Failed to load PDF (${response.status})`); } catch { throw new Error(`Failed to load PDF (${response.status})`); } }
-      const contentType = response.headers.get("Content-Type"); const blob = await response.blob();
-      if (!contentType?.includes("application/pdf") || blob.size === 0) throw new Error("PDF file is empty");
-      const blobUrl = window.URL.createObjectURL(blob);
-      const cd = response.headers.get("Content-Disposition");
-      const fileName = cd ? cd.split("filename=")[1]?.replace(/"/g, "") : `${book.title}.pdf`;
-      if (download) { const a = document.createElement("a"); a.href = blobUrl; a.download = fileName; document.body.appendChild(a); a.click(); document.body.removeChild(a); }
-      else { window.open(blobUrl, "_blank"); setDigitalBook(p => p ? { ...p, userContext: { ...(p.userContext || { isInWishlist: false, wishlistId: null }), hasRead: true } } : p); }
-      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
+
+      if (download) {
+        /* Download: fetch blob and trigger save-as */
+        const url = `${API_BASE_URL}/digital-books/${book.id}/pdf?download=true`;
+        const response = await fetch(url, { credentials: "include" });
+        if (!response.ok) { const t2 = await response.text(); try { const d = JSON.parse(t2); throw new Error(d.message || `Failed (${response.status})`); } catch { throw new Error(`Failed (${response.status})`); } }
+        const blob = await response.blob();
+        if (!blob || blob.size === 0) throw new Error("PDF file is empty");
+        const blobUrl = window.URL.createObjectURL(blob);
+        const cd = response.headers.get("Content-Disposition");
+        const fileName = cd ? cd.split("filename=")[1]?.replace(/"/g, "") : `${book.title}.pdf`;
+        const a = document.createElement("a"); a.href = blobUrl; a.download = fileName;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
+      } else {
+        /* Read: mark as read and navigate to in-app reader — no new tab */
+        await fetchApi(`/digital-books/${book.id}/read`, { method: "POST" }).catch(() => {/* non-fatal */});
+        setDigitalBook(p => p ? { ...p, userContext: { ...(p.userContext || { isInWishlist: false, wishlistId: null }), hasRead: true } } : p);
+        router.push(`/read/${book.id}`);
+      }
     } catch (err) { toast.error(err instanceof Error ? err.message : t("common.error_occurred") as string); }
     finally { setDigitalLoading(false); }
   };

@@ -1,5 +1,6 @@
 import { Navbar } from "@/components/Navbar";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
+import { SidebarOffset } from "@/components/SidebarOffset";
 import { StudentRouteGuard } from "@/components/guards/StudentRouteGuard";
 import { DashboardShellProvider } from "@/components/providers/DashboardShellProvider";
 
@@ -9,14 +10,12 @@ export default function StudentDashboardLayout({ children }: { children: React.R
       <StudentRouteGuard />
       <DashboardShellProvider>
         <DashboardSidebar />
-        {/* lg:ml-64 offsets the fixed sidebar; pr-0 ensures content reaches right edge symmetrically */}
-        <div className="flex-1 lg:ml-64 min-w-0 flex flex-col">
+        <SidebarOffset>
           <Navbar />
-          {/* pt-14 clears navbar; each page handles its own px padding uniformly */}
           <main className="pt-14 flex-1 min-h-screen overflow-x-hidden">
             {children}
           </main>
-        </div>
+        </SidebarOffset>
       </DashboardShellProvider>
     </div>
   );

@@ -1,4 +1,5 @@
 "use client";
+"use client";
 
 import Link from "next/link";
 import { useLanguage } from "@/components/providers/LanguageProvider";

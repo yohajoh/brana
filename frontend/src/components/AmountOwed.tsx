@@ -1,4 +1,5 @@
 "use client";
+"use client";
 
 import type { Rental, SystemConfig } from "@/lib/hooks/useQueries";
 import { useLanguage } from "@/components/providers/LanguageProvider";

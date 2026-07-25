@@ -4,46 +4,51 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 type DashboardShellContextValue = {
   isMobileSidebarOpen: boolean;
+  isCollapsed: boolean;
   openMobileSidebar: () => void;
   closeMobileSidebar: () => void;
   toggleMobileSidebar: () => void;
+  toggleCollapsed: () => void;
 };
 
 const DashboardShellContext = createContext<DashboardShellContextValue | null>(null);
 
 export function DashboardShellProvider({ children }: { children: React.ReactNode }) {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   useEffect(() => {
-    // Keep body from scrolling behind the mobile drawer.
     document.body.style.overflow = isMobileSidebarOpen ? "hidden" : "";
-
-    return () => {
-      document.body.style.overflow = "";
-    };
+    return () => { document.body.style.overflow = ""; };
   }, [isMobileSidebarOpen]);
 
   const value = useMemo<DashboardShellContextValue>(
     () => ({
       isMobileSidebarOpen,
-      openMobileSidebar: () => setIsMobileSidebarOpen(true),
-      closeMobileSidebar: () => setIsMobileSidebarOpen(false),
-      toggleMobileSidebar: () => setIsMobileSidebarOpen((current) => !current),
+      isCollapsed,
+      openMobileSidebar:   () => setIsMobileSidebarOpen(true),
+      closeMobileSidebar:  () => setIsMobileSidebarOpen(false),
+      toggleMobileSidebar: () => setIsMobileSidebarOpen((v) => !v),
+      toggleCollapsed:     () => setIsCollapsed((v) => !v),
     }),
-    [isMobileSidebarOpen],
+    [isMobileSidebarOpen, isCollapsed],
   );
 
-  return <DashboardShellContext.Provider value={value}>{children}</DashboardShellContext.Provider>;
+  return (
+    <DashboardShellContext.Provider value={value}>
+      {children}
+    </DashboardShellContext.Provider>
+  );
 }
 
 export function useDashboardShell() {
-  const context = useContext(DashboardShellContext);
-  return (
-    context || {
-      isMobileSidebarOpen: false,
-      openMobileSidebar: () => {},
-      closeMobileSidebar: () => {},
-      toggleMobileSidebar: () => {},
-    }
-  );
+  const ctx = useContext(DashboardShellContext);
+  return ctx ?? {
+    isMobileSidebarOpen: false,
+    isCollapsed: false,
+    openMobileSidebar:   () => {},
+    closeMobileSidebar:  () => {},
+    toggleMobileSidebar: () => {},
+    toggleCollapsed:     () => {},
+  };
 }

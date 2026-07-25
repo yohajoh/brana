@@ -1,4 +1,5 @@
 "use client";
+"use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
