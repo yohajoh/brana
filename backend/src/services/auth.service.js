@@ -408,19 +408,21 @@ export const signup = async (userData) => {
     throw error;
   }
 
-  // Send confirmation email (with timeout to avoid hanging)
+  // Send confirmation email — run in background so email delivery issues
+  // never cause the signup API to return 500. The pending record is already
+  // saved; the user can request a resend if the email doesn't arrive.
   const confirmUrl = `${process.env.FRONTEND_URL}/auth/confirm-email/${confirmationToken}`;
-  const message = `Please confirm your email by clicking: ${confirmUrl}`;
+  const message = `Welcome to Brana Library!\n\nPlease confirm your email address by clicking the link below:\n\n${confirmUrl}\n\nThis link will expire in 24 hours.\n\nIf you did not create an account, you can safely ignore this email.\n\nBest regards,\nBrana Library`;
+  const html = `<p>Welcome to <strong>Brana Library</strong>!</p><p>Please confirm your email address by clicking the button below:</p><p><a href="${confirmUrl}" style="display:inline-block;padding:12px 24px;background:#142B6F;color:#fff;text-decoration:none;border-radius:8px;font-weight:bold;">Confirm Email</a></p><p>Or copy this link into your browser:<br/><a href="${confirmUrl}">${confirmUrl}</a></p><p>This link expires in 24 hours.</p><p>If you did not create an account, you can safely ignore this email.</p><p>Best regards,<br/>Brana Library</p>`;
 
-  const emailPromise = sendEmail({
-    email,
-    subject: "Brana - Confirm your email",
-    message,
+  // Fire-and-forget with a timeout — signup always succeeds regardless of email outcome
+  Promise.race([
+    sendEmail({ email, subject: "Brana Library — Confirm your email", message, html }),
+    new Promise((_, reject) => setTimeout(() => reject(new Error("email_timeout")), 15000)),
+  ]).catch((err) => {
+    // Log but never throw — the pending signup record exists and can be confirmed later
+    console.error(`[Signup] Failed to send confirmation email to ${email}:`, err?.message || err);
   });
-  const timeoutPromise = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error("Email service timed out. Please try again.")), 15000),
-  );
-  await Promise.race([emailPromise, timeoutPromise]);
 
   return { name, email };
 };
@@ -527,13 +529,19 @@ export const forgotPassword = async (email) => {
   });
 
   const resetUrl = `${process.env.FRONTEND_URL}/auth/reset-password/${resetToken}`;
-  const message = `Forgot your password? Reset it here: ${resetUrl}. Link expires in 10 minutes.`;
+  const message = `You requested a password reset for your Brana Library account.\n\nClick the link below to reset your password:\n\n${resetUrl}\n\nThis link expires in 10 minutes.\n\nIf you did not request this, please ignore this email.\n\nBest regards,\nBrana Library`;
+  const html = `<p>You requested a password reset for your <strong>Brana Library</strong> account.</p><p><a href="${resetUrl}" style="display:inline-block;padding:12px 24px;background:#142B6F;color:#fff;text-decoration:none;border-radius:8px;font-weight:bold;">Reset Password</a></p><p>Or copy this link:<br/><a href="${resetUrl}">${resetUrl}</a></p><p>This link expires in 10 minutes.</p><p>If you did not request this, you can safely ignore this email.</p><p>Best regards,<br/>Brana Library</p>`;
 
-  await sendEmail({
-    email,
-    subject: "Brana - Password Reset Request",
-    message,
-  });
+  try {
+    await Promise.race([
+      sendEmail({ email, subject: "Brana Library — Password Reset Request", message, html }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error("email_timeout")), 15000)),
+    ]);
+  } catch (err) {
+    console.error(`[ForgotPassword] Failed to send reset email to ${email}:`, err?.message || err);
+    // Still throw so the user knows something went wrong with email delivery
+    throw new AppError("Failed to send password reset email. Please try again later.", 500);
+  }
 };
 
 export const resetPassword = async (token, newPassword) => {
