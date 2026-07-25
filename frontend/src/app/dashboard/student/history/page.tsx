@@ -1,32 +1,25 @@
 "use client";
 
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { useMyRentals, useSystemConfig } from "@/lib/hooks/useQueries";
-import { HistorySummary } from "@/components/HistorySummary";
+import { HistorySummary }       from "@/components/HistorySummary";
 import { DetailedHistoryTable } from "@/components/DetailedHistoryTable";
-import { Pagination } from "@/components/Pagination";
-import { useLanguage } from "@/components/providers/LanguageProvider";
+import { Pagination }           from "@/components/Pagination";
+import { useLanguage }          from "@/components/providers/LanguageProvider";
 
 export type RentalItem = {
-  id: string;
-  loan_date: string;
-  due_date: string;
+  id: string; loan_date: string; due_date: string;
   return_date: string | null;
   status: "BORROWED" | "PENDING" | "RETURNED" | "COMPLETED";
-  fine: number | null;
-  isOverdue?: boolean;
-  daysOverdue?: number;
-  daysUntilDue?: number | null;
+  fine: number | null; isOverdue?: boolean; daysOverdue?: number; daysUntilDue?: number | null;
   physical_book: { id: string; title: string; cover_image_url: string; pages: number };
   payment?: { id: string; amount: number; status: string; method: string } | null;
 };
+export type SystemConfig = { id: number; max_loan_days: number; daily_fine: string | number; max_books_per_user: number };
 
-export type SystemConfig = {
-  id: number;
-  max_loan_days: number;
-  daily_fine: string | number;
-  max_books_per_user: number;
-};
+const fadeUp  = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.16,1,0.3,1] } } };
+const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.08 } } };
 
 export default function BorrowingHistoryPage() {
   const { t } = useLanguage();
@@ -34,34 +27,39 @@ export default function BorrowingHistoryPage() {
   const limit = 10;
 
   const { data: rentalsData, isLoading } = useMyRentals(`page=${page}&limit=${limit}`);
-  const { data: configData } = useSystemConfig();
+  const { data: configData }             = useSystemConfig();
 
-  const rentals: RentalItem[] = (rentalsData?.rentals || []) as unknown as RentalItem[];
-  const config: SystemConfig | null = configData?.data?.config as unknown as SystemConfig | null;
+  const rentals: RentalItem[]     = (rentalsData?.rentals || []) as unknown as RentalItem[];
+  const config:  SystemConfig|null = configData?.data?.config as unknown as SystemConfig | null;
   const totalPages = Math.max(1, Math.ceil((rentalsData?.total ?? rentals.length) / limit));
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-7 sm:px-6 lg:px-8 space-y-7">
+    <motion.div variants={stagger} initial="hidden" animate="show"
+      className="px-4 py-6 sm:px-6 space-y-6 max-w-[1100px]">
 
-      {/* Header */}
-      <div>
+      <motion.div variants={fadeUp}>
         <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.2em] mb-1">
           {String(t("student_dashboard.history.title"))}
         </p>
-        <h1 className="text-[28px] font-serif font-black text-[#0d0d0d]">
+        <h1 className="text-[26px] font-serif font-black text-[#0d0d0d]">
           {String(t("student_history.title"))}
         </h1>
         <p className="text-sm text-[#0d0d0d]/45 mt-1">{String(t("student_history.subtitle"))}</p>
-      </div>
+      </motion.div>
 
-      {/* Stats row */}
-      <HistorySummary rentals={rentals} config={config} loading={isLoading} />
+      <motion.div variants={fadeUp}>
+        <HistorySummary rentals={rentals} config={config} loading={isLoading} />
+      </motion.div>
 
-      {/* Table */}
-      <div className="space-y-5 pb-10">
+      <motion.div variants={fadeUp} className="bg-white rounded-2xl border border-[#e8e4dc] overflow-hidden pb-2">
         <DetailedHistoryTable rentals={rentals} config={config} loading={isLoading} />
-        {totalPages > 1 && <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />}
-      </div>
-    </div>
+      </motion.div>
+
+      {totalPages > 1 && (
+        <motion.div variants={fadeUp} className="pb-10">
+          <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+        </motion.div>
+      )}
+    </motion.div>
   );
 }

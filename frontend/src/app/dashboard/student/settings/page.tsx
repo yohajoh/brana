@@ -1,54 +1,59 @@
 "use client";
 
+import { motion } from "framer-motion";
 import { useCurrentUser } from "@/lib/hooks/useQueries";
-import { ProfileSettings } from "@/components/ProfileSettings";
-import { SecuritySettings } from "@/components/SecuritySettings";
+import { ProfileSettings }       from "@/components/ProfileSettings";
+import { SecuritySettings }      from "@/components/SecuritySettings";
 import { GoogleCalendarSettings } from "@/components/GoogleCalendarSettings";
-import { useLanguage } from "@/components/providers/LanguageProvider";
+import { useLanguage }           from "@/components/providers/LanguageProvider";
+
+const fadeUp  = { hidden:{opacity:0,y:16}, show:{opacity:1,y:0,transition:{duration:0.38,ease:[0.16,1,0.3,1]}} };
+const stagger = { hidden:{}, show:{transition:{staggerChildren:0.09}} };
 
 export type UserData = {
-  id: string; name: string; email: string;
-  phone: string | null; year: string | null;
-  department: string | null; student_id: string | null; role: string;
+  id:string; name:string; email:string;
+  phone:string|null; year:string|null; department:string|null; student_id:string|null; role:string;
 };
 
 export default function SettingsPage() {
-  const { t } = useLanguage();
+  const { t }  = useLanguage();
   const { data: userData, isLoading, error } = useCurrentUser();
   const user = userData?.data?.user as UserData | undefined;
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-7 sm:px-6 lg:px-8 space-y-10 pb-16">
+    <motion.div variants={stagger} initial="hidden" animate="show"
+      className="px-4 py-6 sm:px-6 pr-4 sm:pr-6 space-y-6 max-w-[720px] pb-16">
 
-      {/* Header */}
-      <div>
+      <motion.div variants={fadeUp}>
         <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.2em] mb-1">Account</p>
-        <h1 className="text-[28px] font-serif font-black text-[#0d0d0d]">
+        <h1 className="text-[26px] font-serif font-black text-[#0d0d0d]">
           {String(t("student_settings.title"))}
         </h1>
         <p className="text-sm text-[#0d0d0d]/45 mt-1">{String(t("student_settings.subtitle"))}</p>
-      </div>
+      </motion.div>
 
       {error && (
-        <div className="rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600">
+        <motion.div variants={fadeUp}
+          className="rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600">
           {error instanceof Error ? error.message : String(t("common.error_occurred"))}
-        </div>
+        </motion.div>
       )}
 
-      {/* Sections */}
-      <div className="space-y-10">
-        <div className="bg-white rounded-2xl border border-[#e8e6e1] p-6 sm:p-8">
-          <ProfileSettings user={user || null} loading={isLoading} onUpdate={() => {}} />
-        </div>
+      <motion.div variants={fadeUp}
+        className="bg-white rounded-2xl border border-[#e8e4dc] p-6 sm:p-7">
+        <ProfileSettings user={user || null} loading={isLoading} onUpdate={() => {}} />
+      </motion.div>
 
-        <div className="bg-white rounded-2xl border border-[#e8e6e1] p-6 sm:p-8">
-          <SecuritySettings user={user || null} loading={isLoading} />
-        </div>
+      <motion.div variants={fadeUp}
+        className="bg-white rounded-2xl border border-[#e8e4dc] p-6 sm:p-7">
+        <SecuritySettings user={user || null} loading={isLoading} />
+      </motion.div>
 
-        <div className="bg-white rounded-2xl border border-[#e8e6e1] p-6 sm:p-8">
-          <GoogleCalendarSettings />
-        </div>
-      </div>
-    </div>
+      <motion.div variants={fadeUp}
+        className="bg-white rounded-2xl border border-[#e8e4dc] p-6 sm:p-7">
+        <GoogleCalendarSettings />
+      </motion.div>
+
+    </motion.div>
   );
 }

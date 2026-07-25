@@ -1,130 +1,126 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useMyPayments, useMyRentals, useMyDebtSummary, api } from "@/lib/hooks/useQueries";
 import { useLanguage } from "@/components/providers/LanguageProvider";
-import { ColumnDef } from "@tanstack/react-table";
+import { ColumnDef }   from "@tanstack/react-table";
 import { TanStackTable } from "@/components/ui/TanStackTable";
 
+/* ── types ───────────────────────────────────────────────────────── */
 type Payment = {
-  id: string;
-  amount: number;
-  method: "CHAPA" | "CASH";
-  status: "PENDING" | "SUCCESS" | "FAILED";
-  paid_at: string;
+  id: string; amount: number; method: "CHAPA" | "CASH";
+  status: "PENDING" | "SUCCESS" | "FAILED"; paid_at: string;
   rental: { id: string; status: string; fine?: number | null; physical_book: { title: string } };
 };
+type RentalFine  = { id: string; fine: number | null; physical_book: { title: string } };
+type DebtEntry   = { rental_id: string; book_title: string; amount: number | string | null };
+type DebtSummary = { hasDebt?: boolean; totalDebt?: number | string | null; overdueFines?: DebtEntry[] };
 
-type RentalFine = {
-  id: string;
-  fine: number | null;
-  physical_book: { title: string };
-};
+/* ── animation variants ──────────────────────────────────────────── */
+const fadeUp  = { hidden: { opacity:0, y:16 }, show: { opacity:1, y:0, transition:{ duration:0.38, ease:[0.16,1,0.3,1] } } };
+const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
 
-type DebtFineEntry = { rental_id: string; book_title: string; amount: number | string | null };
-type DebtSummary   = { hasDebt?: boolean; totalDebt?: number | string | null; overdueFines?: DebtFineEntry[] };
-
-const statusStyle = (s: string) => {
+/* ── status badge ────────────────────────────────────────────────── */
+const statusBadge = (s: string) => {
   switch (s) {
-    case "SUCCESS": return "bg-emerald-100 text-emerald-700";
-    case "FAILED":  return "bg-red-100 text-red-700";
-    default:        return "bg-amber-100 text-amber-700";
+    case "SUCCESS": return "bg-emerald-50 text-emerald-700 border-emerald-100";
+    case "FAILED":  return "bg-red-50 text-red-600 border-red-100";
+    default:        return "bg-amber-50 text-amber-700 border-amber-100";
   }
 };
 
+/* ── stat card ───────────────────────────────────────────────────── */
+function PayStat({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) {
+  return (
+    <motion.div variants={fadeUp}
+      className={`rounded-2xl border p-4 ${accent ? "bg-[#0d0d0d] border-[#0d0d0d]" : "bg-white border-[#e8e4dc]"}`}>
+      <p className={`text-[22px] font-serif font-black leading-none ${accent ? "text-[#f5c518]" : "text-[#0d0d0d]"}`}>{value}</p>
+      <p className={`text-[9px] font-black uppercase tracking-[0.15em] mt-2 ${accent ? "text-white/40" : "text-[#0d0d0d]/35"}`}>{label}</p>
+    </motion.div>
+  );
+}
+
 function PaymentsContent() {
   const { t } = useLanguage();
-  const [txRefFromQuery, setTxRefFromQuery] = useState<string | null>(null);
-  const [verifyingTx, setVerifyingTx]       = useState<string | null>(null);
-  const [verifyMessage, setVerifyMessage]   = useState<string | null>(null);
-  const hasVerifiedRef = useRef<string | null>(null);
+  const [txRef, setTxRef]               = useState<string | null>(null);
+  const [verifying, setVerifying]       = useState<string | null>(null);
+  const [verifyMsg, setVerifyMsg]       = useState<string | null>(null);
+  const hasVerified                     = useRef<string | null>(null);
 
   useEffect(() => {
     const p   = new URLSearchParams(window.location.search);
     const ref = p.get("tx_ref") || p.get("trx_ref") || p.get("reference") || p.get("txRef");
-    setTxRefFromQuery(ref);
+    setTxRef(ref);
   }, []);
 
-  const { data: paymentsData, isLoading, refetch: refetchPayments } = useMyPayments("limit=100");
-  const { data: rentalsData }     = useMyRentals("status=PENDING&limit=100");
-  const { data: debtSummaryData } = useMyDebtSummary();
+  const { data: paymentsData, isLoading, refetch } = useMyPayments("limit=100");
+  const { data: rentalsData }    = useMyRentals("status=PENDING&limit=100");
+  const { data: debtData }       = useMyDebtSummary();
 
-  const payments: Payment[]     = (paymentsData?.payments || []) as unknown as Payment[];
+  const payments: Payment[]        = (paymentsData?.payments || []) as unknown as Payment[];
   const pendingFines: RentalFine[] = ((rentalsData?.rentals || []) as unknown as RentalFine[]).filter(r => Number(r.fine || 0) > 0);
-  const debtSummary = debtSummaryData?.data as DebtSummary | undefined;
+  const debt = debtData?.data as DebtSummary | undefined;
 
-  const verifyPayment = useCallback(async (txRef: string) => {
-    if (hasVerifiedRef.current === txRef) return;
+  const verify = useCallback(async (ref: string) => {
+    if (hasVerified.current === ref) return;
     try {
-      setVerifyingTx(txRef);
-      setVerifyMessage(null);
-      hasVerifiedRef.current = txRef;
-      const res = await api.get<{ data: { payment: { status: string } } }>(`/payments/verify/${encodeURIComponent(txRef)}`);
-      await refetchPayments();
+      setVerifying(ref); setVerifyMsg(null); hasVerified.current = ref;
+      const res = await api.get<{ data: { payment: { status: string } } }>(`/payments/verify/${encodeURIComponent(ref)}`);
+      await refetch();
       const st = res?.data?.payment?.status;
-      if      (st === "SUCCESS") setVerifyMessage(String(t("student_payments.success_verify")));
-      else if (st === "PENDING") setVerifyMessage(String(t("student_payments.pending_verify")));
-      else if (st === "FAILED")  setVerifyMessage(String(t("student_payments.failed_verify")));
-      else                       setVerifyMessage(String(t("student_payments.status_updated")));
-    } catch (e) {
-      setVerifyMessage(e instanceof Error ? e.message : String(t("common.error_occurred")));
-    } finally {
-      setVerifyingTx(null);
-    }
-  }, [refetchPayments, t]);
+      setVerifyMsg(st === "SUCCESS" ? String(t("student_payments.success_verify"))
+        : st === "PENDING"          ? String(t("student_payments.pending_verify"))
+        : st === "FAILED"           ? String(t("student_payments.failed_verify"))
+                                    : String(t("student_payments.status_updated")));
+    } catch (e) { setVerifyMsg(e instanceof Error ? e.message : String(t("common.error_occurred"))); }
+    finally { setVerifying(null); }
+  }, [refetch, t]);
 
-  useEffect(() => {
-    if (txRefFromQuery && !hasVerifiedRef.current) verifyPayment(txRefFromQuery);
-  }, [txRefFromQuery, verifyPayment]);
+  useEffect(() => { if (txRef && !hasVerified.current) verify(txRef); }, [txRef, verify]);
 
   const payFine = async (rentalId: string) => {
     try {
       const res = await api.post<{ data: { chapaUrl: string } }>(`/payments/rental/${rentalId}/initiate`, { method: "CHAPA" });
       if (res?.data?.chapaUrl) window.location.href = res.data.chapaUrl;
-    } catch { setVerifyMessage(String(t("common.error_occurred"))); }
+    } catch { setVerifyMsg(String(t("common.error_occurred"))); }
   };
 
-  const retryPayment = async (p: Payment) => {
+  const retry = async (p: Payment) => {
     try {
       const isBorrow = p.rental.status === "BORROWED" && Number(p.rental.fine || 0) <= 0;
       const res = await api.post<{ data: { chapaUrl: string } }>(`/payments/rental/${p.rental.id}/initiate`, { method: "CHAPA", context: isBorrow ? "BORROW" : "FINE" });
       if (res?.data?.chapaUrl) window.location.href = res.data.chapaUrl;
-    } catch { setVerifyMessage(String(t("common.error_occurred"))); }
+    } catch { setVerifyMsg(String(t("common.error_occurred"))); }
   };
 
-  const actionable = payments.filter(p => p.status === "PENDING" || p.status === "FAILED");
+  const totalPaid   = payments.filter(p => p.status === "SUCCESS").reduce((s, p) => s + Number(p.amount), 0);
+  const totalPending = payments.filter(p => p.status === "PENDING" || p.status === "FAILED").length;
+  const actionable   = payments.filter(p => p.status === "PENDING" || p.status === "FAILED");
 
-  const historyColumns: ColumnDef<Payment, unknown>[] = [
+  const cols: ColumnDef<Payment, unknown>[] = [
     {
       id: "book",
       header: String(t("admin_reservations.table.book")),
       cell: ({ row }) => (
-        <span className="text-[13px] font-semibold text-[#0d0d0d] line-clamp-1">
-          {row.original.rental?.physical_book?.title || "Book"}
-        </span>
+        <div>
+          <p className="text-[13px] font-semibold text-[#0d0d0d] line-clamp-1">{row.original.rental?.physical_book?.title || "Book"}</p>
+          <p className="text-[11px] text-[#0d0d0d]/40">{row.original.method}</p>
+        </div>
       ),
     },
     {
       id: "amount",
-      header: String(t("dashboard.stats.revenue")),
+      header: "Amount",
       cell: ({ row }) => (
-        <span className="text-[13px] font-bold text-[#0d0d0d]">
-          {Number(row.original.amount).toFixed(2)} ETB
-        </span>
-      ),
-    },
-    {
-      id: "method",
-      header: "Method",
-      cell: ({ row }) => (
-        <span className="text-[12px] text-[#0d0d0d]/50">{row.original.method}</span>
+        <span className="text-[13px] font-bold text-[#0d0d0d]">{Number(row.original.amount).toFixed(2)} ETB</span>
       ),
     },
     {
       id: "status",
-      header: String(t("admin_reservations.table.status")),
+      header: "Status",
       cell: ({ row }) => (
-        <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wide ${statusStyle(row.original.status)}`}>
+        <span className={`inline-flex px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wide border ${statusBadge(row.original.status)}`}>
           {row.original.status}
         </span>
       ),
@@ -134,123 +130,135 @@ function PaymentsContent() {
       header: "Date",
       cell: ({ row }) => (
         <span className="text-[12px] text-[#0d0d0d]/40">
-          {new Date(row.original.paid_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+          {new Date(row.original.paid_at).toLocaleDateString("en-US", { month:"short", day:"numeric", year:"numeric" })}
         </span>
       ),
     },
   ];
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-7 sm:px-6 lg:px-8 space-y-8">
+    <motion.div variants={stagger} initial="hidden" animate="show"
+      className="px-4 py-6 sm:px-6 pr-4 sm:pr-6 space-y-6 max-w-[1100px]">
 
       {/* Header */}
-      <div>
+      <motion.div variants={fadeUp}>
         <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.2em] mb-1">Finance</p>
-        <h1 className="text-[28px] font-serif font-black text-[#0d0d0d]">{String(t("student_payments.title"))}</h1>
+        <h1 className="text-[26px] font-serif font-black text-[#0d0d0d]">{String(t("student_payments.title"))}</h1>
         <p className="text-sm text-[#0d0d0d]/45 mt-1">{String(t("student_payments.subtitle"))}</p>
-        {verifyingTx && (
-          <p className="text-xs text-[#0d0d0d]/50 mt-2">{String(t("student_payments.verifying", { ref: verifyingTx }))}</p>
-        )}
-        {verifyMessage && (
-          <div className="mt-3 px-4 py-3 rounded-xl bg-[#fdf9e7] border border-[#f5c518]/30 text-sm font-medium text-[#0d0d0d]">
-            {verifyMessage}
-          </div>
-        )}
-      </div>
+
+        <AnimatePresence>
+          {verifying && (
+            <motion.p initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
+              className="mt-2 text-xs text-[#0d0d0d]/40">
+              {String(t("student_payments.verifying", { ref: verifying }))}
+            </motion.p>
+          )}
+          {verifyMsg && (
+            <motion.div initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0 }}
+              className="mt-3 px-4 py-3 rounded-xl bg-[#fdf9e7] border border-[#f5c518]/40 text-sm font-medium text-[#0d0d0d]">
+              {verifyMsg}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+
+      {/* Stat row */}
+      <motion.div variants={stagger} className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <PayStat label={String(t("student_payments.total_paid")   || "Total paid")}    value={`${totalPaid.toFixed(2)} ETB`} />
+        <PayStat label={String(t("student_payments.pending_fines") || "Pending fines")} value={String(pendingFines.length)} accent={pendingFines.length > 0} />
+        <PayStat label={String(t("student_payments.pending_payments") || "Pending tx")} value={String(totalPending)} accent={totalPending > 0} />
+      </motion.div>
 
       {/* Debt alert */}
-      {debtSummary?.hasDebt && (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-5 space-y-2">
-          <p className="text-sm font-bold text-red-800">{String(t("student_payments.outstanding_title"))}</p>
-          <p className="text-[13px] text-red-700">
-            {String(t("student_payments.outstanding_desc", { amount: Number(debtSummary.totalDebt || 0).toFixed(2) }))}
-          </p>
-          {debtSummary.overdueFines?.slice(0, 4).map(e => (
-            <p key={e.rental_id} className="text-[12px] text-red-600">
-              · {e.book_title}: {Number(e.amount || 0).toFixed(2)} ETB
+      <AnimatePresence>
+        {debt?.hasDebt && (
+          <motion.div variants={fadeUp}
+            className="rounded-2xl border border-red-200 bg-red-50 p-5 space-y-1.5">
+            <p className="text-sm font-bold text-red-800">{String(t("student_payments.outstanding_title"))}</p>
+            <p className="text-[13px] text-red-700">
+              {String(t("student_payments.outstanding_desc", { amount: Number(debt.totalDebt || 0).toFixed(2) }))}
             </p>
-          ))}
-        </div>
-      )}
+            {debt.overdueFines?.slice(0, 4).map(e => (
+              <p key={e.rental_id} className="text-[12px] text-red-500">
+                · {e.book_title}: {Number(e.amount || 0).toFixed(2)} ETB
+              </p>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Pending fines */}
-      <div className="space-y-3">
+      <motion.div variants={fadeUp} className="space-y-3">
         <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.18em]">
           {String(t("student_payments.pending_fines"))}
         </p>
         {isLoading ? (
-          <div className="bg-white rounded-2xl border border-[#e8e6e1] p-4 animate-pulse h-16" />
+          <div className="h-16 bg-white rounded-2xl border border-[#e8e4dc] animate-pulse" />
         ) : pendingFines.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-dashed border-[#e8e6e1] p-6 text-center">
+          <div className="bg-white rounded-2xl border border-dashed border-[#e8e4dc] p-6 text-center">
             <p className="text-sm text-[#0d0d0d]/35">{String(t("student_payments.no_fines"))}</p>
           </div>
         ) : (
           <div className="space-y-2">
             {pendingFines.map(r => (
-              <div key={r.id} className="bg-white rounded-2xl border border-[#e8e6e1] p-4 flex items-center justify-between gap-4">
+              <div key={r.id} className="bg-white rounded-2xl border border-[#e8e4dc] px-4 py-3.5 flex items-center justify-between gap-4">
                 <div className="min-w-0">
                   <p className="text-[13px] font-semibold text-[#0d0d0d] truncate">{r.physical_book.title}</p>
                   <p className="text-[11px] text-[#0d0d0d]/40 mt-0.5">
                     Fine: <span className="font-bold text-red-600">{Number(r.fine || 0).toFixed(2)} ETB</span>
                   </p>
                 </div>
-                <button
-                  onClick={() => payFine(r.id)}
-                  className="px-4 py-2 rounded-full bg-[#0d0d0d] text-white text-[11px] font-bold hover:bg-[#292524] transition-colors shrink-0"
-                >
+                <button onClick={() => payFine(r.id)}
+                  className="px-4 py-2 rounded-full bg-[#0d0d0d] text-white text-[11px] font-bold hover:bg-[#292524] transition-colors shrink-0">
                   {String(t("student_payments.pay_now"))}
                 </button>
               </div>
             ))}
           </div>
         )}
-      </div>
+      </motion.div>
 
-      {/* Pending/failed payments */}
-      {actionable.length > 0 && (
-        <div className="space-y-3">
-          <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.18em]">
-            {String(t("student_payments.pending_payments"))}
-          </p>
-          <div className="space-y-2">
-            {actionable.map(p => (
-              <div key={p.id} className="bg-white rounded-2xl border border-amber-200 p-4 flex items-center justify-between gap-4">
-                <div className="min-w-0">
-                  <p className="text-[13px] font-semibold text-[#0d0d0d] truncate">
-                    {p.rental?.physical_book?.title || "Book"}
-                  </p>
-                  <p className="text-[11px] text-[#0d0d0d]/40 mt-0.5">
-                    {Number(p.amount || 0).toFixed(2)} ETB · {p.status}
-                  </p>
+      {/* Pending/failed payments retry */}
+      <AnimatePresence>
+        {actionable.length > 0 && (
+          <motion.div variants={fadeUp} className="space-y-3">
+            <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.18em]">
+              {String(t("student_payments.pending_payments"))}
+            </p>
+            <div className="space-y-2">
+              {actionable.map(p => (
+                <div key={p.id} className="bg-white rounded-2xl border border-amber-200 px-4 py-3.5 flex items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="text-[13px] font-semibold text-[#0d0d0d] truncate">{p.rental?.physical_book?.title || "Book"}</p>
+                    <p className="text-[11px] text-[#0d0d0d]/40 mt-0.5">{Number(p.amount || 0).toFixed(2)} ETB · {p.status}</p>
+                  </div>
+                  <button onClick={() => retry(p)}
+                    className="px-4 py-2 rounded-full bg-[#f5c518] text-[#0d0d0d] text-[11px] font-bold hover:bg-[#e8b000] transition-colors shrink-0">
+                    {String(t("student_payments.continue_payment"))}
+                  </button>
                 </div>
-                <button
-                  onClick={() => retryPayment(p)}
-                  className="px-4 py-2 rounded-full bg-[#f5c518] text-[#0d0d0d] text-[11px] font-bold hover:bg-[#e8b000] transition-colors shrink-0"
-                >
-                  {String(t("student_payments.continue_payment"))}
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* History */}
-      <div className="space-y-3 pb-10">
+      {/* History table */}
+      <motion.div variants={fadeUp} className="space-y-3 pb-10">
         <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.18em]">
           {String(t("student_payments.history"))}
         </p>
-        <div className="bg-white rounded-2xl border border-[#e8e6e1] overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#e8e4dc] overflow-hidden">
           <TanStackTable
             data={payments}
-            columns={historyColumns}
+            columns={cols}
             isLoading={isLoading}
             emptyText={String(t("student_payments.no_history"))}
             skeletonRows={4}
           />
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 

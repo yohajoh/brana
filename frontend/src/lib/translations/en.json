@@ -349,6 +349,9 @@
   },
   "student_dashboard": {
     "welcome": "Welcome back, {name}",
+    "good_morning": "Good morning",
+    "good_afternoon": "Good afternoon",
+    "good_evening": "Good evening",
     "subtitle": "Here's what's happening with your books.",
     "currently_borrowed": "Currently Borrowed Book",
     "borrowed": {
@@ -436,7 +439,8 @@
     "payments": "Payments",
     "notifications": "Notifications",
     "account_settings": "Account Settings",
-    "logout": "Logout"
+    "logout": "Logout",
+    "logout_success": "Logged out successfully"
   },
   "dashboard": {
     "analytics_title": "Analytics Dashboard",

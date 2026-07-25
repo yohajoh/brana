@@ -348,6 +348,9 @@
   },
   "student_dashboard": {
     "welcome": "እንኳን በደህና መጡ፣ {name}",
+    "good_morning": "እንደምን አደሩ",
+    "good_afternoon": "ሰላም",
+    "good_evening": "እንደምን ዋሉ",
     "subtitle": "ከመጽሐፍትዎ ጋር ምን እየተከናወነ እንዳለ እነሆ።",
     "currently_borrowed": "በአሁኑ ጊዜ የተወሰደ መጽሐፍ",
     "borrowed": {
@@ -435,7 +438,8 @@
     "payments": "ክፍያዎች",
     "notifications": "ማሳወቂያዎች",
     "account_settings": "المለያ ቅንብሮች",
-    "logout": "ውጣ"
+    "logout": "ውጣ",
+    "logout_success": "በተሳካ ሁኔታ ወጥተዋል"
   },
   "dashboard": {
     "analytics_title": "የትንታኔ ዳሽቦርድ",

@@ -1,6 +1,12 @@
 "use client";
 
-import { ColumnDef, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
+import {
+  ColumnDef,
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+} from "@tanstack/react-table";
+import { motion, AnimatePresence } from "framer-motion";
 
 type TanStackTableProps<TData> = {
   data: TData[];
@@ -26,10 +32,6 @@ export function TanStackTable<TData>({
   rowClassName = "",
   onRowClick,
 }: TanStackTableProps<TData>) {
-  const formatHeaderFallback = (columnId: string) =>
-    columnId.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-
-  // TanStack's table instance intentionally exposes non-memoizable functions.
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data,
@@ -37,29 +39,40 @@ export function TanStackTable<TData>({
     getCoreRowModel: getCoreRowModel(),
   });
 
+  const formatHeaderFallback = (id: string) =>
+    id.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
   return (
-    <div className="relative w-full overflow-hidden rounded-2xl border border-[#E1DEE5]/50 bg-white">
-      <div className="w-full overflow-x-auto scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent">
-        <table className="w-full min-w-[800px] border-separate border-spacing-0">
+    <div className="w-full overflow-hidden">
+      <div className="w-full overflow-x-auto">
+        <table className="w-full min-w-[640px] border-collapse">
+
+          {/* ── Header ─────────────────────────────────────────── */}
           <thead>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  const renderedHeader = header.isPlaceholder
+            {table.getHeaderGroups().map((hg) => (
+              <tr key={hg.id} className="border-b border-[#e8e4dc]">
+                {hg.headers.map((header, i) => {
+                  const meta = header.column.columnDef.meta as TableColumnMeta | undefined;
+                  const isAction = header.column.id === "action" || header.column.id === "actions";
+                  const rendered = header.isPlaceholder
                     ? null
                     : flexRender(header.column.columnDef.header, header.getContext());
-                  const meta = header.column.columnDef.meta as TableColumnMeta | undefined;
-                  const isActionColumn = header.column.id === "action" || header.column.id === "actions";
-                  const shouldFallback =
-                    !isActionColumn &&
-                    (renderedHeader == null || (typeof renderedHeader === "string" && renderedHeader.trim() === ""));
+                  const label = (!isAction && (rendered == null || rendered === ""))
+                    ? formatHeaderFallback(header.column.id)
+                    : rendered;
 
                   return (
                     <th
                       key={header.id}
-                      className={`px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#142B6F] border-b border-[#E1DEE5]/60 bg-[#FFFFFF] ${meta?.headerClassName || ""}`}
+                      className={`
+                        px-4 py-3 text-left bg-[#faf9f6]
+                        ${i === 0 ? "pl-5" : ""}
+                        ${meta?.headerClassName ?? ""}
+                      `}
                     >
-                      {shouldFallback ? formatHeaderFallback(header.column.id) : renderedHeader}
+                      <span className="text-[9.5px] font-black text-[#0d0d0d]/35 uppercase tracking-[0.16em]">
+                        {label}
+                      </span>
                     </th>
                   );
                 })}
@@ -67,44 +80,70 @@ export function TanStackTable<TData>({
             ))}
           </thead>
 
+          {/* ── Body ───────────────────────────────────────────── */}
           <tbody>
             {isLoading ? (
+              /* Shimmer skeletons */
               Array.from({ length: skeletonRows }).map((_, i) => (
-                <tr key={`sk-${i}`}>
+                <tr key={`sk-${i}`} className="border-b border-[#e8e4dc]/60">
                   {columns.map((_, c) => (
-                    <td key={`sk-${i}-${c}`} className="px-4 py-4 border-b border-[#E1DEE5]/40">
-                      <div className="h-4 w-full rounded-md bg-[#E1DEE5]/70 animate-pulse" />
+                    <td key={`sk-${i}-${c}`} className={`px-4 py-3.5 ${c === 0 ? "pl-5" : ""}`}>
+                      <div
+                        className="h-3.5 rounded-full bg-[#e8e4dc]"
+                        style={{
+                          width: `${55 + ((i * 13 + c * 17) % 35)}%`,
+                          animation: `shimmer 1.4s ease-in-out ${i * 80}ms infinite`,
+                        }}
+                      />
                     </td>
                   ))}
                 </tr>
               ))
             ) : table.getRowModel().rows.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} className="px-4 py-10 text-center text-sm text-[#142B6F]">
-                  {emptyText}
+                <td colSpan={columns.length} className="px-5 py-14 text-center">
+                  <p className="text-sm text-[#0d0d0d]/35 font-medium">{emptyText}</p>
                 </td>
               </tr>
             ) : (
-              table.getRowModel().rows.map((row) => (
-                <tr
-                  key={row.id}
-                  className={`border-b border-[#E1DEE5]/40 hover:bg-[#FFFFFF] ${rowClassName}`}
-                  onClick={onRowClick ? () => onRowClick(row.original) : undefined}
-                >
-                  {row.getVisibleCells().map((cell) => {
-                    const meta = cell.column.columnDef.meta as TableColumnMeta | undefined;
-
-                    return (
-                      <td
-                        key={cell.id}
-                        className={`px-4 py-4 align-middle text-sm text-[#111111] ${meta?.cellClassName || ""}`}
-                      >
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))
+              <AnimatePresence initial={false}>
+                {table.getRowModel().rows.map((row, i) => (
+                  <motion.tr
+                    key={row.id}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{
+                      duration: 0.22,
+                      delay: i * 0.03,
+                      ease: [0.16, 1, 0.3, 1],
+                    }}
+                    onClick={onRowClick ? () => onRowClick(row.original) : undefined}
+                    className={`
+                      border-b border-[#e8e4dc]/60 transition-colors duration-100
+                      hover:bg-[#f5c518]/[0.05]
+                      ${onRowClick ? "cursor-pointer" : ""}
+                      ${rowClassName}
+                    `}
+                  >
+                    {row.getVisibleCells().map((cell, ci) => {
+                      const meta = cell.column.columnDef.meta as TableColumnMeta | undefined;
+                      return (
+                        <td
+                          key={cell.id}
+                          className={`
+                            px-4 py-3.5 align-middle
+                            ${ci === 0 ? "pl-5" : ""}
+                            ${meta?.cellClassName ?? ""}
+                          `}
+                        >
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </td>
+                      );
+                    })}
+                  </motion.tr>
+                ))}
+              </AnimatePresence>
             )}
           </tbody>
         </table>

@@ -9,9 +9,11 @@ export default function StudentDashboardLayout({ children }: { children: React.R
       <StudentRouteGuard />
       <DashboardShellProvider>
         <DashboardSidebar />
-        <div className="flex-1 lg:ml-72 min-w-0 flex flex-col">
+        {/* lg:ml-64 offsets the fixed sidebar; pr-0 ensures content reaches right edge symmetrically */}
+        <div className="flex-1 lg:ml-64 min-w-0 flex flex-col">
           <Navbar />
-          <main className="pt-14 flex-1">
+          {/* pt-14 clears navbar; each page handles its own px padding uniformly */}
+          <main className="pt-14 flex-1 min-h-screen overflow-x-hidden">
             {children}
           </main>
         </div>

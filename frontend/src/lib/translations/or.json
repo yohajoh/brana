@@ -348,6 +348,9 @@
   },
   "student_dashboard": {
     "welcome": "Baga Nagaan Deebitan፣ {name}",
+    "good_morning": "Akkam bulte",
+    "good_afternoon": "Akkam jirta",
+    "good_evening": "Akkam ooltee",
     "subtitle": "Waa'ee kitaabota keessanii maaltu deemaa akka jiru kanadha.",
     "currently_borrowed": "Kitaaba Amma Liqeeffame",
     "borrowed": {
@@ -435,7 +438,8 @@
     "payments": "Kafaltiiwwan",
     "notifications": "Beeksistoota",
     "account_settings": "Teessuma Akkawuntii",
-    "logout": "Tahuu"
+    "logout": "Tahuu",
+    "logout_success": "Milkaa'inaan ba'ame"
   },
   "dashboard": {
     "analytics_title": "Daashboordii Xiinxalaa",
