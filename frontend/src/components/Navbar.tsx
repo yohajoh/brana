@@ -29,8 +29,9 @@ export const Navbar = () => {
   const [isLangOpen, setIsLangOpen]     = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [scrolled, setScrolled]         = useState(false);
-  const langRef   = useRef<HTMLDivElement>(null);
-  const mobileRef = useRef<HTMLDivElement>(null);
+  const langRef    = useRef<HTMLDivElement>(null);
+  const mobileRef  = useRef<HTMLDivElement>(null);
+  const hamburgerRef = useRef<HTMLButtonElement>(null);
   const { toggleMobileSidebar } = useDashboardShell();
 
   const isStudentDashboard = pathname.startsWith("/dashboard/student");

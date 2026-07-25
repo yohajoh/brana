@@ -297,7 +297,7 @@ export default function BookDetailPage() {
     return (
       <div className="min-h-screen bg-[#f8f7fc] flex flex-col">
         <Navbar />
-        <div className="relative overflow-hidden" style={{ height: "60vh", minHeight: "520px", maxHeight: "780px", background: "#8b919e" }}>
+        <div className="relative overflow-hidden" style={{ height: "calc(60vh + 64px)", minHeight: "584px", maxHeight: "844px", background: "#8b919e" }}>
           {/* Subtle radial highlight — same grey-blue tone as the screenshot */}
           <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at 55% 40%, rgba(255,255,255,0.10) 0%, transparent 60%)" }} />
           <div className="absolute inset-0 flex items-center px-8">
@@ -340,10 +340,10 @@ export default function BookDetailPage() {
     <div className="min-h-screen bg-[#f8f7fc] text-[#0d0d0d] flex flex-col">
       <Navbar />
 
-      {/* ── Hero band — 60vh fixed height ── */}
+      {/* ── Hero band — 60vh ── */}
       <section
         className="relative overflow-hidden"
-        style={{ height: "60vh", minHeight: "520px", maxHeight: "780px" }}
+        style={{ height: "calc(60vh + 64px)", minHeight: "584px", maxHeight: "844px", paddingTop: "64px" }}
       >
         {/* Background = blurred book cover fills the entire section */}
         <div className="absolute inset-0">
