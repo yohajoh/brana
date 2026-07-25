@@ -67,6 +67,7 @@ function BooksContent() {
   const searchParams = useSearchParams();
   const { t } = useLanguage();
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [mobileCatOpen, setMobileCatOpen] = useState(false);
   /* Track whether the page header (search bar) has scrolled out of view */
   const [headerHidden, setHeaderHidden] = useState(false);
   const headerRef = useRef<HTMLDivElement>(null);
@@ -417,10 +418,10 @@ function BooksContent() {
               )}
             </AnimatePresence>
 
-            {/* Mobile: toggle button */}
+            {/* Mobile: toggle button for categories */}
             <div className="flex lg:hidden mb-4">
               <button
-                onClick={() => setFiltersOpen(v => !v)}
+                onClick={() => setMobileCatOpen(v => !v)}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[#e2e0e7] bg-white text-sm font-bold text-[#374151] hover:border-[#0d0d0d] hover:text-[#0d0d0d] transition-all"
               >
                 <SlidersHorizontal size={16} />
@@ -442,7 +443,7 @@ function BooksContent() {
             </div>
 
             <AnimatePresence>
-              {filtersOpen && (
+              {mobileCatOpen && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: "auto" }}
@@ -454,7 +455,7 @@ function BooksContent() {
                     <CategorySidebar
                       categories={categories}
                       selectedCategory={selectedCategory}
-                      onCategoryChange={(cat) => { updateQuery({ category: cat }, true); setFiltersOpen(false); }}
+                      onCategoryChange={(cat) => { updateQuery({ category: cat }, true); setMobileCatOpen(false); }}
                       loading={categoriesLoading}
                     />
                   </div>

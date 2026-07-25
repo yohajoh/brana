@@ -47,11 +47,15 @@ export const Navbar = () => {
     return () => window.removeEventListener("scroll", onScroll);
   }, [isDashboard]);
 
-  /* Close on outside click */
+  /* Close on outside click — exclude the hamburger button itself */
   useEffect(() => {
     const h = (e: MouseEvent) => {
-      if (langRef.current   && !langRef.current.contains(e.target as Node))   setIsLangOpen(false);
-      if (mobileRef.current && !mobileRef.current.contains(e.target as Node)) setIsMobileOpen(false);
+      if (langRef.current && !langRef.current.contains(e.target as Node)) setIsLangOpen(false);
+      if (
+        mobileRef.current &&
+        !mobileRef.current.contains(e.target as Node) &&
+        !hamburgerRef.current?.contains(e.target as Node)
+      ) setIsMobileOpen(false);
     };
     document.addEventListener("mousedown", h);
     return () => document.removeEventListener("mousedown", h);
@@ -256,7 +260,7 @@ export const Navbar = () => {
               )}
 
               {/* Mobile hamburger */}
-              <button type="button" onClick={() => setIsMobileOpen(v => !v)}
+              <button ref={hamburgerRef} type="button" onClick={() => setIsMobileOpen(v => !v)}
                 className={`md:hidden grid place-items-center w-9 h-9 rounded-full border transition-all ${
                   scrolled
                     ? "border-[#e2e0e7] text-[#374151] hover:border-[#0d0d0d] hover:text-[#0d0d0d]"
