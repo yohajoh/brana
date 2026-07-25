@@ -1,5 +1,4 @@
 "use client";
-"use client";
 
 import Image from "next/image";
 import type { Rental } from "@/lib/hooks/useQueries";

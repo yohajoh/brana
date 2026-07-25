@@ -281,10 +281,9 @@ export const DashboardSidebar = ({ variant = "default" }: DashboardSidebarProps)
         transition={{ type: "spring", stiffness: 360, damping: 36 }}
         className={`hidden lg:flex lg:flex-col fixed left-0 top-0 h-screen z-[2147483646] overflow-hidden ${desktopW}`}
       >
-        <SidebarContent collapsed={isCollapsed} />
+        {renderSidebar(isCollapsed)}
       </motion.aside>
 
-      {/* Mobile drawer — always full width, never collapsed */}
       <AnimatePresence>
         {isMobileSidebarOpen && (
           <motion.aside
@@ -293,7 +292,7 @@ export const DashboardSidebar = ({ variant = "default" }: DashboardSidebarProps)
             transition={{ type: "spring", stiffness: 400, damping: 38 }}
             className="lg:hidden fixed left-0 top-0 h-screen w-[270px] z-[2147483646] flex flex-col"
           >
-            <SidebarContent collapsed={false} />
+            {renderSidebar(false)}
           </motion.aside>
         )}
       </AnimatePresence>

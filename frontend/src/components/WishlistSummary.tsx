@@ -1,5 +1,4 @@
 "use client";
-"use client";
 
 import { useLanguage } from "@/components/providers/LanguageProvider";
 
