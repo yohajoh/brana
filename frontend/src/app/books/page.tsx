@@ -234,7 +234,7 @@ function BooksContent() {
           <div className="absolute inset-0 bg-cover bg-center opacity-20"
             style={{ backgroundImage: "url('/reading img 9.jpg')" }} />
         </div>
-        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 pt-24 pb-10">
+        <div className="relative mx-auto max-w-7xl px-3 pt-24 pb-10">
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -255,12 +255,12 @@ function BooksContent() {
         <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-b from-transparent to-[#f8f7fc]" />
       </div>
 
-      <main className="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 py-8">
+      <main className="flex-1 mx-auto max-w-7xl w-full px-3 py-6">
         {/* Outer flex row — min-height ensures sticky has room to work */}
-        <div className="flex flex-col lg:flex-row gap-8 items-start">
+        <div className="flex flex-col lg:flex-row gap-5 items-start">
 
           {/* ── Sidebar ─── */}
-          <div className="w-full lg:w-56 xl:w-60 shrink-0 self-start lg:sticky lg:top-[80px]">
+          <div className="w-full lg:w-48 xl:w-52 shrink-0 self-start lg:sticky lg:top-[80px]">
 
             {/* ── Sticky search + filter bar — appears when page header scrolls away ── */}
             <AnimatePresence>
