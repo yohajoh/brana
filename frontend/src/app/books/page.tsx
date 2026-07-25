@@ -190,12 +190,24 @@ function BooksContent() {
     if (page > totalPages) updateQuery({ page: String(totalPages) });
   }, [page, totalPages, updateQuery]);
 
-  /* Observe when page header scrolls out — triggers sidebar search/filter */
+  /* Observe when page header scrolls out — triggers sidebar search */
   useEffect(() => {
     const el = headerRef.current;
     if (!el) return;
     const observer = new IntersectionObserver(
       ([entry]) => setHeaderHidden(!entry.isIntersecting),
+      { threshold: 0, rootMargin: "-80px 0px 0px 0px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  /* Observe when main filters section scrolls out — triggers sidebar filters */
+  useEffect(() => {
+    const el = filtersRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setFiltersHidden(!entry.isIntersecting),
       { threshold: 0, rootMargin: "-80px 0px 0px 0px" }
     );
     observer.observe(el);
@@ -260,19 +272,17 @@ function BooksContent() {
                   transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}
                   className="hidden lg:flex flex-col gap-2 mb-4"
                 >
-                  {/* Mini search */}
+                  {/* Mini search — always shown when header hidden */}
                   <motion.div
                     initial={{ opacity: 0, y: -8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.05, duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
                     className="bg-white/95 backdrop-blur-xl rounded-2xl border border-[#e2e0e7] shadow-[0_4px_20px_rgba(0,0,0,0.08)] overflow-hidden"
                   >
-                    <SearchBar
-                      onSearch={(q) => updateQuery({ search: q || null }, true)}
-                    />
+                    <SearchBar onSearch={(q) => updateQuery({ search: q || null }, true)} />
                   </motion.div>
 
-                  {/* Compact filter toggles: mode pills */}
+                  {/* Mode pills — always shown when header hidden */}
                   <motion.div
                     initial={{ opacity: 0, y: -8 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -302,103 +312,107 @@ function BooksContent() {
                     </div>
                   </motion.div>
 
-                  {/* Advanced filter toggle */}
-                  <motion.div
-                    initial={{ opacity: 0, y: -8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.15, duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
-                    className="bg-white/95 backdrop-blur-xl rounded-2xl border border-[#e2e0e7] shadow-[0_4px_20px_rgba(0,0,0,0.08)] overflow-hidden"
-                  >
-                    <button
-                      onClick={() => setFiltersOpen(v => !v)}
-                      className="w-full flex items-center justify-between px-4 py-3 text-xs font-bold text-[#374151] hover:text-[#0d0d0d] transition-colors"
-                    >
-                      <div className="flex items-center gap-2">
-                        <SlidersHorizontal size={13} />
-                        {t("books_page.advanced_filters") as string || "Filters"}
-                        {hasActiveFilters && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#f5c518]" />
-                        )}
-                      </div>
+                  {/* Advanced filters — only shown when BOTH header AND filters section are hidden */}
+                  <AnimatePresence>
+                    {filtersHidden && (
                       <motion.div
-                        animate={{ rotate: filtersOpen ? 180 : 0 }}
-                        transition={{ duration: 0.22 }}
+                        key="sidebar-adv-filters"
+                        initial={{ opacity: 0, y: -8, scale: 0.97 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                        transition={{ delay: 0.15, duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+                        className="bg-white/95 backdrop-blur-xl rounded-2xl border border-[#e2e0e7] shadow-[0_4px_20px_rgba(0,0,0,0.08)] overflow-hidden"
                       >
-                        <ChevronDown size={12} />
-                      </motion.div>
-                    </button>
-
-                    <AnimatePresence>
-                      {filtersOpen && (
-                        <motion.div
-                          key="sidebar-filters"
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: "auto", opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-                          className="overflow-hidden border-t border-[#e2e0e7]"
+                        <button
+                          onClick={() => setFiltersOpen(v => !v)}
+                          className="w-full flex items-center justify-between px-4 py-3 text-xs font-bold text-[#374151] hover:text-[#0d0d0d] transition-colors"
                         >
-                          <div className="px-4 py-3 flex flex-col gap-2.5">
-                            {/* Author */}
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-[#374151] uppercase tracking-wider">
-                                {t("books_page.filters.all_authors") as string}
-                              </label>
-                              <div className="relative">
-                                <FilterSelect
-                                  value={selectedAuthor}
-                                  onChange={(e) => updateQuery({ author: e.target.value || null }, true)}
-                                >
-                                  <option value="">{t("books_page.filters.all_authors") as string}</option>
-                                  {authors.map((a) => (
-                                    <option key={a.id} value={a.name}>{a.name}</option>
-                                  ))}
-                                </FilterSelect>
-                                <ChevronDown size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#9ca3af] pointer-events-none" />
-                              </div>
-                            </div>
-                            {/* Availability */}
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-[#374151] uppercase tracking-wider">
-                                {t("books_page.filters.availability") as string}
-                              </label>
-                              <div className="relative">
-                                <FilterSelect
-                                  value={availability}
-                                  onChange={(e) => updateQuery({ availability: e.target.value || null }, true)}
-                                >
-                                  <option value="">{t("books_page.filters.availability") as string}</option>
-                                  <option value="true">{t("books_page.filters.available") as string}</option>
-                                  <option value="false">{t("books_page.filters.unavailable") as string}</option>
-                                </FilterSelect>
-                                <ChevronDown size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#9ca3af] pointer-events-none" />
-                              </div>
-                            </div>
-                            {/* Min rating */}
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-[#374151] uppercase tracking-wider">
-                                {t("books_page.filters.min_rating_placeholder") as string}
-                              </label>
-                              <FilterInput
-                                type="number" min={1} max={5} step="0.1" value={minRating}
-                                onChange={(e) => updateQuery({ minRating: e.target.value || null }, true)}
-                                placeholder="e.g. 4"
-                              />
-                            </div>
-                            {hasActiveFilters && (
-                              <button
-                                onClick={() => updateQuery({ author: null, availability: null, minRating: null, year: null, tags: null, topics: null }, true)}
-                                className="flex items-center gap-1.5 text-[10px] font-bold text-red-500 hover:text-red-600 transition-colors self-start"
-                              >
-                                <X size={11} />
-                                Clear filters
-                              </button>
-                            )}
+                          <div className="flex items-center gap-2">
+                            <SlidersHorizontal size={13} />
+                            {t("books_page.advanced_filters") as string || "Filters"}
+                            {hasActiveFilters && <span className="w-1.5 h-1.5 rounded-full bg-[#f5c518]" />}
                           </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </motion.div>
+                          <motion.div animate={{ rotate: filtersOpen ? 180 : 0 }} transition={{ duration: 0.22 }}>
+                            <ChevronDown size={12} />
+                          </motion.div>
+                        </button>
+
+                        <AnimatePresence>
+                          {filtersOpen && (
+                            <motion.div
+                              key="sidebar-filters-body"
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: "auto", opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                              className="overflow-hidden border-t border-[#e2e0e7]"
+                            >
+                              <div className="px-4 py-3 flex flex-col gap-2.5">
+                                {/* Author */}
+                                <div className="space-y-1">
+                                  <label className="text-[10px] font-bold text-[#374151] uppercase tracking-wider">{t("books_page.filters.all_authors") as string}</label>
+                                  <div className="relative">
+                                    <FilterSelect value={selectedAuthor} onChange={(e) => updateQuery({ author: e.target.value || null }, true)}>
+                                      <option value="">{t("books_page.filters.all_authors") as string}</option>
+                                      {authors.map((a) => <option key={a.id} value={a.name}>{a.name}</option>)}
+                                    </FilterSelect>
+                                    <ChevronDown size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#9ca3af] pointer-events-none" />
+                                  </div>
+                                </div>
+                                {/* Availability */}
+                                <div className="space-y-1">
+                                  <label className="text-[10px] font-bold text-[#374151] uppercase tracking-wider">{t("books_page.filters.availability") as string}</label>
+                                  <div className="relative">
+                                    <FilterSelect value={availability} onChange={(e) => updateQuery({ availability: e.target.value || null }, true)}>
+                                      <option value="">{t("books_page.filters.availability") as string}</option>
+                                      <option value="true">{t("books_page.filters.available") as string}</option>
+                                      <option value="false">{t("books_page.filters.unavailable") as string}</option>
+                                    </FilterSelect>
+                                    <ChevronDown size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#9ca3af] pointer-events-none" />
+                                  </div>
+                                </div>
+                                {/* Min rating */}
+                                <div className="space-y-1">
+                                  <label className="text-[10px] font-bold text-[#374151] uppercase tracking-wider">{t("books_page.filters.min_rating_placeholder") as string}</label>
+                                  <FilterInput type="number" min={1} max={5} step="0.1" value={minRating}
+                                    onChange={(e) => updateQuery({ minRating: e.target.value || null }, true)} placeholder="e.g. 4" />
+                                </div>
+                                {/* Year */}
+                                <div className="space-y-1">
+                                  <label className="text-[10px] font-bold text-[#374151] uppercase tracking-wider">{t("books_page.filters.year_placeholder") as string}</label>
+                                  <FilterInput type="number" value={year}
+                                    onChange={(e) => updateQuery({ year: e.target.value || null }, true)} placeholder="e.g. 2023" />
+                                </div>
+                                {/* Tags */}
+                                <div className="space-y-1">
+                                  <label className="text-[10px] font-bold text-[#374151] uppercase tracking-wider">{t("books_page.filters.tags_placeholder") as string}</label>
+                                  <FilterInput type="text" value={tags}
+                                    onChange={(e) => updateQuery({ tags: e.target.value || null }, true)}
+                                    placeholder={t("books_page.filters.tags_placeholder") as string} />
+                                </div>
+                                {/* Topics */}
+                                <div className="space-y-1">
+                                  <label className="text-[10px] font-bold text-[#374151] uppercase tracking-wider">{t("books_page.filters.topics_placeholder") as string}</label>
+                                  <FilterInput type="text" value={topics}
+                                    onChange={(e) => updateQuery({ topics: e.target.value || null }, true)}
+                                    placeholder={t("books_page.filters.topics_placeholder") as string} />
+                                </div>
+                                {hasActiveFilters && (
+                                  <button
+                                    onClick={() => updateQuery({ author: null, availability: null, minRating: null, year: null, tags: null, topics: null }, true)}
+                                    className="flex items-center gap-1.5 text-[10px] font-bold text-red-500 hover:text-red-600 transition-colors self-start"
+                                  >
+                                    <X size={11} />
+                                    Clear filters
+                                  </button>
+                                )}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -498,7 +512,7 @@ function BooksContent() {
             </div>
 
             {/* ── Advanced filters ─── */}
-            <div className="bg-white rounded-2xl border border-[#e2e0e7] overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+            <div ref={filtersRef} className="bg-white rounded-2xl border border-[#e2e0e7] overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
               <button
                 onClick={() => setFiltersOpen(v => !v)}
                 className="w-full flex items-center justify-between px-5 py-3.5 text-sm font-bold text-[#374151] hover:text-[#0d0d0d] transition-colors"
