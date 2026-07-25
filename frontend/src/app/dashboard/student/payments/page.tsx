@@ -138,7 +138,7 @@ function PaymentsContent() {
 
   return (
     <motion.div variants={stagger} initial="hidden" animate="show"
-      className="px-4 py-6 sm:px-6 pr-4 sm:pr-6 space-y-6 max-w-[1100px]">
+      className="p-4 sm:p-6 space-y-6">
 
       {/* Header */}
       <motion.div variants={fadeUp}>

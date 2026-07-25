@@ -35,7 +35,7 @@ export default function BorrowingHistoryPage() {
 
   return (
     <motion.div variants={stagger} initial="hidden" animate="show"
-      className="px-4 py-6 sm:px-6 space-y-6 max-w-[1100px]">
+      className="p-4 sm:p-6 space-y-6">
 
       <motion.div variants={fadeUp}>
         <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.2em] mb-1">

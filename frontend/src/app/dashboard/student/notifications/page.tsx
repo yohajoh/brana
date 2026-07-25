@@ -98,7 +98,7 @@ function NotificationsContent() {
 
   return (
     <motion.div variants={stagger} initial="hidden" animate="show"
-      className="px-4 py-6 sm:px-6 space-y-5 max-w-[780px]">
+      className="p-4 sm:p-6 space-y-5">
 
       {/* Header */}
       <motion.div variants={fadeUp} className="flex items-start justify-between gap-4">
