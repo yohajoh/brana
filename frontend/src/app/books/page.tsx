@@ -465,18 +465,18 @@ function BooksContent() {
           </div>
 
           {/* ── Main content ─── */}
-          <div className="flex-1 min-w-0 space-y-6">
+          <div className="w-full min-w-0 flex-1 space-y-6">
 
             {/* ── Top controls bar ─── */}
-            <div className="bg-white rounded-2xl border border-[#e2e0e7] p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                {/* Mode tabs */}
-                <div className="flex items-center gap-1 rounded-xl bg-[#f1f0f4] p-1">
+            <div className="w-full bg-white rounded-2xl border border-[#e2e0e7] p-3 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+              <div className="flex items-center gap-2 w-full">
+                {/* Mode tabs — fixed, never stretch */}
+                <div className="flex items-center gap-1 rounded-xl bg-[#f1f0f4] p-1 shrink-0">
                   {(["all", "physical", "digital"] as CatalogMode[]).map((m) => (
                     <button
                       key={m}
                       onClick={() => updateQuery({ mode: m }, true)}
-                      className={`relative px-4 py-1.5 rounded-lg text-xs font-black transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f5c518] focus-visible:ring-offset-1 ${
+                      className={`relative px-3 py-1.5 rounded-lg text-xs font-black whitespace-nowrap transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f5c518] focus-visible:ring-offset-1 ${
                         mode === m ? "text-white" : "text-[#374151] hover:text-[#0d0d0d]"
                       }`}
                     >
@@ -493,12 +493,12 @@ function BooksContent() {
                   ))}
                 </div>
 
-                {/* Sort */}
-                <div className="relative ml-auto">
+                {/* Sort — takes remaining space but min-w constrained */}
+                <div className="relative flex-1 min-w-0">
                   <FilterSelect
                     value={sortBy}
                     onChange={(e) => updateQuery({ sort: e.target.value }, true)}
-                    className="pr-8 text-xs"
+                    className="pr-8 text-xs w-full"
                   >
                     <option value="title">{t("books_page.sort_options.title_asc") as string}</option>
                     <option value="-title">{t("books_page.sort_options.title_desc") as string}</option>
@@ -513,7 +513,7 @@ function BooksContent() {
             </div>
 
             {/* ── Advanced filters ─── */}
-            <div ref={filtersRef} className="bg-white rounded-2xl border border-[#e2e0e7] overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+            <div ref={filtersRef} className="w-full bg-white rounded-2xl border border-[#e2e0e7] overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
               <button
                 onClick={() => setFiltersOpen(v => !v)}
                 className="w-full flex items-center justify-between px-5 py-3.5 text-sm font-bold text-[#374151] hover:text-[#0d0d0d] transition-colors"

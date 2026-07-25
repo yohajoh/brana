@@ -359,7 +359,7 @@ export default function BookDetailPage() {
         </div>
 
         {/* ── Left panel: full width on mobile, 50% on desktop ── */}
-        <div className="absolute top-0 left-0 bottom-0 w-full lg:w-[50%] flex items-center justify-center">
+        <div className="absolute top-0 left-0 bottom-0 w-full lg:w-[50%] flex items-center justify-center pt-16">
 
           {/* Card — object-contain so full cover shows with no crop */}
           <AnimatePresence mode="wait">
@@ -429,7 +429,7 @@ export default function BookDetailPage() {
         </div>
 
         {/* ── RIGHT: text — desktop only at 50%→right, mobile shown below hero ── */}
-        <div className="hidden lg:flex absolute top-0 bottom-0 flex-col justify-between px-8 lg:px-12 py-8"
+        <div className="hidden lg:flex absolute top-0 bottom-0 flex-col justify-between px-8 lg:px-12 pt-[80px] pb-8"
           style={{ left: "50%", right: 0 }}>
           {/* Breadcrumb */}
           <motion.nav initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
