@@ -1,18 +1,21 @@
 import { Navbar } from "@/components/Navbar";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
+import { SidebarOffset } from "@/components/SidebarOffset";
 import { AdminRouteGuard } from "@/components/guards/AdminRouteGuard";
 import { DashboardShellProvider } from "@/components/providers/DashboardShellProvider";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="dashboard-shell min-h-screen bg-[#FFFFFF] text-[#111111] flex selection:bg-[#142B6F]/10">
+    <div className="min-h-screen bg-[#f5f4f0] text-[#0d0d0d] flex selection:bg-[#f5c518]/30">
       <AdminRouteGuard />
       <DashboardShellProvider>
         <DashboardSidebar variant="admin" />
-        <div className="flex-1 lg:ml-64 pt-16">
+        <SidebarOffset>
           <Navbar />
-          <main className="h-[calc(100dvh-64px)] overflow-y-auto bg-[#FFFFFF]">{children}</main>
-        </div>
+          <main className="pt-14 flex-1 min-h-screen overflow-x-hidden">
+            {children}
+          </main>
+        </SidebarOffset>
       </DashboardShellProvider>
     </div>
   );

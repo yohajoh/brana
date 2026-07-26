@@ -1,1600 +1,642 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import {
-  Trash2,
-  Pencil,
-  MoreHorizontal,
-  Search,
-  Plus,
-  ChevronLeft,
-  ChevronRight,
-  ChevronDown,
-  X,
-  Upload,
-} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Search, Plus, X, Upload, MoreHorizontal, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import {
-  useBooks,
-  useDigitalBooks,
-  useCategories,
-  useAuthors,
-  useCreateBook,
-  useUpdateBook,
-  useDeleteBook,
-  useCreateCategory,
-  useUpdateCategory,
-  useDeleteCategory,
-  useCreateAuthor,
-  useBookCopies,
-  useConditionHistory,
-  useUpdateCondition,
+  useBooks, useDigitalBooks, useCategories, useAuthors,
+  useCreateBook, useUpdateBook, useDeleteBook,
+  useCreateCategory, useUpdateCategory, useDeleteCategory,
+  useCreateAuthor, useBookCopies, useConditionHistory, useUpdateCondition,
 } from "@/lib/hooks/useQueries";
 import { useLanguage } from "@/components/providers/LanguageProvider";
-import { ColumnDef } from "@tanstack/react-table";
 import { TanStackTable } from "@/components/ui/TanStackTable";
+import { ColumnDef } from "@tanstack/react-table";
+import Image from "next/image";
 
-type Tab = "all" | "physical" | "digital" | "categories";
+type Tab = "all"|"physical"|"digital"|"categories";
+const ITEMS = 10;
+const fadeUp  = { hidden:{opacity:0,y:16}, show:{opacity:1,y:0,transition:{duration:0.38,ease:[0.16,1,0.3,1]}} };
+const stagger = { hidden:{}, show:{transition:{staggerChildren:0.06}} };
+const modalIn = { hidden:{opacity:0,scale:0.97,y:16}, show:{opacity:1,scale:1,y:0,transition:{duration:0.28,ease:[0.16,1,0.3,1]}} };
+const IC = "w-full px-4 py-3 rounded-xl border border-[#e8e4dc] bg-[#f5f4f0] text-sm text-[#0d0d0d] focus:outline-none focus:border-[#0d0d0d] focus:bg-white focus:shadow-[0_0_0_3px_rgba(245,197,24,0.2)] transition-all placeholder:text-[#0d0d0d]/25";
 
 interface Book {
-  id: string;
-  author_id?: string;
-  category_id?: string;
-  title: string;
-  author?: { id: string; name: string };
-  category?: { id: string; name: string };
-  total?: number;
-  copies?: number;
-  available?: number;
-  status?: string;
-  description?: string;
-  publication_year?: number;
-  loan_duration_days?: number | null;
-  rental_price?: number;
-  pages?: number;
-  tags?: string[];
-  topics?: string[];
-  pdf_access?: "FREE" | "PAID" | "RESTRICTED";
-  type?: "physical" | "digital";
+  id:string; title:string; author_id?:string; category_id?:string;
+  author?:{id:string;name:string}; category?:{id:string;name:string};
+  copies?:number; total?:number; available?:number;
+  description?:string; publication_year?:number; loan_duration_days?:number|null;
+  rental_price?:number; pages?:number; tags?:string[]; topics?:string[];
+  pdf_access?:"FREE"|"PAID"|"RESTRICTED"; type?:"physical"|"digital";
 }
+interface Category { id:string; name:string; _count?:{books:number;digital_books?:number} }
+interface Author   { id:string; name:string }
+interface BookCopy { id:string; copy_code:string; condition:string; is_available:boolean; last_condition_update:string; notes?:string|null }
+interface CondHist  { id:string; old_condition:string; new_condition:string; notes?:string|null; created_at:string }
 
-type DeleteBookCandidate = {
-  id: string;
-  type: "physical" | "digital";
-  title: string;
-} | null;
-
-interface Category {
-  id: string;
-  name: string;
-  _count?: { books: number; digital_books?: number };
-}
-
-interface Author {
-  id: string;
-  name: string;
-}
-
-interface BookCopy {
-  id: string;
-  copy_code: string;
-  condition: "NEW" | "GOOD" | "WORN" | "DAMAGED" | "LOST";
-  is_available: boolean;
-  last_condition_update: string;
-  notes?: string | null;
-}
-
-interface ConditionHistoryEntry {
-  id: string;
-  old_condition: string;
-  new_condition: string;
-  notes?: string | null;
-  created_at: string;
-}
-
-const ITEMS_PER_PAGE = 8;
-
-export default function AdminBooksPage() {
-  const [activeTab, setActiveTab] = useState<Tab>("all");
-  const [search, setSearch] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [showModal, setShowModal] = useState(false);
-  const [editingBook, setEditingBook] = useState<Book | null>(null);
-  const [showCategoryModal, setShowCategoryModal] = useState(false);
-  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
-  const [categoryName, setCategoryName] = useState("");
-  const [showConditionModal, setShowConditionModal] = useState(false);
-  const [conditionBookId, setConditionBookId] = useState("");
-  const [conditionBookTitle, setConditionBookTitle] = useState("");
-  const [deleteBookCandidate, setDeleteBookCandidate] = useState<DeleteBookCandidate>(null);
-  const { t } = useLanguage();
-
-  const { data: booksData, isLoading: booksLoading } = useBooks("limit=200");
-  const { data: digitalData, isLoading: digitalLoading } = useDigitalBooks("limit=200");
-  const { data: categoriesData, isLoading: categoriesLoading } = useCategories("limit=200");
-  const { data: authorsData, isLoading: authorsLoading } = useAuthors("limit=200");
-
-  const createBook = useCreateBook();
-  const updateBook = useUpdateBook();
-  const deleteBook = useDeleteBook();
-  const createCategoryFn = useCreateCategory();
-  const updateCategoryFn = useUpdateCategory();
-  const deleteCategoryFn = useDeleteCategory();
-
-  const physicalBooks: Book[] =
-    booksData?.books?.map((b: Book & { copies?: number; total?: number }) => ({
-      ...b,
-      total: b.copies ?? b.total,
-      type: "physical",
-    })) || [];
-
-  const digitalBooksList: Book[] =
-    digitalData?.books?.map((b: Book) => ({
-      ...b,
-      total: 0,
-      type: "digital",
-    })) || [];
-
-  const categories: Category[] = categoriesData?.categories || [];
-  const authors: Author[] = authorsData?.authors || [];
-
-  const loading = booksLoading || digitalLoading || categoriesLoading || authorsLoading;
-  const deletingBookId = deleteBook.isPending ? deleteBook.variables?.id : undefined;
-  const deletingCategoryId = deleteCategoryFn.isPending ? deleteCategoryFn.variables : undefined;
-  const isBookSubmitting = createBook.isPending || updateBook.isPending;
-
-  const getErrorMessage = (error: unknown, fallback: string) =>
-    error instanceof Error && error.message ? error.message : fallback;
-
-  const allBooks = [...physicalBooks, ...digitalBooksList];
-
-  const getDisplayBooks = () => {
-    const source = activeTab === "all" ? allBooks : activeTab === "physical" ? physicalBooks : digitalBooksList;
-    if (!search) return source;
-    const q = search.toLowerCase();
-    return source.filter(
-      (b) =>
-        b.title?.toLowerCase().includes(q) ||
-        b.author?.name?.toLowerCase().includes(q) ||
-        b.category?.name?.toLowerCase().includes(q),
-    );
-  };
-
-  const handleDeleteBook = async (candidate: NonNullable<DeleteBookCandidate>) => {
-    try {
-      await deleteBook.mutateAsync({ id: candidate.id, type: candidate.type });
-      toast.success(t("admin_books.messages.delete_success"));
-      setDeleteBookCandidate(null);
-    } catch (error) {
-      toast.error(getErrorMessage(error, t("admin_books.messages.status_update_failed")));
-    }
-  };
-
-  const openCreateBookModal = () => {
-    setEditingBook(null);
-    setShowModal(true);
-  };
-
-  const openEditBookModal = (book: Book) => {
-    setEditingBook(book);
-    setShowModal(true);
-  };
-
-  const TABS: { key: Tab; label: string }[] = [
-    { key: "all", label: t("admin_books.tabs.all") },
-    { key: "physical", label: t("admin_books.tabs.physical") },
-    { key: "digital", label: t("admin_books.tabs.digital") },
-    { key: "categories", label: t("admin_books.tabs.categories") },
-  ];
-
-  const displayBooks = getDisplayBooks();
-  const totalPages = Math.max(
-    1,
-    Math.ceil(
-      activeTab === "categories"
-        ? Math.ceil(categories.length / ITEMS_PER_PAGE)
-        : Math.ceil(displayBooks.length / ITEMS_PER_PAGE),
-    ),
-  );
-  const paginatedBooks = displayBooks.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
-  const paginatedCategories = categories.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
-
-  const handleTabChange = (tab: Tab) => {
-    setActiveTab(tab);
-    setCurrentPage(1);
-    setSearch("");
-  };
-
-  const openCategoryModal = (category?: Category) => {
-    if (category) {
-      setEditingCategoryId(category.id);
-      setCategoryName(category.name);
-    } else {
-      setEditingCategoryId(null);
-      setCategoryName("");
-    }
-    setShowCategoryModal(true);
-  };
-
-  const handleSaveCategory = async () => {
-    if (!categoryName.trim()) return;
-    try {
-      if (editingCategoryId) {
-        await updateCategoryFn.mutateAsync({ id: editingCategoryId, data: { name: categoryName } });
-        toast.success(t("admin_categories.messages.update_success"));
-      } else {
-        await createCategoryFn.mutateAsync({ name: categoryName });
-        toast.success(t("admin_categories.messages.add_success"));
-      }
-      setShowCategoryModal(false);
-      setEditingCategoryId(null);
-      setCategoryName("");
-    } catch (error) {
-      toast.error(getErrorMessage(error, t("admin_categories.messages.add_failed")));
-    }
-  };
-
-  const handleDeleteCategory = async (id: string) => {
-    if (!confirm("Delete this category?")) return;
-    try {
-      await deleteCategoryFn.mutateAsync(id);
-      toast.success(t("admin_categories.messages.delete_success"));
-    } catch (error) {
-      toast.error(getErrorMessage(error, t("admin_categories.messages.delete_failed")));
-    }
-  };
-
+/* ── Confirm dialog (reusable) ─────────────────────────── */
+function Confirm({ title, desc, confirmLabel, tone, onClose, onConfirm, loading }:
+  { title:string; desc:string; confirmLabel:string; tone:"danger"|"primary"; onClose:()=>void; onConfirm:()=>Promise<void>; loading:boolean }) {
+  const [busy, setBusy] = useState(false);
+  const go = async () => { setBusy(true); try { await onConfirm(); } finally { setBusy(false); } };
+  const btnCls = tone==="danger" ? "bg-red-600 hover:bg-red-700 text-white" : "bg-[#0d0d0d] hover:bg-[#292524] text-white";
   return (
-    <>
-      <div className="p-4 sm:p-6 lg:p-12 space-y-8">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="space-y-1">
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-extrabold text-[#111111]">
-              {t("admin_books.title")}
-            </h1>
-            <p className="text-[#142B6F] font-medium">{t("admin_books.subtitle")}</p>
-          </div>
-          <div className="flex w-full flex-col gap-3 sm:mt-2 sm:w-auto sm:flex-row sm:items-center">
-            <div className="relative w-full sm:w-auto">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#142B6F]" />
-              <input
-                type="text"
-                placeholder={t("admin_books.search_placeholder")}
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setCurrentPage(1);
-                }}
-                disabled={activeTab === "categories"}
-                className="w-full sm:w-52 pl-9 pr-4 py-2.5 text-sm bg-white border border-[#E1DEE5] rounded-xl text-[#111111] placeholder:text-[#E1DEE5] disabled:opacity-40"
-              />
-            </div>
-            <button
-              onClick={() => (activeTab === "categories" ? setShowCategoryModal(true) : openCreateBookModal())}
-              className="flex w-full justify-center items-center gap-2 px-4 py-2.5 bg-[#142B6F] text-white text-sm font-bold rounded-xl sm:w-auto"
-            >
-              <Plus size={16} />
-              {activeTab === "categories" ? t("admin_categories.add_new") : t("admin_books.add_new")}
-            </button>
-          </div>
+    <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
+      className="fixed inset-0 z-[2147483647] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+      onClick={()=>!busy&&!loading&&onClose()}>
+      <motion.div variants={modalIn} initial="hidden" animate="show"
+        className="bg-white rounded-2xl border border-[#e8e4dc] p-6 w-full max-w-sm shadow-2xl"
+        onClick={e=>e.stopPropagation()}>
+        <h3 className="text-[17px] font-serif font-black text-[#0d0d0d] mb-2">{title}</h3>
+        <p className="text-sm text-[#0d0d0d]/55 leading-relaxed mb-6">{desc}</p>
+        <div className="flex gap-3 justify-end">
+          <button onClick={onClose} disabled={busy||loading}
+            className="px-4 py-2.5 rounded-xl border border-[#e8e4dc] text-sm font-bold text-[#0d0d0d]/60 hover:text-[#0d0d0d] transition-colors disabled:opacity-40">
+            Cancel
+          </button>
+          <button onClick={go} disabled={busy||loading}
+            className={`px-4 py-2.5 rounded-xl text-sm font-bold disabled:opacity-50 transition-colors ${btnCls}`}>
+            {busy||loading ? "Working…" : confirmLabel}
+          </button>
         </div>
-
-        <div className="flex items-center gap-4 overflow-x-auto whitespace-nowrap border-b border-[#E1DEE5]/50">
-          {TABS.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => handleTabChange(tab.key)}
-              className={`pb-3 text-sm font-bold border-b-2 ${activeTab === tab.key ? "text-[#111111] border-[#111111]" : "text-[#142B6F] border-transparent"}`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {activeTab === "categories" ? (
-          <CategoryTable
-            categories={paginatedCategories}
-            onEdit={openCategoryModal}
-            onDelete={handleDeleteCategory}
-            deletingId={deletingCategoryId}
-            isLoading={loading}
-          />
-        ) : (
-          <BookTable
-            books={paginatedBooks}
-            onDelete={(candidate) => setDeleteBookCandidate(candidate)}
-            onEdit={openEditBookModal}
-            deletingId={deletingBookId}
-            isLoading={loading}
-            onCondition={(id, title) => {
-              setConditionBookId(id);
-              setConditionBookTitle(title);
-              setShowConditionModal(true);
-            }}
-          />
-        )}
-
-        {!loading && totalPages > 1 && (
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <button
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-[#111111]/60 disabled:opacity-30"
-            >
-              <ChevronLeft size={16} />
-              {t("common.previous")}
-            </button>
-            <div className="flex w-full items-center justify-center gap-1.5 overflow-x-auto sm:w-auto sm:justify-start">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  className={`w-8 h-8 shrink-0 rounded-lg text-sm font-bold ${page === currentPage ? "bg-[#142B6F] text-white" : "text-[#111111]/60 hover:bg-[#E1DEE5]"}`}
-                >
-                  {page}
-                </button>
-              ))}
-            </div>
-            <button
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-              className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-[#111111]/60 disabled:opacity-30"
-            >
-              {t("common.next")}
-              <ChevronRight size={16} />
-            </button>
-          </div>
-        )}
-      </div>
-
-      {showModal && (
-        <AddBookModal
-          show={showModal}
-          onClose={() => {
-            setShowModal(false);
-            setEditingBook(null);
-          }}
-          authors={authors}
-          categories={categories}
-          editingBook={editingBook}
-          onSubmit={async (type, data) => {
-            try {
-              if (editingBook) {
-                await updateBook.mutateAsync({ id: editingBook.id, type, data });
-                toast.success(type === "physical" ? "Physical book updated" : "Digital book updated");
-              } else {
-                await createBook.mutateAsync({ type, data });
-                toast.success(type === "physical" ? "Physical book added" : "Digital book added");
-              }
-              setShowModal(false);
-              setEditingBook(null);
-            } catch (error) {
-              toast.error(getErrorMessage(error, editingBook ? "Failed to update book" : "Failed to add book"));
-            }
-          }}
-          submitting={isBookSubmitting}
-        />
-      )}
-
-      {showCategoryModal && (
-        <div
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowCategoryModal(false);
-          }}
-        >
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="flex items-center justify-between px-5 sm:px-8 pt-6 sm:pt-7 pb-4 border-b border-[#E1DEE5]/50">
-              <h3 className="text-xl font-serif font-extrabold text-[#111111]">
-                {editingCategoryId ? t("admin_categories.modal.edit_title") : t("admin_categories.modal.add_title")}
-              </h3>
-              <button
-                onClick={() => setShowCategoryModal(false)}
-                className="w-8 h-8 flex items-center justify-center text-[#142B6F] hover:text-[#111111] rounded-lg"
-              >
-                <X size={18} />
-              </button>
-            </div>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleSaveCategory();
-              }}
-              className="px-5 sm:px-8 py-5 sm:py-6 space-y-4"
-            >
-              <div>
-                <label className="block text-sm font-bold text-[#111111] mb-1.5">
-                  {t("admin_categories.modal.label_name")}
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={categoryName}
-                  onChange={(e) => setCategoryName(e.target.value)}
-                  className="w-full px-3 py-2.5 text-sm border border-[#E1DEE5] rounded-xl text-[#111111]"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={createCategoryFn.isPending || updateCategoryFn.isPending}
-                className="w-full py-3 bg-[#142B6F] text-white text-sm font-bold rounded-xl disabled:opacity-50"
-              >
-                {createCategoryFn.isPending || updateCategoryFn.isPending
-                  ? t("admin_categories.modal.submitting")
-                  : editingCategoryId
-                    ? t("admin_categories.modal.submit_update")
-                    : t("admin_categories.modal.submit_add")}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {showConditionModal && (
-        <ConditionModal
-          show={showConditionModal}
-          onClose={() => {
-            setShowConditionModal(false);
-            setConditionBookId("");
-            setConditionBookTitle("");
-          }}
-          bookId={conditionBookId}
-          title={conditionBookTitle}
-        />
-      )}
-
-      {deleteBookCandidate && (
-        <div
-          className="fixed inset-0 z-10000 bg-[#142B6F]/35 flex items-center justify-center p-4"
-          onClick={() => !deleteBook.isPending && setDeleteBookCandidate(null)}
-        >
-          <div
-            onClick={(event) => event.stopPropagation()}
-            className="w-full max-w-md rounded-[28px] border border-[#E1DEE5] bg-[#FFFFFF] p-5 sm:p-6 shadow-2xl"
-          >
-            <div className="space-y-2">
-              <h3 className="text-2xl font-serif font-black text-[#111111]">
-                {t("admin_categories.confirm.delete_title")}
-              </h3>
-              <p className="text-sm text-[#142B6F] leading-6">
-                {t("admin_categories.confirm.delete_desc", { name: deleteBookCandidate.title })}
-              </p>
-            </div>
-            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
-              <button
-                type="button"
-                onClick={() => setDeleteBookCandidate(null)}
-                disabled={deleteBook.isPending}
-                className="px-4 py-2.5 rounded-xl border border-[#E1DEE5] text-sm font-bold text-[#142B6F] disabled:opacity-40"
-              >
-                {t("common.cancel")}
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDeleteBook(deleteBookCandidate)}
-                disabled={deleteBook.isPending}
-                className="px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-red-700 disabled:opacity-40"
-              >
-                {deleteBook.isPending
-                  ? t("admin_books.messages.deleting") || "Deleting..."
-                  : t("admin_books.actions.delete")}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+      </motion.div>
+    </motion.div>
   );
 }
 
-function BookTable({
-  books,
-  onDelete,
-  onEdit,
-  deletingId,
-  isLoading,
-  onCondition,
-}: {
-  books: Book[];
-  onDelete: (candidate: { id: string; type: "physical" | "digital"; title: string }) => void;
-  onEdit: (book: Book) => void;
-  deletingId?: string;
-  isLoading: boolean;
-  onCondition: (id: string, title: string) => void;
-}) {
-  const { t } = useLanguage();
-  const [openMenuBookId, setOpenMenuBookId] = useState<string | null>(null);
+/* ── Searchable dropdown ────────────────────────────────── */
+function SearchDropdown({ label, placeholder, options, selectedId, onSelect, onCreate, isCreating }:
+  { label:string; placeholder:string; options:{id:string;name:string}[]; selectedId:string;
+    onSelect:(o:{id:string;name:string})=>void; onCreate:(v:string)=>Promise<void>; isCreating:boolean }) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ]       = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+  const sel = options.find(o=>o.id===selectedId);
+  const filtered = options.filter(o=>o.name.toLowerCase().includes(q.toLowerCase()));
+  const canCreate = q.trim().length>0 && !options.some(o=>o.name.toLowerCase()===q.trim().toLowerCase());
 
   useEffect(() => {
-    const closeMenu = () => setOpenMenuBookId(null);
-    window.addEventListener("click", closeMenu);
-    return () => {
-      window.removeEventListener("click", closeMenu);
-    };
-  }, []);
-
-  const bookColumns: ColumnDef<Book, unknown>[] = [
-    {
-      id: "title",
-      header: t("admin_books.table.title"),
-      cell: ({ row }) => <span className="text-sm font-bold text-[#111111] truncate block">{row.original.title}</span>,
-    },
-    {
-      id: "author",
-      header: t("admin_books.table.author"),
-      cell: ({ row }) => (
-        <span className="text-sm text-[#142B6F] truncate block">{row.original.author?.name || "-"}</span>
-      ),
-    },
-    {
-      id: "category",
-      header: t("admin_books.table.category"),
-      cell: ({ row }) => <span className="text-sm text-[#111111]/70">{row.original.category?.name || "-"}</span>,
-    },
-    {
-      id: "copies",
-      header: t("admin_books.table.copies"),
-      meta: {
-        headerClassName: "text-left",
-        cellClassName: "text-left",
-      },
-      cell: ({ row }) => {
-        const book = row.original;
-        return (
-          <span className="text-sm text-[#111111]/70 block">
-            {book.type === "digital" ? t("admin_books.status.digital") : (book.total ?? "-")}
-          </span>
-        );
-      },
-    },
-    {
-      id: "status",
-      header: t("admin_books.table.status"),
-      meta: {
-        headerClassName: "text-left",
-        cellClassName: "text-left",
-      },
-      cell: ({ row }) => {
-        const book = row.original;
-        return (
-          <span
-            className={`text-xs font-bold px-2.5 py-1 rounded-lg w-fit block ${book.type === "digital" ? "bg-[#E1DEE5] text-[#111111]" : book.available === 0 || book.status === "BORROWED" ? "bg-red-50 text-red-600" : "bg-green-50 text-green-700"}`}
-          >
-            {book.type === "digital"
-              ? book.pdf_access === "RESTRICTED"
-                ? t("admin_books.status.read_only")
-                : t("admin_books.status.download_allowed")
-              : book.status ||
-                (book.available === 0 ? t("admin_books.status.out_of_stock") : t("admin_books.status.available"))}
-          </span>
-        );
-      },
-    },
-    {
-      id: "actions",
-      header: "",
-      meta: {
-        headerClassName: "text-left w-[96px]",
-        cellClassName: "text-left w-[96px]",
-      },
-      cell: ({ row }) => {
-        const book = row.original;
-        return (
-          <div className="relative flex justify-start" onClick={(event) => event.stopPropagation()}>
-            <button
-              type="button"
-              onClick={() => setOpenMenuBookId((current) => (current === book.id ? null : book.id))}
-              className="h-9 w-9 rounded-full border border-[#E1DEE5] bg-[#FFFFFF] text-[#142B6F] flex items-center justify-center"
-              aria-label={`Open actions for ${book.title}`}
-            >
-              <MoreHorizontal size={16} />
-            </button>
-
-            {openMenuBookId === book.id ? (
-              <div className="absolute right-0 top-11 z-2147483646 min-w-48 overflow-hidden sm:left-0 sm:right-auto sm:min-w-56 rounded-xl border border-[#E1DEE5] bg-white shadow-[0_18px_40px_rgba(0,0,0,0.18)]">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOpenMenuBookId(null);
-                    onEdit(book);
-                  }}
-                  className="flex w-full items-center px-3 py-2.5 text-left text-sm font-semibold text-[#111111] hover:bg-[#FFFFFF]"
-                >
-                  {t("admin_books.actions.edit")}
-                </button>
-                {book.type === "physical" ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setOpenMenuBookId(null);
-                      onCondition(book.id, book.title);
-                    }}
-                    className="flex w-full items-center px-3 py-2.5 text-left text-sm font-semibold text-[#111111] hover:bg-[#FFFFFF]"
-                  >
-                    {t("admin_books.actions.condition")}
-                  </button>
-                ) : null}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOpenMenuBookId(null);
-                    onDelete({ id: book.id, type: book.type || "physical", title: book.title });
-                  }}
-                  disabled={deletingId === book.id}
-                  className="flex w-full items-center px-3 py-2.5 text-left text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-40"
-                >
-                  {t("admin_books.actions.delete")}
-                </button>
-              </div>
-            ) : null}
-          </div>
-        );
-      },
-    },
-  ];
+    const h = (e:MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("mousedown",h); return ()=>document.removeEventListener("mousedown",h);
+  },[]);
 
   return (
-    <TanStackTable
-      data={books}
-      columns={bookColumns}
-      isLoading={isLoading}
-      emptyText={t("admin_books.table.no_books")}
-      skeletonRows={5}
-    />
-  );
-}
-
-function CategoryTable({
-  categories,
-  onEdit,
-  onDelete,
-  deletingId,
-  isLoading,
-}: {
-  categories: Category[];
-  onEdit: (category: Category) => void;
-  onDelete: (id: string) => void;
-  deletingId?: string;
-  isLoading: boolean;
-}) {
-  const { t } = useLanguage();
-
-  const categoryColumns: ColumnDef<Category, unknown>[] = [
-    {
-      id: "category",
-      header: t("admin_categories.table.category"),
-      cell: ({ row }) => <span className="text-sm font-bold text-[#111111]">{row.original.name}</span>,
-    },
-    {
-      id: "book_counts",
-      header: `${t("admin_categories.table.physical")} / ${t("admin_categories.table.digital")}`,
-      meta: {
-        headerClassName: "text-left",
-        cellClassName: "text-left",
-      },
-      cell: ({ row }) => (
-        <span className="text-sm text-[#111111]/70">
-          {(row.original._count?.books || 0) + (row.original._count?.digital_books || 0)}
-        </span>
-      ),
-    },
-    {
-      id: "actions",
-      header: "",
-      meta: {
-        headerClassName: "text-left w-[96px]",
-        cellClassName: "text-left w-[96px]",
-      },
-      cell: ({ row }) => {
-        const category = row.original;
-        return (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => onEdit(category)}
-              title={`Edit ${category.name}`}
-              aria-label={`Edit ${category.name}`}
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-[#142B6F] hover:text-[#111111] hover:bg-[#E1DEE5]"
-            >
-              <Pencil size={15} />
-            </button>
-            <button
-              onClick={() => onDelete(category.id)}
-              disabled={deletingId === category.id}
-              title={`Delete ${category.name}`}
-              aria-label={`Delete ${category.name}`}
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-[#142B6F] hover:text-red-500 hover:bg-red-50 disabled:opacity-40"
-            >
-              <Trash2 size={15} />
-            </button>
-          </div>
-        );
-      },
-    },
-  ];
-
-  return (
-    <TanStackTable
-      data={categories}
-      columns={categoryColumns}
-      isLoading={isLoading}
-      emptyText={t("admin_categories.table.no_categories")}
-      skeletonRows={5}
-    />
-  );
-}
-
-function SearchableDropdown({
-  label,
-  placeholder,
-  options,
-  selectedId,
-  onSelect,
-  onCreate,
-  createLabel,
-  isCreating,
-}: {
-  label: string;
-  placeholder: string;
-  options: Array<{ id: string; name: string }>;
-  selectedId: string;
-  onSelect: (option: { id: string; name: string }) => void;
-  onCreate: (value: string) => Promise<void> | void;
-  createLabel: string;
-  isCreating: boolean;
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [searchText, setSearchText] = useState("");
-  const containerRef = useRef<HTMLDivElement>(null);
-  const normalizedSearch = searchText.trim().toLowerCase();
-  const selectedOption = options.find((option) => option.id === selectedId) || null;
-  const filteredOptions = options.filter((option) => option.name.toLowerCase().includes(normalizedSearch));
-  const showCreateAction =
-    normalizedSearch.length > 0 && !options.some((option) => option.name.toLowerCase() === normalizedSearch);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (!containerRef.current?.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  return (
-    <div ref={containerRef} className="relative">
-      <label className="block text-sm font-bold text-[#111111] mb-1.5">{label} *</label>
-      <button
-        type="button"
-        title={`Select ${label.toLowerCase()}`}
-        aria-label={`Select ${label.toLowerCase()}`}
-        onClick={() => {
-          const nextOpen = !isOpen;
-          setIsOpen(nextOpen);
-          if (nextOpen) {
-            // Fresh search each time the dropdown opens.
-            setSearchText("");
-          }
-        }}
-        className="flex w-full items-center justify-between border border-[#E1DEE5] bg-white px-3 py-2.5 text-sm text-[#111111]"
-      >
-        <span className={selectedOption ? "text-[#111111]" : "text-[#142B6F]"}>
-          {selectedOption?.name || placeholder}
-        </span>
-        <ChevronDown size={16} className={`text-[#142B6F] transition-transform ${isOpen ? "rotate-180" : ""}`} />
+    <div ref={ref} className="relative">
+      <label className="block text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-wider mb-1.5">{label} *</label>
+      <button type="button" onClick={()=>{setOpen(v=>!v); setQ("");}}
+        className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-[#e8e4dc] bg-[#f5f4f0] text-sm text-left hover:bg-white focus:outline-none focus:border-[#0d0d0d] transition-all">
+        <span className={sel?"text-[#0d0d0d]":"text-[#0d0d0d]/30"}>{sel?.name||placeholder}</span>
+        <ChevronDown size={14} className={`text-[#0d0d0d]/30 transition-transform ${open?"rotate-180":""}`}/>
       </button>
-
-      {isOpen ? (
-        <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 overflow-hidden border border-[#E1DEE5] bg-white shadow-[0_12px_24px_rgba(0,0,0,0.12)]">
-          <div className="border-b border-[#E1DEE5] p-3">
-            <input
-              type="text"
-              title={`Search ${label.toLowerCase()}`}
-              aria-label={`Search ${label.toLowerCase()}`}
-              value={searchText}
-              onChange={(event) => setSearchText(event.target.value)}
-              placeholder={`Search ${label.toLowerCase()}`}
-              className="w-full border border-[#E1DEE5] px-3 py-2.5 text-sm text-[#111111] outline-none focus:border-[#142B6F]"
-            />
-          </div>
-
-          <div className="max-h-56 overflow-y-auto p-2">
-            {filteredOptions.length === 0 ? (
-              <div className="px-3 py-2 text-sm text-[#142B6F]">No matching {label.toLowerCase()} found.</div>
-            ) : (
-              filteredOptions.map((option) => (
-                <div
-                  key={option.id}
-                  onClick={() => {
-                    onSelect(option);
-                    setSearchText("");
-                    setIsOpen(false);
-                  }}
-                  className={`cursor-pointer px-3 py-2.5 text-left text-sm ${selectedId === option.id ? "bg-[#FFFFFF] font-bold text-[#111111]" : "text-[#111111] hover:bg-[#FFFFFF]"}`}
-                >
-                  {option.name}
-                </div>
-              ))
+      <AnimatePresence>
+        {open && (
+          <motion.div initial={{opacity:0,y:-6,scale:0.98}} animate={{opacity:1,y:0,scale:1}} exit={{opacity:0,y:-6,scale:0.98}}
+            transition={{duration:0.15}} className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 bg-white rounded-xl border border-[#e8e4dc] shadow-xl overflow-hidden">
+            <div className="p-2.5 border-b border-[#e8e4dc]">
+              <input autoFocus value={q} onChange={e=>setQ(e.target.value)}
+                placeholder={`Search ${label.toLowerCase()}…`}
+                className="w-full px-3 py-2 text-sm rounded-lg border border-[#e8e4dc] focus:outline-none focus:border-[#0d0d0d] bg-[#f5f4f0] focus:bg-white transition-all"/>
+            </div>
+            <div className="max-h-48 overflow-y-auto p-1.5 space-y-0.5">
+              {filtered.length===0 ? <p className="px-3 py-2 text-sm text-[#0d0d0d]/35">No matches</p>
+                : filtered.map(o=>(
+                  <button key={o.id} type="button" onClick={()=>{onSelect(o);setOpen(false);setQ("");}}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${selectedId===o.id?"bg-[#0d0d0d] text-white font-bold":"text-[#0d0d0d] hover:bg-[#f5f4f0]"}`}>
+                    {o.name}
+                  </button>
+                ))}
+            </div>
+            {canCreate && (
+              <div className="p-2.5 border-t border-[#e8e4dc]">
+                <button type="button" disabled={isCreating} onClick={async()=>{await onCreate(q.trim());setOpen(false);setQ("");}}
+                  className="w-full px-3 py-2.5 rounded-xl bg-[#0d0d0d] text-white text-[12px] font-bold disabled:opacity-50 transition-colors hover:bg-[#292524]">
+                  {isCreating ? "Creating…" : `Create "${q.trim()}"`}
+                </button>
+              </div>
             )}
-          </div>
-
-          <div className="border-t border-[#E1DEE5] p-2">
-            <button
-              type="button"
-              title={createLabel}
-              onClick={async () => {
-                await onCreate(searchText.trim());
-                setSearchText("");
-                setIsOpen(false);
-              }}
-              disabled={isCreating || !showCreateAction}
-              className="w-full rounded-xl border border-[#111111] bg-[#142B6F] px-3 py-2.5 text-center text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-45"
-            >
-              {isCreating ? `Adding ${label.toLowerCase()}...` : createLabel}
-            </button>
-          </div>
-        </div>
-      ) : null}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
-function AddBookModal({
-  show,
-  onClose,
-  authors,
-  categories,
-  editingBook,
-  onSubmit,
-  submitting,
-}: {
-  show: boolean;
-  onClose: () => void;
-  authors: Author[];
-  categories: Category[];
-  editingBook?: Book | null;
-  onSubmit: (type: "physical" | "digital", data: FormData) => Promise<void>;
-  submitting: boolean;
-}) {
+/* ── Add/Edit Book Modal ────────────────────────────────── */
+function BookModal({ onClose, authors, categories, editingBook, onSubmit, submitting }:
+  { onClose:()=>void; authors:Author[]; categories:Category[]; editingBook:Book|null;
+    onSubmit:(type:"physical"|"digital",data:FormData)=>Promise<void>; submitting:boolean }) {
   const { t } = useLanguage();
-  const [modalTab, setModalTab] = useState<"physical" | "digital">("physical");
-  const [form, setForm] = useState({
-    title: "",
-    author_id: "",
-    category_id: "",
-    copies: "",
-    pages: "",
-    description: "",
-    publication_year: "",
-    loan_duration_days: "",
-    rental_price: "10",
-    tags: "",
-    topics: "",
-    pdf_access: "RESTRICTED" as "FREE" | "PAID" | "RESTRICTED",
-  });
-  const [, setAuthorSearch] = useState("");
-  const [, setCategorySearch] = useState("");
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
-  const [pdfFile, setPdfFile] = useState<File | null>(null);
-  const createAuthorFn = useCreateAuthor();
-  const createCategoryFn = useCreateCategory();
-  const imageInputRef = useRef<HTMLInputElement>(null);
-  const galleryInputRef = useRef<HTMLInputElement>(null);
-  const pdfInputRef = useRef<HTMLInputElement>(null);
+  const [type, setType] = useState<"physical"|"digital">(editingBook?.type==="digital"?"digital":"physical");
+  const [form, setForm] = useState({ title:"", author_id:"", category_id:"", copies:"", pages:"",
+    description:"", publication_year:"", loan_duration_days:"", rental_price:"10",
+    tags:"", topics:"", pdf_access:"RESTRICTED" as "FREE"|"PAID"|"RESTRICTED" });
+  const [imageFile, setImageFile]   = useState<File|null>(null);
+  const [galleryFiles, setGallery]  = useState<File[]>([]);
+  const [pdfFile, setPdfFile]       = useState<File|null>(null);
+  const imgRef = useRef<HTMLInputElement>(null);
+  const galRef = useRef<HTMLInputElement>(null);
+  const pdfRef = useRef<HTMLInputElement>(null);
+  const createAuthor   = useCreateAuthor();
+  const createCategory = useCreateCategory();
 
   useEffect(() => {
-    if (!show) return;
-
-    if (!editingBook) {
-      const timer = setTimeout(() => {
-        setModalTab("physical");
-        setForm({
-          title: "",
-          author_id: "",
-          category_id: "",
-          copies: "",
-          pages: "",
-          description: "",
-          publication_year: "",
-          loan_duration_days: "",
-          rental_price: "10",
-          tags: "",
-          topics: "",
-          pdf_access: "RESTRICTED",
-        });
-        setAuthorSearch("");
-        setCategorySearch("");
-        setImageFile(null);
-        setGalleryFiles([]);
-        setPdfFile(null);
-      }, 0);
-      return () => clearTimeout(timer);
-    }
-
-    const timer = setTimeout(() => {
-      const tab = editingBook.type === "digital" ? "digital" : "physical";
-      setModalTab(tab);
+    if (!editingBook) return;
+    const timer = setTimeout(()=>{
+      setType(editingBook.type==="digital"?"digital":"physical");
       setForm({
-        title: editingBook.title || "",
-        author_id: editingBook.author_id || editingBook.author?.id || "",
-        category_id: editingBook.category_id || editingBook.category?.id || "",
-        copies: String(editingBook.copies ?? editingBook.total ?? ""),
-        pages: String(editingBook.pages ?? ""),
-        description: editingBook.description || "",
-        publication_year: String(editingBook.publication_year ?? ""),
-        loan_duration_days: String(editingBook.loan_duration_days ?? ""),
-        rental_price: String(editingBook.rental_price ?? 10),
-        tags: Array.isArray(editingBook.tags) ? editingBook.tags.join(", ") : "",
-        topics: Array.isArray(editingBook.topics) ? editingBook.topics.join(", ") : "",
-        pdf_access: editingBook.pdf_access || "RESTRICTED",
+        title: editingBook.title||"", author_id: editingBook.author_id||editingBook.author?.id||"",
+        category_id: editingBook.category_id||editingBook.category?.id||"",
+        copies: String(editingBook.copies??editingBook.total??""), pages: String(editingBook.pages??""),
+        description: editingBook.description||"", publication_year: String(editingBook.publication_year??""),
+        loan_duration_days: String(editingBook.loan_duration_days??""), rental_price: String(editingBook.rental_price??10),
+        tags: Array.isArray(editingBook.tags)?editingBook.tags.join(", "):"",
+        topics: Array.isArray(editingBook.topics)?editingBook.topics.join(", "):"",
+        pdf_access: editingBook.pdf_access||"RESTRICTED",
       });
-      const selectedAuthorId = editingBook.author_id || editingBook.author?.id || "";
-      const selectedCategoryId = editingBook.category_id || editingBook.category?.id || "";
-      const selectedAuthor = authors.find((item) => item.id === selectedAuthorId);
-      const selectedCategory = categories.find((item) => item.id === selectedCategoryId);
-      setAuthorSearch(selectedAuthor?.name || "");
-      setCategorySearch(selectedCategory?.name || "");
-      setImageFile(null);
-      setGalleryFiles([]);
-      setPdfFile(null);
-    }, 0);
+    },0);
+    return ()=>clearTimeout(timer);
+  },[editingBook]);
 
-    return () => clearTimeout(timer);
-  }, [show, editingBook, authors, categories]);
+  const f = (k:string) => (v:string) => setForm(p=>({...p,[k]:v}));
 
-  if (!show) return null;
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: "image" | "gallery" | "pdf") => {
-    const files = e.target.files;
-    if (!files) return;
-    if (type === "image") setImageFile(files[0]);
-    else if (type === "pdf") setPdfFile(files[0]);
-    else if (type === "gallery") setGalleryFiles(Array.from(files));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e:React.FormEvent) => {
     e.preventDefault();
-    if (!form.author_id || !form.category_id) {
-      alert("Please select both author and category.");
-      return;
-    }
-    if (!editingBook && modalTab === "digital" && !pdfFile) {
-      alert("Please upload a PDF file for digital books.");
-      return;
-    }
-    if (modalTab === "physical" && !form.copies) {
-      alert("Please enter number of copies.");
-      return;
-    }
-
     const fd = new FormData();
-    fd.append("title", form.title);
-    fd.append("author_id", form.author_id);
-    fd.append("category_id", form.category_id);
-    fd.append("description", form.description);
-    if (form.publication_year) fd.append("publication_year", form.publication_year);
-    if (form.loan_duration_days) fd.append("loan_duration_days", form.loan_duration_days);
-    if (form.rental_price) fd.append("rental_price", form.rental_price);
-    if (form.tags.trim()) fd.append("tags", form.tags);
-    if (form.topics.trim()) fd.append("topics", form.topics);
-    if (form.pages) fd.append("pages", form.pages);
-
-    if (modalTab === "physical") {
-      fd.append("total", form.copies);
-      if (imageFile) fd.append("image", imageFile);
-      galleryFiles.forEach((f) => fd.append("images", f));
-    } else {
-      if (imageFile) fd.append("image", imageFile);
-      if (pdfFile) fd.append("pdf", pdfFile);
-      fd.append("pdf_access", form.pdf_access);
-      galleryFiles.forEach((f) => fd.append("images", f));
-    }
-    await onSubmit(modalTab, fd);
-    setForm({
-      title: "",
-      author_id: "",
-      category_id: "",
-      copies: "",
-      pages: "",
-      description: "",
-      publication_year: "",
-      loan_duration_days: "",
-      rental_price: "10",
-      tags: "",
-      topics: "",
-      pdf_access: "RESTRICTED",
-    });
-    setAuthorSearch("");
-    setCategorySearch("");
-    setImageFile(null);
-    setGalleryFiles([]);
-    setPdfFile(null);
-  };
-
-  const createInlineAuthor = async (nameInput: string) => {
-    const name = nameInput.trim();
-    if (!name) return;
-    try {
-      const formData = new FormData();
-      formData.append("name", name);
-      formData.append("bio", `Auto-created from add book modal for ${name}.`);
-      formData.append("image", "https://placehold.co/200x200?text=Author");
-      const response = await createAuthorFn.mutateAsync(formData);
-      const created = (response as { data?: { author?: { id?: string; name?: string } } })?.data?.author;
-      if (created?.id) {
-        setForm((prev) => ({ ...prev, author_id: created.id || "" }));
-        setAuthorSearch(created.name || name);
-        toast.success("Author created");
-        return;
-      }
-
-      const fallback = authors.find((author) => author.name.toLowerCase() === name.toLowerCase());
-      if (fallback) {
-        setForm((prev) => ({ ...prev, author_id: fallback.id }));
-        setAuthorSearch(fallback.name);
-        toast.success("Author created");
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to create author";
-      toast.error(message);
-      throw error;
-    }
-  };
-
-  const createInlineCategory = async (nameInput: string) => {
-    const name = nameInput.trim();
-    if (!name) return;
-    try {
-      const response = await createCategoryFn.mutateAsync({ name });
-      const created = (response as { data?: { category?: { id?: string; name?: string } } })?.data?.category;
-      if (created?.id) {
-        setForm((prev) => ({ ...prev, category_id: created.id || "" }));
-        setCategorySearch(created.name || name);
-        toast.success("Category created");
-        return;
-      }
-
-      const fallback = categories.find((category) => category.name.toLowerCase() === name.toLowerCase());
-      if (fallback) {
-        setForm((prev) => ({ ...prev, category_id: fallback.id }));
-        setCategorySearch(fallback.name);
-        toast.success("Category created");
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to create category";
-      toast.error(message);
-      throw error;
-    }
+    Object.entries(form).forEach(([k,v])=>{ if(v!=="") fd.append(k,String(v)); });
+    if (imageFile)  fd.append("image", imageFile);
+    if (pdfFile)    fd.append("pdf", pdfFile);
+    galleryFiles.forEach(f=>fd.append("images",f));
+    await onSubmit(type, fd);
   };
 
   return (
-    <div
-      className="fixed inset-0 bg-black/40 backdrop-blur-sm z-2147483647 flex items-center justify-center p-4"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden">
-        <div className="flex items-center justify-center gap-8 pt-8 pb-4 border-b border-[#E1DEE5]/50 relative">
-          <button
-            onClick={() => setModalTab("physical")}
-            disabled={!!editingBook}
-            className={`text-sm font-bold pb-2 border-b-2 ${modalTab === "physical" ? "text-[#111111] border-[#111111]" : "text-[#142B6F] border-transparent"} disabled:opacity-50`}
-          >
-            {t("admin_books.tabs.physical")}
-          </button>
-          <button
-            onClick={() => setModalTab("digital")}
-            disabled={!!editingBook}
-            className={`text-sm font-bold pb-2 border-b-2 ${modalTab === "digital" ? "text-[#111111] border-[#111111]" : "text-[#142B6F] border-transparent"} disabled:opacity-50`}
-          >
-            {t("admin_books.tabs.digital")}
-          </button>
-          <button
-            onClick={onClose}
-            className="absolute right-5 top-6 w-8 h-8 flex items-center justify-center text-[#142B6F] hover:text-[#111111] rounded-lg"
-          >
-            <X size={18} />
+    <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
+      className="fixed inset-0 z-[2147483647] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4"
+      onClick={e=>{ if(e.target===e.currentTarget) onClose(); }}>
+      <motion.div initial={{opacity:0,y:40}} animate={{opacity:1,y:0}} exit={{opacity:0,y:40}}
+        transition={{duration:0.3,ease:[0.16,1,0.3,1]}}
+        className="bg-white w-full sm:rounded-2xl sm:max-w-2xl max-h-[92dvh] flex flex-col overflow-hidden shadow-2xl"
+        onClick={e=>e.stopPropagation()}>
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#e8e4dc] shrink-0">
+          <h2 className="text-[16px] font-serif font-black text-[#0d0d0d]">
+            {editingBook ? String(t("admin_books.modal.edit_title")) : String(t("admin_books.modal.add_title"))}
+          </h2>
+          <button onClick={onClose} className="w-8 h-8 rounded-xl bg-[#f5f4f0] flex items-center justify-center text-[#0d0d0d]/40 hover:text-[#0d0d0d] transition-colors">
+            <X size={15}/>
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="px-5 sm:px-8 py-5 sm:py-6 space-y-4 max-h-[85vh] overflow-y-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-bold text-[#111111] mb-1.5">
-                {t("admin_books.modal.labels.title")} *
-              </label>
-              <input
-                type="text"
-                value={form.title}
-                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                required
-                className="w-full px-3 py-2.5 text-sm border border-[#E1DEE5] rounded-xl text-[#111111]"
-              />
-            </div>
-            <SearchableDropdown
-              label={t("admin_books.modal.labels.author")}
-              placeholder={t("admin_books.modal.placeholders.author")}
-              options={authors}
-              selectedId={form.author_id}
-              onSelect={(author) => {
-                setForm((prev) => ({ ...prev, author_id: author.id }));
-                setAuthorSearch(author.name);
-              }}
-              onCreate={createInlineAuthor}
-              createLabel={t("admin_authors.modal.submit_add")}
-              isCreating={createAuthorFn.isPending}
-            />
+        {/* Type tabs */}
+        {!editingBook && (
+          <div className="flex gap-1 p-3 border-b border-[#e8e4dc] shrink-0">
+            {(["physical","digital"] as const).map(tp=>(
+              <button key={tp} type="button" onClick={()=>setType(tp)}
+                className={`flex-1 py-2.5 rounded-xl text-[12px] font-bold transition-all ${type===tp?"bg-[#0d0d0d] text-white":"text-[#0d0d0d]/50 hover:text-[#0d0d0d]"}`}>
+                {tp==="physical"?"Physical":"Digital"}
+              </button>
+            ))}
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <SearchableDropdown
-              label={t("admin_books.modal.labels.category")}
-              placeholder={t("admin_books.modal.placeholders.category")}
-              options={categories.map((category) => ({ id: category.id, name: category.name }))}
-              selectedId={form.category_id}
-              onSelect={(category) => {
-                setForm((prev) => ({ ...prev, category_id: category.id }));
-                setCategorySearch(category.name);
-              }}
-              onCreate={createInlineCategory}
-              createLabel={t("admin_categories.modal.submit_add")}
-              isCreating={createCategoryFn.isPending}
-            />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-bold text-[#111111] mb-1.5">
-                  {t("admin_books.modal.labels.rental_price")} *
-                </label>
-                <input
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  value={form.rental_price}
-                  onChange={(e) => setForm((f) => ({ ...f, rental_price: e.target.value }))}
-                  className="w-full px-3 py-2.5 text-sm border border-[#E1DEE5] rounded-xl text-[#111111]"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-[#111111] mb-1.5">
-                  {t("admin_books.modal.labels.loan_duration")}
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="365"
-                  value={form.loan_duration_days}
-                  onChange={(e) => setForm((f) => ({ ...f, loan_duration_days: e.target.value }))}
-                  placeholder="System default"
-                  className="w-full px-3 py-2.5 text-sm border border-[#E1DEE5] rounded-xl text-[#111111]"
-                />
-              </div>
-            </div>
+        )}
+        {/* Body */}
+        <form id="book-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-5 py-5 space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-wider">{String(t("admin_books.modal.labels.title"))} *</label>
+            <input required value={form.title} onChange={e=>f("title")(e.target.value)} className={IC} placeholder="Book title"/>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {modalTab === "physical" ? (
-              <div>
-                <label className="block text-sm font-bold text-[#111111] mb-1.5">
-                  {t("admin_books.modal.labels.copies")} *
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={form.copies}
-                  onChange={(e) => setForm((f) => ({ ...f, copies: e.target.value }))}
-                  required
-                  className="w-full px-3 py-2.5 text-sm border border-[#E1DEE5] rounded-xl text-[#111111]"
-                />
-              </div>
-            ) : (
-              <div>
-                <label className="block text-sm font-bold text-[#111111] mb-1.5">
-                  {editingBook ? t("admin_books.modal.labels.pdf_file_edit") : t("admin_books.modal.labels.pdf_file")}
-                </label>
-                <div
-                  onClick={() => pdfInputRef.current?.click()}
-                  className="w-full h-10 border-2 border-dashed border-[#E1DEE5] rounded-xl flex items-center justify-center cursor-pointer hover:border-[#142B6F]"
-                >
-                  {pdfFile ? (
-                    <p className="text-xs text-[#111111] truncate px-2">{pdfFile.name}</p>
-                  ) : (
-                    <p className="text-xs text-[#142B6F]">
-                      {editingBook ? t("admin_books.modal.drop_pdf_edit") : t("admin_books.modal.drop_pdf")}
-                    </p>
-                  )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <SearchDropdown label={String(t("admin_books.modal.labels.author"))} placeholder={String(t("admin_books.modal.placeholders.author"))}
+              options={authors} selectedId={form.author_id} onSelect={o=>f("author_id")(o.id)}
+              onCreate={async v=>{ const r = await createAuthor.mutateAsync(new FormData()); f("author_id")(r?.data?.author?.id||""); void v; }}
+              isCreating={createAuthor.isPending}/>
+            <SearchDropdown label={String(t("admin_books.modal.labels.category"))} placeholder={String(t("admin_books.modal.placeholders.category"))}
+              options={categories} selectedId={form.category_id} onSelect={o=>f("category_id")(o.id)}
+              onCreate={async v=>{ const r = await createCategory.mutateAsync({name:v}); f("category_id")(r?.data?.category?.id||""); }}
+              isCreating={createCategory.isPending}/>
+          </div>
+          {type==="physical" && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[["copies",t("admin_books.modal.labels.copies")],["pages",t("admin_books.modal.labels.pages")],
+                ["rental_price",t("admin_books.modal.labels.rental_price")],["loan_duration_days",t("admin_books.modal.labels.loan_duration")]].map(([k,lb])=>(
+                <div key={k as string} className="space-y-1.5">
+                  <label className="text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-wider">{lb}</label>
+                  <input type="number" value={form[k as keyof typeof form] as string} onChange={e=>f(k as string)(e.target.value)} className={IC}/>
                 </div>
-                <input
-                  ref={pdfInputRef}
-                  type="file"
-                  accept="application/pdf"
-                  onChange={(e) => handleFileChange(e, "pdf")}
-                  className="hidden"
-                />
-              </div>
-            )}
-            <div>
-              <label className="block text-sm font-bold text-[#111111] mb-1.5">
-                {t("admin_books.modal.labels.publication_year")}
-              </label>
-              <input
-                type="text"
-                value={form.publication_year}
-                onChange={(e) => setForm((f) => ({ ...f, publication_year: e.target.value }))}
-                placeholder="e.g. 2024"
-                className="w-full px-3 py-2.5 text-sm border border-[#E1DEE5] rounded-xl text-[#111111]"
-              />
+              ))}
             </div>
-            <div>
-              <label className="block text-sm font-bold text-[#111111] mb-1.5">
-                {t("admin_books.modal.labels.pages")}
-              </label>
-              <input
-                type="number"
-                min="1"
-                value={form.pages}
-                onChange={(e) => setForm((f) => ({ ...f, pages: e.target.value }))}
-                placeholder="e.g. 300"
-                className="w-full px-3 py-2.5 text-sm border border-[#E1DEE5] rounded-xl text-[#111111]"
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-bold text-[#111111] mb-1.5">
-                {t("admin_books.modal.labels.tags")}
-              </label>
-              <input
-                type="text"
-                value={form.tags}
-                onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))}
-                placeholder="comma separated"
-                className="w-full px-3 py-2.5 text-sm border border-[#E1DEE5] rounded-xl text-[#111111]"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-[#111111] mb-1.5">
-                {t("admin_books.modal.labels.topics")}
-              </label>
-              <input
-                type="text"
-                value={form.topics}
-                onChange={(e) => setForm((f) => ({ ...f, topics: e.target.value }))}
-                placeholder="comma separated"
-                className="w-full px-3 py-2.5 text-sm border border-[#E1DEE5] rounded-xl text-[#111111]"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-bold text-[#111111] mb-1.5">
-              {t("admin_books.modal.labels.description")}
-            </label>
-            <textarea
-              rows={3}
-              value={form.description}
-              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-              className="w-full px-3 py-2.5 text-sm border border-[#E1DEE5] rounded-xl text-[#111111] resize-none"
-            />
-          </div>
-          {modalTab === "digital" && (
-            <div>
-              <label className="block text-sm font-bold text-[#111111] mb-1.5">
-                {t("admin_books.modal.labels.pdf_access")}
-              </label>
-              <select
-                value={form.pdf_access}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, pdf_access: e.target.value as "FREE" | "PAID" | "RESTRICTED" }))
-                }
-                className="w-full px-3 py-2.5 text-sm border border-[#E1DEE5] rounded-xl text-[#111111]"
-              >
-                <option value="RESTRICTED">{t("admin_books.status.read_only")}</option>
-                <option value="FREE">{t("admin_books.status.free_download")}</option>
-                <option value="PAID">{t("admin_books.status.paid")}</option>
+          )}
+          {type==="digital" && (
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-wider">{String(t("admin_books.modal.labels.pdf_access"))}</label>
+              <select value={form.pdf_access} onChange={e=>f("pdf_access")(e.target.value)} className={IC}>
+                <option value="RESTRICTED">Restricted (Read Only)</option>
+                <option value="FREE">Free (Download Allowed)</option>
+                <option value="PAID">Paid</option>
               </select>
             </div>
           )}
-          <div>
-            <label className="block text-sm font-bold text-[#111111] mb-1.5">
-              {t("admin_books.modal.labels.cover_image")}
-            </label>
-            <div
-              onClick={() => imageInputRef.current?.click()}
-              className="w-full h-24 border-2 border-dashed border-[#E1DEE5] rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-[#142B6F]"
-            >
-              {imageFile ? (
-                <p className="text-xs text-[#142B6F]">{imageFile.name}</p>
-              ) : (
-                <>
-                  <Upload size={20} className="text-[#142B6F]" />
-                  <p className="text-xs text-[#142B6F]">{t("admin_books.modal.drop_image")}</p>
-                </>
-              )}
-            </div>
-            <input
-              ref={imageInputRef}
-              type="file"
-              accept="image/*"
-              onChange={(e) => handleFileChange(e, "image")}
-              className="hidden"
-            />
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-wider">{String(t("admin_books.modal.labels.description"))}</label>
+            <textarea rows={3} value={form.description} onChange={e=>f("description")(e.target.value)} className={`${IC} resize-none`}/>
           </div>
-          <div>
-            <label className="block text-sm font-bold text-[#111111] mb-1.5">
-              {t("admin_books.modal.labels.book_gallery")}
-            </label>
-            <div
-              onClick={() => galleryInputRef.current?.click()}
-              className="w-full h-20 border-2 border-dashed border-[#E1DEE5] rounded-2xl flex items-center justify-center cursor-pointer hover:border-[#142B6F]"
-            >
-              <p className="text-xs text-[#142B6F]">
-                {galleryFiles.length > 0
-                  ? t("admin_books.modal.gallery_selected", { count: galleryFiles.length })
-                  : t("admin_books.modal.drop_gallery")}
-              </p>
-            </div>
-            <input
-              ref={galleryInputRef}
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={(e) => handleFileChange(e, "gallery")}
-              className="hidden"
-            />
+          {/* Cover image */}
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-wider">{String(t("admin_books.modal.labels.cover_image"))}</label>
+            <button type="button" onClick={()=>imgRef.current?.click()}
+              className="w-full h-24 rounded-xl border-2 border-dashed border-[#e8e4dc] flex items-center justify-center gap-2 text-sm text-[#0d0d0d]/40 hover:border-[#0d0d0d]/30 hover:text-[#0d0d0d]/70 transition-colors">
+              <Upload size={16}/>{imageFile ? imageFile.name : String(t("admin_books.modal.drop_image"))}
+            </button>
+            <input ref={imgRef} type="file" accept="image/*" className="hidden" onChange={e=>setImageFile(e.target.files?.[0]||null)}/>
           </div>
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full py-3 bg-[#142B6F] text-white text-sm font-bold rounded-xl disabled:opacity-50 mt-2"
-          >
-            {submitting
-              ? t("admin_books.modal.submitting")
-              : editingBook
-                ? t("admin_books.modal.submit_update")
-                : t("admin_books.modal.submit_add")}
-          </button>
+          {type==="digital" && (
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-wider">{String(t("admin_books.modal.labels.pdf_file"))}</label>
+              <button type="button" onClick={()=>pdfRef.current?.click()}
+                className="w-full h-24 rounded-xl border-2 border-dashed border-[#e8e4dc] flex items-center justify-center gap-2 text-sm text-[#0d0d0d]/40 hover:border-[#0d0d0d]/30 hover:text-[#0d0d0d]/70 transition-colors">
+                <Upload size={16}/>{pdfFile ? pdfFile.name : String(t("admin_books.modal.drop_pdf"))}
+              </button>
+              <input ref={pdfRef} type="file" accept="application/pdf" className="hidden" onChange={e=>setPdfFile(e.target.files?.[0]||null)}/>
+            </div>
+          )}
+          {type==="physical" && (
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-wider">{String(t("admin_books.modal.labels.book_gallery"))}</label>
+              <button type="button" onClick={()=>galRef.current?.click()}
+                className="w-full h-16 rounded-xl border-2 border-dashed border-[#e8e4dc] flex items-center justify-center gap-2 text-sm text-[#0d0d0d]/40 hover:border-[#0d0d0d]/30 transition-colors">
+                <Upload size={16}/>{galleryFiles.length>0?`${galleryFiles.length} file(s)`:String(t("admin_books.modal.drop_gallery"))}
+              </button>
+              <input ref={galRef} type="file" accept="image/*" multiple className="hidden" onChange={e=>setGallery(Array.from(e.target.files||[]))}/>
+            </div>
+          )}
         </form>
-      </div>
-    </div>
+        {/* Footer */}
+        <div className="px-5 py-4 border-t border-[#e8e4dc] shrink-0 flex justify-end gap-3">
+          <button type="button" onClick={onClose} className="px-5 py-2.5 rounded-xl border border-[#e8e4dc] text-sm font-bold text-[#0d0d0d]/60 hover:text-[#0d0d0d] transition-colors">
+            Cancel
+          </button>
+          <button type="submit" form="book-form" disabled={submitting}
+            className="px-5 py-2.5 rounded-xl bg-[#0d0d0d] text-white text-sm font-bold disabled:opacity-50 hover:bg-[#292524] transition-colors">
+            {submitting ? (editingBook?String(t("admin_books.modal.submitting_update")):String(t("admin_books.modal.submitting_add")))
+              : (editingBook?String(t("admin_books.modal.submit_update")):String(t("admin_books.modal.submit_add")))}
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
-function ConditionModal({
-  show,
-  onClose,
-  bookId,
-  title,
-}: {
-  show: boolean;
-  onClose: () => void;
-  bookId: string;
-  title: string;
-}) {
+/* ── Condition Modal ────────────────────────────────────── */
+function ConditionModal({ bookId, title, onClose }:{ bookId:string; title:string; onClose:()=>void }) {
   const { t } = useLanguage();
-  const [selectedCopyId, setSelectedCopyId] = useState("");
-  const [conditionForm, setConditionForm] = useState({ condition: "GOOD", notes: "" });
+  const [selectedCopy, setSelectedCopy] = useState<BookCopy|null>(null);
+  const [newCond, setNewCond]           = useState("");
+  const [notes, setNotes]               = useState("");
+  const { data: copiesData }  = useBookCopies(bookId);
+  const { data: historyData } = useConditionHistory(bookId);
+  const update = useUpdateCondition();
+  const copies:BookCopy[]  = copiesData?.data?.copies||[];
+  const history:CondHist[] = historyData?.data?.history||[];
+  const CONDITIONS = ["NEW","GOOD","WORN","DAMAGED","LOST"];
 
-  const { data: copiesData, isLoading: copiesLoading } = useBookCopies(bookId);
-  const copies: BookCopy[] = copiesData?.data?.copies || [];
-  const { data: historyData, isLoading: historyLoading } = useConditionHistory(selectedCopyId);
-  const history: ConditionHistoryEntry[] = historyData?.data?.history || [];
-  const updateCondition = useUpdateCondition();
-
-  const selectedCopy = copies.find((c) => c.id === selectedCopyId);
-
-  const handleSaveCondition = async () => {
-    if (!selectedCopyId) return;
+  const handleUpdate = async (e:React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedCopy||!newCond) return;
     try {
-      await updateCondition.mutateAsync({ copyId: selectedCopyId, data: conditionForm });
-      toast.success(t("admin_books.condition_modal.submit_update") || "Condition updated successfully");
-    } catch {
-      toast.error("Failed to update condition");
-    }
+      await update.mutateAsync({ copyId:selectedCopy.id, data:{ condition:newCond, notes:notes||undefined } });
+      toast.success("Condition updated");
+      setSelectedCopy(null); setNewCond(""); setNotes("");
+    } catch(e) { toast.error(e instanceof Error?e.message:"Failed to update"); }
   };
-
-  const getConditionColor = (condition: string) => {
-    switch (condition) {
-      case "NEW":
-        return "bg-green-100 text-green-700 border-green-200";
-      case "GOOD":
-        return "bg-blue-100 text-blue-700 border-blue-200";
-      case "WORN":
-        return "bg-yellow-100 text-yellow-700 border-yellow-200";
-      case "DAMAGED":
-        return "bg-orange-100 text-orange-700 border-orange-200";
-      case "LOST":
-        return "bg-red-100 text-red-700 border-red-200";
-      default:
-        return "bg-gray-100 text-gray-700 border-gray-200";
-    }
-  };
-
-  if (!show) return null;
 
   return (
-    <div
-      className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden">
-        <div className="flex items-center justify-between px-5 sm:px-8 pt-6 sm:pt-7 pb-4 border-b border-[#E1DEE5]/50">
+    <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
+      className="fixed inset-0 z-[2147483647] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4"
+      onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
+      <motion.div initial={{opacity:0,y:40}} animate={{opacity:1,y:0}} exit={{opacity:0,y:40}}
+        transition={{duration:0.3,ease:[0.16,1,0.3,1]}}
+        className="bg-white w-full sm:rounded-2xl sm:max-w-xl max-h-[92dvh] flex flex-col shadow-2xl overflow-hidden"
+        onClick={e=>e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#e8e4dc] shrink-0">
           <div>
-            <h3 className="text-xl font-serif font-extrabold text-[#111111]">Book Condition Management</h3>
-            <p className="text-sm text-[#142B6F]">{title}</p>
+            <h2 className="text-[15px] font-serif font-black text-[#0d0d0d]">{String(t("admin_books.condition_modal.title"))}</h2>
+            <p className="text-[12px] text-[#0d0d0d]/45 truncate">{title}</p>
           </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center text-[#142B6F] hover:text-[#111111] rounded-lg"
-          >
-            <X size={18} />
-          </button>
+          <button onClick={onClose} className="w-8 h-8 rounded-xl bg-[#f5f4f0] flex items-center justify-center text-[#0d0d0d]/40 hover:text-[#0d0d0d] transition-colors"><X size={15}/></button>
         </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-0 min-h-[500px]">
-          {/* Left: Copies List */}
-          <div className="border-r border-[#E1DEE5]/50 p-6 bg-[#FFFFFF]">
-            <h4 className="text-sm font-bold text-[#111111] mb-4">All Copies ({copies.length})</h4>
-            {copiesLoading ? (
-              <div className="space-y-3 py-2">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="h-14 rounded-2xl bg-[#E1DEE5]/70 animate-pulse" />
-                ))}
-              </div>
-            ) : (
-              <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
-                {copies.length === 0 ? (
-                  <div className="text-sm text-[#142B6F] text-center py-4">No copies found</div>
-                ) : (
-                  copies.map((copy) => (
-                    <button
-                      key={copy.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedCopyId(copy.id);
-                        setConditionForm({ condition: copy.condition, notes: copy.notes || "" });
-                      }}
-                      className={`w-full text-left rounded-2xl border-2 px-4 py-3 transition-all ${copy.id === selectedCopyId ? "border-[#111111] bg-white shadow-md" : "border-[#E1DEE5] hover:bg-white hover:border-[#E1DEE5]"}`}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-bold text-[#111111]">{copy.copy_code}</span>
-                        <span
-                          className={`text-[10px] font-bold px-2 py-1 rounded-full ${getConditionColor(copy.condition)}`}
-                        >
-                          {copy.condition}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-[#142B6F]">
-                          {copy.is_available ? "Available" : "Checked Out"}
-                        </span>
-                        <span className="text-xs text-[#142B6F]">
-                          {new Date(copy.last_condition_update).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </button>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Middle: Update Condition */}
-          <div className="border-r border-[#E1DEE5]/50 p-6">
-            <h4 className="text-sm font-bold text-[#111111] mb-4">Update Condition</h4>
-            {!selectedCopyId ? (
-              <div className="text-sm text-[#142B6F] text-center py-8">Select a copy to update its condition</div>
-            ) : (
-              <div className="space-y-4">
-                <div className="bg-[#FFFFFF] rounded-2xl p-4 border border-[#E1DEE5]/50">
-                  <div className="text-xs text-[#142B6F] mb-1">Selected Copy</div>
-                  <div className="text-sm font-bold text-[#111111]">{selectedCopy?.copy_code}</div>
-                  <div className="text-xs text-[#142B6F] mt-1">
-                    Current:{" "}
-                    <span className={`font-bold ${getConditionColor(selectedCopy?.condition || "")}`}>
-                      {selectedCopy?.condition}
-                    </span>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-[#111111] mb-2">New Condition *</label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {["NEW", "GOOD", "WORN", "DAMAGED", "LOST"].map((cond) => (
-                      <button
-                        key={cond}
-                        type="button"
-                        onClick={() => setConditionForm((p) => ({ ...p, condition: cond }))}
-                        className={`py-2 px-3 rounded-xl text-xs font-bold border-2 transition-all ${conditionForm.condition === cond ? "border-[#111111] bg-[#142B6F] text-white" : `border ${getConditionColor(cond)} hover:opacity-80`}`}
-                      >
-                        {cond}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-[#111111] mb-2">Notes (Optional)</label>
-                  <textarea
-                    rows={3}
-                    value={conditionForm.notes}
-                    onChange={(e) => setConditionForm((p) => ({ ...p, notes: e.target.value }))}
-                    placeholder="Add notes about the book's condition..."
-                    className="w-full px-3 py-2.5 text-sm border border-[#E1DEE5] rounded-xl text-[#111111] resize-none"
-                  />
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleSaveCondition}
-                  disabled={
-                    !selectedCopyId || updateCondition.isPending || conditionForm.condition === selectedCopy?.condition
-                  }
-                  className="w-full py-3 bg-[#142B6F] text-white text-sm font-bold rounded-xl disabled:opacity-50 hover:bg-[#142B6F] transition-colors"
-                >
-                  {updateCondition.isPending ? "Saving..." : "Update Condition"}
-                </button>
-
-                {conditionForm.condition !== selectedCopy?.condition && (
-                  <div className="text-xs text-center text-[#142B6F]">
-                    Change: <span className="line-through">{selectedCopy?.condition}</span> →{" "}
-                    <span className="font-bold">{conditionForm.condition}</span>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Right: History */}
-          <div className="p-6 bg-[#FFFFFF]">
-            <h4 className="text-sm font-bold text-[#111111] mb-4">Condition History</h4>
-            {historyLoading ? (
-              <div className="space-y-3 py-2">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="h-16 rounded-2xl bg-[#E1DEE5]/70 animate-pulse" />
-                ))}
-              </div>
-            ) : (
-              <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
-                {history.length === 0 ? (
-                  <div className="text-sm text-[#142B6F] text-center py-8">
-                    No history yet.
-                    <br />
-                    Update a copy to see history.
-                  </div>
-                ) : (
-                  history.map((entry) => (
-                    <div key={entry.id} className="rounded-2xl border border-[#E1DEE5] px-4 py-3 bg-white">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`text-xs font-bold px-2 py-0.5 rounded ${getConditionColor(entry.old_condition)}`}
-                          >
-                            {entry.old_condition}
-                          </span>
-                          <span className="text-[#142B6F]">→</span>
-                          <span
-                            className={`text-xs font-bold px-2 py-0.5 rounded ${getConditionColor(entry.new_condition)}`}
-                          >
-                            {entry.new_condition}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="text-xs text-[#142B6F]">{new Date(entry.created_at).toLocaleString()}</div>
-                      {entry.notes && (
-                        <div className="text-xs text-[#111111]/70 mt-2 pt-2 border-t border-[#E1DEE5]/50">
-                          {entry.notes}
-                        </div>
-                      )}
+        <div className="flex-1 overflow-y-auto p-5 space-y-5">
+          {/* Copies list */}
+          <div>
+            <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.18em] mb-2">{String(t("admin_books.condition_modal.all_copies"))}</p>
+            <div className="space-y-1.5">
+              {copies.length===0 ? <p className="text-sm text-[#0d0d0d]/35">{String(t("admin_books.condition_modal.no_copies"))}</p>
+                : copies.map(c=>(
+                  <button key={c.id} type="button" onClick={()=>{setSelectedCopy(c);setNewCond(c.condition);setNotes("");}}
+                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-left transition-all ${selectedCopy?.id===c.id?"border-[#0d0d0d] bg-[#f5f4f0]":"border-[#e8e4dc] bg-white hover:border-[#0d0d0d]/30"}`}>
+                    <div>
+                      <p className="text-[13px] font-bold text-[#0d0d0d]">{c.copy_code}</p>
+                      <p className="text-[11px] text-[#0d0d0d]/40">{c.condition} · {c.is_available?String(t("admin_books.condition_modal.status.available")):String(t("admin_books.condition_modal.status.checked_out"))}</p>
                     </div>
-                  ))
-                )}
+                    {selectedCopy?.id===c.id && <span className="w-2 h-2 rounded-full bg-[#f5c518]"/>}
+                  </button>
+                ))}
+            </div>
+          </div>
+          {/* Update form */}
+          {selectedCopy && (
+            <form onSubmit={handleUpdate} className="space-y-3 bg-[#f5f4f0] rounded-xl p-4">
+              <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.18em]">{String(t("admin_books.condition_modal.update_title"))}</p>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-wider">{String(t("admin_books.condition_modal.new_condition"))}</label>
+                <select value={newCond} onChange={e=>setNewCond(e.target.value)} required className={IC}>
+                  <option value="">Select…</option>
+                  {CONDITIONS.map(c=><option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-wider">{String(t("admin_books.condition_modal.notes_label"))}</label>
+                <textarea rows={2} value={notes} onChange={e=>setNotes(e.target.value)}
+                  placeholder={String(t("admin_books.condition_modal.notes_placeholder"))} className={`${IC} resize-none`}/>
+              </div>
+              <button type="submit" disabled={update.isPending}
+                className="px-4 py-2.5 rounded-xl bg-[#0d0d0d] text-white text-[12px] font-bold disabled:opacity-50 hover:bg-[#292524] transition-colors">
+                {update.isPending ? String(t("admin_books.condition_modal.saving")) : String(t("admin_books.condition_modal.submit_update"))}
+              </button>
+            </form>
+          )}
+          {/* History */}
+          {history.length>0 && (
+            <div>
+              <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.18em] mb-2">{String(t("admin_books.condition_modal.history_title"))}</p>
+              <div className="space-y-1.5">
+                {history.slice(0,10).map(h=>(
+                  <div key={h.id} className="flex items-center gap-3 px-4 py-3 bg-white rounded-xl border border-[#e8e4dc]">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] font-semibold text-[#0d0d0d]">{h.old_condition} → {h.new_condition}</p>
+                      {h.notes && <p className="text-[11px] text-[#0d0d0d]/40 truncate">{h.notes}</p>}
+                    </div>
+                    <p className="text-[10px] text-[#0d0d0d]/30 shrink-0">{new Date(h.created_at).toLocaleDateString()}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+/* ── Main page ─────────────────────────────────────────── */
+export default function AdminBooksPage() {
+  const { t } = useLanguage();
+  const [tab, setTab]                 = useState<Tab>("all");
+  const [search, setSearch]           = useState("");
+  const [page, setPage]               = useState(1);
+  const [showBook, setShowBook]       = useState(false);
+  const [editing, setEditing]         = useState<Book|null>(null);
+  const [deleteCandidate, setDel]     = useState<{id:string;type:"physical"|"digital";title:string}|null>(null);
+  const [condBook, setCondBook]       = useState<{id:string;title:string}|null>(null);
+  const [openMenu, setOpenMenu]       = useState<string|null>(null);
+  const [showCatModal, setShowCat]    = useState(false);
+  const [editCatId, setEditCatId]     = useState<string|null>(null);
+  const [catName, setCatName]         = useState("");
+  const [delCat, setDelCat]           = useState<{id:string;name:string}|null>(null);
+
+  const { data: booksData,    isLoading: bl } = useBooks("limit=200");
+  const { data: digitalData,  isLoading: dl } = useDigitalBooks("limit=200");
+  const { data: catsData,     isLoading: cl } = useCategories("limit=200");
+  const { data: authorsData }                 = useAuthors("limit=200");
+
+  const createBook = useCreateBook(); const updateBook = useUpdateBook(); const deleteBook = useDeleteBook();
+  const createCat  = useCreateCategory(); const updateCat = useUpdateCategory(); const deleteCat = useDeleteCategory();
+
+  const physical: Book[] = (booksData?.books||[]).map((b:Book)=>({...b,type:"physical" as const,total:b.copies??b.total}));
+  const digital:  Book[] = (digitalData?.books||[]).map((b:Book)=>({...b,type:"digital" as const,total:0}));
+  const cats:     Category[] = catsData?.categories||[];
+  const authors:  Author[]   = authorsData?.authors||[];
+
+  const loading = bl||dl||cl;
+  const err = (e:unknown,fb:string) => e instanceof Error&&e.message?e.message:fb;
+
+  useEffect(()=>{ const h=()=>setOpenMenu(null); window.addEventListener("click",h); return()=>window.removeEventListener("click",h); },[]);
+
+  const allBooks = [...physical,...digital];
+  const source   = tab==="all"?allBooks:tab==="physical"?physical:digital;
+  const filtered = source.filter(b=>!search.trim()||(
+    b.title?.toLowerCase().includes(search.toLowerCase())||
+    b.author?.name?.toLowerCase().includes(search.toLowerCase())||
+    b.category?.name?.toLowerCase().includes(search.toLowerCase())
+  ));
+  const totalPages = Math.max(1,Math.ceil((tab==="categories"?cats.length:filtered.length)/ITEMS));
+  const paginated  = filtered.slice((page-1)*ITEMS,page*ITEMS);
+  const paginatedCats = cats.slice((page-1)*ITEMS,page*ITEMS);
+
+  const handleSaveBook = async (type:"physical"|"digital", fd:FormData) => {
+    try {
+      if (editing) { await updateBook.mutateAsync({id:editing.id,type,data:fd}); toast.success(type==="physical"?String(t("admin_books.messages.update_physical_success")):String(t("admin_books.messages.update_digital_success"))); }
+      else          { await createBook.mutateAsync({type,data:fd}); toast.success(type==="physical"?String(t("admin_books.messages.add_physical_success")):String(t("admin_books.messages.add_digital_success"))); }
+      setShowBook(false); setEditing(null);
+    } catch(e) { toast.error(err(e,"Failed")); }
+  };
+
+  const handleDeleteBook = async () => {
+    if (!deleteCandidate) return;
+    await deleteBook.mutateAsync({id:deleteCandidate.id,type:deleteCandidate.type});
+    toast.success(String(t("admin_books.messages.delete_success"))); setDel(null);
+  };
+
+  const handleSaveCat = async (e:React.FormEvent) => {
+    e.preventDefault(); if(!catName.trim()) return;
+    try {
+      if (editCatId) { await updateCat.mutateAsync({id:editCatId,data:{name:catName}}); toast.success(String(t("admin_categories.messages.update_success"))); }
+      else           { await createCat.mutateAsync({name:catName});                     toast.success(String(t("admin_categories.messages.add_success"))); }
+      setShowCat(false); setEditCatId(null); setCatName("");
+    } catch(e) { toast.error(err(e,"Failed")); }
+  };
+
+  const TABS:{key:Tab;label:string}[] = [
+    {key:"all",       label:String(t("admin_books.tabs.all"))},
+    {key:"physical",  label:String(t("admin_books.tabs.physical"))},
+    {key:"digital",   label:String(t("admin_books.tabs.digital"))},
+    {key:"categories",label:String(t("admin_books.tabs.categories"))},
+  ];
+
+  const bookCols: ColumnDef<Book,unknown>[] = [
+    { id:"title",    header:String(t("admin_books.table.title")),    cell:({row})=><div><p className="text-[13px] font-bold text-[#0d0d0d] truncate">{row.original.title}</p><p className="text-[11px] text-[#0d0d0d]/40">{row.original.author?.name||"—"}</p></div> },
+    { id:"category", header:String(t("admin_books.table.category")), cell:({row})=><span className="text-[12px] text-[#0d0d0d]/50">{row.original.category?.name||"—"}</span> },
+    { id:"copies",   header:String(t("admin_books.table.copies")),   cell:({row})=><span className="text-[12px] text-[#0d0d0d]/50">{row.original.type==="digital"?"—":row.original.total??0}</span> },
+    { id:"status",   header:String(t("admin_books.table.status")),
+      cell:({row})=>{
+        const b=row.original;
+        const cls = b.type==="digital"?"bg-[#f5f4f0] text-[#0d0d0d]":b.available===0?"bg-red-50 text-red-700":"bg-emerald-50 text-emerald-700";
+        const lbl = b.type==="digital"?(b.pdf_access==="RESTRICTED"?String(t("admin_books.status.read_only")):String(t("admin_books.status.download_allowed")))
+          : b.available===0?String(t("admin_books.status.out_of_stock")):String(t("admin_books.status.available"));
+        return <span className={`inline-flex px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wide ${cls}`}>{lbl}</span>;
+      },
+    },
+    { id:"actions", header:"",
+      cell:({row})=>{
+        const b=row.original;
+        return (
+          <div className="relative flex justify-end" onClick={e=>e.stopPropagation()}>
+            <button type="button" onClick={()=>setOpenMenu(c=>c===b.id?null:b.id)}
+              className="w-8 h-8 rounded-xl border border-[#e8e4dc] bg-white flex items-center justify-center text-[#0d0d0d]/40 hover:text-[#0d0d0d] transition-colors">
+              <MoreHorizontal size={15}/>
+            </button>
+            <AnimatePresence>
+              {openMenu===b.id && (
+                <motion.div initial={{opacity:0,scale:0.95,y:-4}} animate={{opacity:1,scale:1,y:0}} exit={{opacity:0,scale:0.95}}
+                  transition={{duration:0.14}} className="absolute right-0 top-10 z-50 min-w-[148px] bg-white rounded-xl border border-[#e8e4dc] shadow-xl overflow-hidden">
+                  <button type="button" onClick={()=>{setOpenMenu(null);setEditing(b);setShowBook(true);}}
+                    className="flex w-full items-center px-3.5 py-2.5 text-[12.5px] font-semibold text-[#0d0d0d] hover:bg-[#f5f4f0] transition-colors">
+                    {String(t("admin_books.actions.edit"))}
+                  </button>
+                  {b.type==="physical" && (
+                    <button type="button" onClick={()=>{setOpenMenu(null);setCondBook({id:b.id,title:b.title});}}
+                      className="flex w-full items-center px-3.5 py-2.5 text-[12.5px] font-semibold text-[#0d0d0d] hover:bg-[#f5f4f0] transition-colors">
+                      {String(t("admin_books.actions.condition"))}
+                    </button>
+                  )}
+                  <button type="button" onClick={()=>{setOpenMenu(null);setDel({id:b.id,type:b.type||"physical",title:b.title});}}
+                    className="flex w-full items-center px-3.5 py-2.5 text-[12.5px] font-semibold text-red-600 hover:bg-red-50 transition-colors">
+                    {String(t("admin_books.actions.delete"))}
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        );
+      },
+    },
+  ];
+
+  const catCols: ColumnDef<Category,unknown>[] = [
+    { id:"name",    header:String(t("admin_categories.table.category")), cell:({row})=><span className="text-[13px] font-bold text-[#0d0d0d]">{row.original.name}</span> },
+    { id:"physical",header:String(t("admin_categories.table.physical")), cell:({row})=><span className="text-[12px] text-[#0d0d0d]/50">{row.original._count?.books||0}</span> },
+    { id:"digital", header:String(t("admin_categories.table.digital")),  cell:({row})=><span className="text-[12px] text-[#0d0d0d]/50">{row.original._count?.digital_books||0}</span> },
+    { id:"actions", header:"",
+      cell:({row})=>{
+        const c=row.original;
+        return (
+          <div className="flex gap-2 justify-end" onClick={e=>e.stopPropagation()}>
+            <button onClick={()=>{setEditCatId(c.id);setCatName(c.name);setShowCat(true);}}
+              className="px-3 py-1.5 rounded-lg text-[11px] font-bold border border-[#e8e4dc] text-[#0d0d0d]/60 hover:text-[#0d0d0d] transition-colors">
+              Edit
+            </button>
+            <button onClick={()=>setDelCat({id:c.id,name:c.name})} disabled={deleteCat.isPending&&deleteCat.variables===c.id}
+              className="px-3 py-1.5 rounded-lg text-[11px] font-bold border border-red-100 text-red-600 hover:bg-red-50 disabled:opacity-40 transition-colors">
+              Delete
+            </button>
+          </div>
+        );
+      },
+    },
+  ];
+
+  return (
+    <>
+      <motion.div variants={stagger} initial="hidden" animate="show" className="p-4 sm:p-6 space-y-5" onClick={()=>setOpenMenu(null)}>
+        {/* Header */}
+        <motion.div variants={fadeUp} className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.2em] mb-1">Library</p>
+            <h1 className="text-[26px] font-serif font-black text-[#0d0d0d]">{String(t("admin_books.title"))}</h1>
+            <p className="text-sm text-[#0d0d0d]/45 mt-1">{String(t("admin_books.subtitle"))}</p>
+          </div>
+          <div className="flex gap-3 w-full sm:w-auto">
+            {tab!=="categories" && (
+              <div className="relative flex-1 sm:w-52 sm:flex-none">
+                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#0d0d0d]/30"/>
+                <input value={search} onChange={e=>{setSearch(e.target.value);setPage(1);}} placeholder={String(t("admin_books.search_placeholder"))}
+                  className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-[#e8e4dc] bg-white placeholder:text-[#0d0d0d]/25 focus:outline-none focus:border-[#0d0d0d] focus:shadow-[0_0_0_3px_rgba(245,197,24,0.2)] transition-all"/>
               </div>
             )}
+            <button onClick={()=>tab==="categories"?setShowCat(true):(setEditing(null),setShowBook(true))}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#0d0d0d] text-white text-[12px] font-bold hover:bg-[#292524] transition-colors shrink-0">
+              <Plus size={15}/>{tab==="categories"?String(t("admin_categories.add_new")):String(t("admin_books.add_new"))}
+            </button>
           </div>
-        </div>
-      </div>
-    </div>
+        </motion.div>
+
+        {/* Tab bar */}
+        <motion.div variants={fadeUp} className="flex gap-0.5 border-b border-[#e8e4dc]">
+          {TABS.map(tb=>(
+            <button key={tb.key} onClick={()=>{setTab(tb.key);setPage(1);setSearch("");}}
+              className={`px-4 py-2.5 text-[12.5px] font-bold border-b-2 transition-colors ${tab===tb.key?"border-[#0d0d0d] text-[#0d0d0d]":"border-transparent text-[#0d0d0d]/40 hover:text-[#0d0d0d]"}`}>
+              {tb.label}
+            </button>
+          ))}
+        </motion.div>
+
+        {/* Table */}
+        <motion.div variants={fadeUp} className="bg-white rounded-2xl border border-[#e8e4dc] overflow-hidden">
+          {tab==="categories"
+            ? <TanStackTable data={paginatedCats} columns={catCols} isLoading={loading} emptyText={String(t("admin_categories.table.no_categories"))} skeletonRows={5}/>
+            : <TanStackTable data={paginated}     columns={bookCols} isLoading={loading} emptyText={String(t("admin_books.table.no_books"))}         skeletonRows={5}/>
+          }
+        </motion.div>
+
+        {/* Pagination */}
+        {!loading && totalPages>1 && (
+          <motion.div variants={fadeUp} className="flex items-center justify-between">
+            <button onClick={()=>setPage(p=>Math.max(1,p-1))} disabled={page===1}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-bold text-[#0d0d0d]/50 hover:text-[#0d0d0d] disabled:opacity-30 transition-colors">
+              <ChevronLeft size={14}/>{String(t("common.pagination.previous"))}
+            </button>
+            <span className="text-[12px] text-[#0d0d0d]/40 tabular-nums">{page} / {totalPages}</span>
+            <button onClick={()=>setPage(p=>Math.min(totalPages,p+1))} disabled={page===totalPages}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-bold text-[#0d0d0d]/50 hover:text-[#0d0d0d] disabled:opacity-30 transition-colors">
+              {String(t("common.pagination.next"))}<ChevronRight size={14}/>
+            </button>
+          </motion.div>
+        )}
+      </motion.div>
+
+      {/* Modals */}
+      <AnimatePresence>
+        {showBook && <BookModal onClose={()=>{setShowBook(false);setEditing(null);}} authors={authors} categories={cats} editingBook={editing} onSubmit={handleSaveBook} submitting={createBook.isPending||updateBook.isPending}/>}
+        {condBook  && <ConditionModal bookId={condBook.id} title={condBook.title} onClose={()=>setCondBook(null)}/>}
+        {deleteCandidate && (
+          <Confirm title={String(t("admin_books.modal.edit_title"))} desc={`Delete "${deleteCandidate.title}"?`}
+            confirmLabel={String(t("admin_books.actions.delete"))} tone="danger"
+            onClose={()=>setDel(null)} onConfirm={handleDeleteBook} loading={deleteBook.isPending}/>
+        )}
+        {showCatModal && (
+          <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
+            className="fixed inset-0 z-[2147483647] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={e=>{if(e.target===e.currentTarget){setShowCat(false);setEditCatId(null);setCatName("");}}}>
+            <motion.div variants={modalIn} initial="hidden" animate="show"
+              className="bg-white rounded-2xl border border-[#e8e4dc] p-6 w-full max-w-sm shadow-2xl"
+              onClick={e=>e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="text-[16px] font-serif font-black text-[#0d0d0d]">
+                  {editCatId?String(t("admin_categories.modal.edit_title")):String(t("admin_categories.modal.add_title"))}
+                </h3>
+                <button onClick={()=>{setShowCat(false);setEditCatId(null);setCatName("");}} className="w-7 h-7 rounded-lg bg-[#f5f4f0] flex items-center justify-center text-[#0d0d0d]/40 hover:text-[#0d0d0d] transition-colors"><X size={14}/></button>
+              </div>
+              <form onSubmit={handleSaveCat} className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-wider">{String(t("admin_categories.modal.label_name"))}</label>
+                  <input required value={catName} onChange={e=>setCatName(e.target.value)} placeholder={String(t("admin_categories.modal.placeholder_name"))} className={IC}/>
+                </div>
+                <button type="submit" disabled={createCat.isPending||updateCat.isPending}
+                  className="w-full py-3 rounded-xl bg-[#0d0d0d] text-white text-[13px] font-bold disabled:opacity-50 hover:bg-[#292524] transition-colors">
+                  {createCat.isPending||updateCat.isPending ? String(t("admin_categories.modal.submitting"))
+                    : editCatId?String(t("admin_categories.modal.submit_update")):String(t("admin_categories.modal.submit_add"))}
+                </button>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+        {delCat && (
+          <Confirm title={String(t("admin_categories.confirm.delete_title"))}
+            desc={String(t("admin_categories.confirm.delete_desc",{name:delCat.name}))}
+            confirmLabel={String(t("admin_categories.confirm.delete_btn"))} tone="danger"
+            onClose={()=>setDelCat(null)}
+            onConfirm={async()=>{ await deleteCat.mutateAsync(delCat.id); toast.success(String(t("admin_categories.messages.delete_success"))); setDelCat(null); }}
+            loading={deleteCat.isPending}/>
+        )}
+      </AnimatePresence>
+    </>
   );
 }

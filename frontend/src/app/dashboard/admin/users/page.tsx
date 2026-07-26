@@ -1,397 +1,318 @@
 "use client";
+"use client";
 
 import { useEffect, useState } from "react";
-import { MoreHorizontal, Search, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Search, X, ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import {
-  useUsers,
-  useUserInsights,
-  useDeleteUser,
-  useBlockUser,
-  useUnblockUser,
-  usePromoteStudentToAdmin,
-  useConvertAdminToStudent,
+  useUsers, useUserInsights, useDeleteUser, useBlockUser,
+  useUnblockUser, usePromoteStudentToAdmin, useConvertAdminToStudent,
   useTransferSuperAdmin,
 } from "@/lib/hooks/useQueries";
 import { usePersona } from "@/components/providers/PersonaProvider";
 import { useLanguage } from "@/components/providers/LanguageProvider";
-import { ColumnDef } from "@tanstack/react-table";
 import { TanStackTable } from "@/components/ui/TanStackTable";
+import { ColumnDef } from "@tanstack/react-table";
+
+const fadeUp  = { hidden:{opacity:0,y:16}, show:{opacity:1,y:0,transition:{duration:0.38,ease:[0.16,1,0.3,1]}} };
+const stagger = { hidden:{}, show:{transition:{staggerChildren:0.07}} };
+const ITEMS   = 10;
 
 interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  student_id?: string | null;
-  year?: number | string | null;
-  phone?: string | null;
-  is_blocked?: boolean;
-  is_super_admin?: boolean;
+  id: string; name: string; email: string; role: string;
+  student_id?: string | null; year?: string | null;
+  phone?: string | null; is_blocked?: boolean; is_super_admin?: boolean;
 }
-
 interface UserInsights {
   user: User & { department?: string; is_confirmed?: boolean; created_at?: string };
-  stats: {
-    totalRentals: number;
-    activeOverdue: number;
-    returnedOnTime: number;
-    onTimeRate: number;
-    wishlistCount: number;
-    reviewCount: number;
-    statusSummary: Record<string, number>;
-  };
-  favoriteCategories: Array<{ name: string; count: number }>;
-  history: Array<{
-    id: string;
-    bookTitle: string;
-    status: string;
-    loanDate: string;
-    dueDate: string;
-    returnDate?: string | null;
-    fine: number;
-    isLate: boolean;
-    daysLate: number;
-  }>;
+  stats: { totalRentals:number; activeOverdue:number; returnedOnTime:number; onTimeRate:number; wishlistCount:number };
+  favoriteCategories: { name:string; count:number }[];
+  history: { id:string; bookTitle:string; status:string; loanDate:string; dueDate:string; returnDate?:string|null; fine:number; isLate:boolean; daysLate:number }[];
+}
+type ConfirmState = { title:string; description:string; confirmLabel:string; tone:"danger"|"amber"|"primary"; action:()=>Promise<void> } | null;
+
+/* ── shared reusable pieces ────────────────────────────────── */
+const IC = "w-full px-4 py-3 rounded-xl border border-[#e8e4dc] bg-[#f5f4f0] text-sm text-[#0d0d0d] focus:outline-none focus:border-[#0d0d0d] focus:bg-white focus:shadow-[0_0_0_3px_rgba(245,197,24,0.2)] transition-all";
+
+function Badge({ user }: { user: User }) {
+  const { t } = useLanguage();
+  if (user.is_blocked) return <span className="badge-chip bg-red-50 text-red-700">{String(t("admin_users.roles.blocked"))}</span>;
+  if (user.is_super_admin || user.role === "SUPER_ADMIN") return <span className="badge-chip bg-amber-50 text-amber-700">{String(t("admin_users.roles.super_admin"))}</span>;
+  if (user.role === "ADMIN") return <span className="badge-chip bg-[#f5f4f0] text-[#0d0d0d]">{String(t("admin_users.roles.admin"))}</span>;
+  return <span className="badge-chip bg-emerald-50 text-emerald-700">{String(t("admin_users.roles.student"))}</span>;
 }
 
-type ConfirmDialogState = {
-  title: string;
-  description: string;
-  confirmLabel: string;
-  tone: "danger" | "primary" | "amber";
-  action: () => Promise<void>;
-} | null;
+/* ── confirm dialog ──────────────────────────────────────── */
+function ConfirmDialog({ state, onClose, onConfirm, loading }: { state: ConfirmState; onClose:()=>void; onConfirm:()=>void; loading:boolean }) {
+  if (!state) return null;
+  const btnCls = state.tone === "danger" ? "bg-red-600 hover:bg-red-700 text-white"
+    : state.tone === "amber" ? "bg-amber-500 hover:bg-amber-600 text-white"
+    : "bg-[#0d0d0d] hover:bg-[#292524] text-white";
+  return (
+    <AnimatePresence>
+      <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
+        className="fixed inset-0 z-[2147483647] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+        onClick={() => !loading && onClose()}>
+        <motion.div initial={{opacity:0,scale:0.95,y:16}} animate={{opacity:1,scale:1,y:0}} exit={{opacity:0,scale:0.95}}
+          transition={{duration:0.25,ease:[0.16,1,0.3,1]}}
+          className="bg-white rounded-2xl border border-[#e8e4dc] p-6 w-full max-w-sm shadow-2xl"
+          onClick={e => e.stopPropagation()}>
+          <h3 className="text-[17px] font-serif font-black text-[#0d0d0d] mb-2">{state.title}</h3>
+          <p className="text-sm text-[#0d0d0d]/55 leading-relaxed mb-6">{state.description}</p>
+          <div className="flex gap-3 justify-end">
+            <button onClick={onClose} disabled={loading}
+              className="px-4 py-2.5 rounded-xl border border-[#e8e4dc] text-sm font-bold text-[#0d0d0d]/60 hover:text-[#0d0d0d] transition-colors disabled:opacity-40">
+              Cancel
+            </button>
+            <button onClick={onConfirm} disabled={loading}
+              className={`px-4 py-2.5 rounded-xl text-sm font-bold disabled:opacity-50 transition-colors ${btnCls}`}>
+              {loading ? "Working…" : state.confirmLabel}
+            </button>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
 
-const ITEMS_PER_PAGE = 8;
-
-export default function AdminUsersPage() {
-  const [search, setSearch] = useState("");
-  const [activeTab, setActiveTab] = useState<"STUDENTS" | "ADMINS">("STUDENTS");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [openMenuUserId, setOpenMenuUserId] = useState<string | null>(null);
-  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>(null);
-  const [isConfirming, setIsConfirming] = useState(false);
-  const { user: currentUser } = usePersona();
+/* ── user insights slide-over ──────────────────────────── */
+function InsightsPanel({ user, insights, onClose }: { user: User; insights: UserInsights | null; onClose: ()=>void }) {
   const { t } = useLanguage();
+  return (
+    <AnimatePresence>
+      <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
+        className="fixed inset-0 z-[2147483646] bg-black/40 backdrop-blur-sm lg:bg-transparent lg:backdrop-blur-none"
+        onClick={onClose} />
+      <motion.aside
+        initial={{x:"100%"}} animate={{x:0}} exit={{x:"100%"}}
+        transition={{type:"spring",stiffness:400,damping:38}}
+        className="fixed right-0 top-0 h-full w-full sm:w-[420px] bg-white border-l border-[#e8e4dc] z-[2147483647] flex flex-col shadow-2xl overflow-hidden"
+        onClick={e=>e.stopPropagation()}>
+        {/* Header */}
+        <div className="flex items-start justify-between p-5 border-b border-[#e8e4dc]">
+          <div className="min-w-0">
+            <p className="text-[16px] font-serif font-black text-[#0d0d0d] truncate">{user.name}</p>
+            <p className="text-[12px] text-[#0d0d0d]/45 truncate">{user.email}</p>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 rounded-xl bg-[#f5f4f0] flex items-center justify-center text-[#0d0d0d]/40 hover:text-[#0d0d0d] transition-colors shrink-0 ml-3">
+            <X size={15} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-5 space-y-5">
+          {!insights ? (
+            <div className="space-y-3 animate-pulse">
+              {[1,2,3,4].map(i=><div key={i} className="h-12 bg-[#f0eeea] rounded-xl"/>)}
+            </div>
+          ) : (
+            <>
+              {/* Stats */}
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { label: String(t("admin_users.insights.total_rentals")),  value: insights.stats.totalRentals },
+                  { label: String(t("admin_users.insights.on_time_rate")),   value: `${insights.stats.onTimeRate}%` },
+                  { label: String(t("admin_users.insights.active_overdue")), value: insights.stats.activeOverdue, hi: insights.stats.activeOverdue > 0 },
+                  { label: String(t("admin_users.insights.wishlist")),       value: insights.stats.wishlistCount },
+                ].map(s => (
+                  <div key={s.label} className={`rounded-xl border p-3.5 ${s.hi ? "bg-red-50 border-red-100" : "bg-[#f5f4f0] border-[#e8e4dc]"}`}>
+                    <p className={`text-[20px] font-serif font-black leading-none ${s.hi ? "text-red-700" : "text-[#0d0d0d]"}`}>{s.value}</p>
+                    <p className="text-[9px] font-black text-[#0d0d0d]/35 uppercase tracking-wider mt-1.5">{s.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Categories */}
+              {insights.favoriteCategories.length > 0 && (
+                <div>
+                  <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.18em] mb-2">
+                    {String(t("admin_users.insights.favorite_categories"))}
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {insights.favoriteCategories.slice(0,6).map(c => (
+                      <span key={c.name} className="px-2.5 py-1 bg-[#f5f4f0] border border-[#e8e4dc] rounded-full text-[11px] font-semibold text-[#0d0d0d]">
+                        {c.name} <span className="text-[#0d0d0d]/35">{c.count}</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* History */}
+              <div>
+                <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.18em] mb-2">
+                  {String(t("admin_users.insights.borrowing_history"))}
+                </p>
+                {insights.history.length === 0 ? (
+                  <p className="text-sm text-[#0d0d0d]/35">{String(t("admin_users.insights.history_empty"))}</p>
+                ) : (
+                  <div className="space-y-2">
+                    {insights.history.slice(0,8).map(h => (
+                      <div key={h.id} className="bg-[#f5f4f0] rounded-xl px-3.5 py-3 flex items-start gap-3">
+                        <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${h.isLate ? "bg-red-500" : h.status==="BORROWED" ? "bg-amber-400" : "bg-emerald-500"}`} />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[12px] font-semibold text-[#0d0d0d] truncate">{h.bookTitle}</p>
+                          <p className="text-[10px] text-[#0d0d0d]/40 mt-0.5">
+                            {h.isLate
+                              ? String(t("admin_users.insights.late", { count: h.daysLate }))
+                              : h.status === "BORROWED"
+                                ? String(t("admin_users.insights.due", { date: new Date(h.dueDate).toLocaleDateString() }))
+                                : String(t("admin_users.insights.on_time"))}
+                          </p>
+                        </div>
+                        {h.fine > 0 && <span className="text-[11px] font-bold text-red-600 shrink-0">{h.fine.toFixed(1)} ETB</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </motion.aside>
+    </AnimatePresence>
+  );
+}
+
+/* ── main page ─────────────────────────────────────────── */
+export default function AdminUsersPage() {
+  const { t }           = useLanguage();
+  const { user: me }    = usePersona();
+  const [search, setSearch]         = useState("");
+  const [tab, setTab]               = useState<"STUDENTS"|"ADMINS">("STUDENTS");
+  const [page, setPage]             = useState(1);
+  const [selected, setSelected]     = useState<User | null>(null);
+  const [openMenu, setOpenMenu]     = useState<string | null>(null);
+  const [confirm, setConfirm]       = useState<ConfirmState>(null);
+  const [confirming, setConfirming] = useState(false);
 
   const { data: usersData, isLoading } = useUsers();
-  const { data: insightsData } = useUserInsights(selectedUser?.id || "");
-  const deleteUser = useDeleteUser();
-  const blockUser = useBlockUser();
-  const unblockUser = useUnblockUser();
-  const promoteUser = usePromoteStudentToAdmin();
-  const convertAdmin = useConvertAdminToStudent();
-  const transferSuperAdmin = useTransferSuperAdmin();
+  const { data: insightsData }         = useUserInsights(selected?.id || "");
+  const deleteUser      = useDeleteUser();
+  const blockUser       = useBlockUser();
+  const unblockUser     = useUnblockUser();
+  const promote         = usePromoteStudentToAdmin();
+  const toStudent       = useConvertAdminToStudent();
+  const transferSuper   = useTransferSuperAdmin();
 
-  const users: User[] = usersData?.data?.users || [];
-  const isSuperAdminViewer = Boolean(currentUser?.is_super_admin);
+  const users: User[]   = usersData?.data?.users || [];
+  const isSuperAdmin    = Boolean(me?.is_super_admin);
+  const insights        = insightsData?.data as UserInsights | null;
 
   useEffect(() => {
-    const closeMenu = () => setOpenMenuUserId(null);
-    window.addEventListener("click", closeMenu);
-    return () => {
-      window.removeEventListener("click", closeMenu);
-    };
+    const close = () => setOpenMenu(null);
+    window.addEventListener("click", close);
+    return () => window.removeEventListener("click", close);
   }, []);
 
-  const scopeFiltered = users.filter((u) => {
-    if (!isSuperAdminViewer) {
-      return u.role === "STUDENT";
-    }
-    return activeTab === "ADMINS" ? u.role === "ADMIN" || u.role === "SUPER_ADMIN" : u.role === "STUDENT";
-  });
+  const scopeFiltered = users.filter(u =>
+    isSuperAdmin
+      ? tab === "ADMINS" ? u.role==="ADMIN"||u.role==="SUPER_ADMIN" : u.role==="STUDENT"
+      : u.role === "STUDENT"
+  );
 
-  const insights = insightsData?.data as UserInsights | null;
-
-  const getErrorMessage = (error: unknown, fallback: string) =>
-    error instanceof Error && error.message ? error.message : fallback;
-
-  const filtered = scopeFiltered.filter((u) => {
+  const filtered = scopeFiltered.filter(u => {
     const q = search.toLowerCase();
-    return (
-      u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q) || u.student_id?.toLowerCase().includes(q)
-    );
+    return u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q) || u.student_id?.toLowerCase().includes(q);
   });
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
-  const paginated = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS));
+  const paginated  = filtered.slice((page-1)*ITEMS, page*ITEMS);
 
-  const openConfirmDialog = (nextDialog: NonNullable<ConfirmDialogState>) => {
-    setOpenMenuUserId(null);
-    setConfirmDialog(nextDialog);
+  const openConfirm = (s: NonNullable<ConfirmState>) => { setOpenMenu(null); setConfirm(s); };
+  const err = (e: unknown, fb: string) => e instanceof Error && e.message ? e.message : fb;
+
+  const handleConfirm = async () => {
+    if (!confirm) return;
+    setConfirming(true);
+    try { await confirm.action(); setConfirm(null); }
+    finally { setConfirming(false); }
   };
 
-  const handleDelete = async (id: string) => {
-    try {
-      await deleteUser.mutateAsync(id);
-      toast.success(t("admin_users.messages.delete_success"));
-      setSelectedUser((current) => (current?.id === id ? null : current));
-    } catch (error) {
-      toast.error(getErrorMessage(error, t("admin_users.messages.status_update_failed")));
-      throw error;
-    }
-  };
+  const actions = (u: User) => {
+    const canManage = isSuperAdmin ? !u.is_super_admin && u.id !== me?.id : u.role==="STUDENT";
+    if (!canManage) return [];
+    const items: { key:string; label:string; tone:"default"|"danger"|"amber"; disabled?:boolean; onClick:()=>void }[] = [];
 
-  const handleToggleBlock = async (user: User) => {
-    try {
-      if (user.is_blocked) {
-        await unblockUser.mutateAsync(user.id);
-        toast.success(t("admin_users.messages.unblock_success"));
-      } else {
-        await blockUser.mutateAsync(user.id);
-        toast.success(t("admin_users.messages.block_success"));
-      }
-    } catch (error) {
-      toast.error(getErrorMessage(error, t("admin_users.messages.status_update_failed")));
-      throw error;
-    }
-  };
-
-  const handlePromote = async (user: User) => {
-    try {
-      await promoteUser.mutateAsync(user.id);
-      toast.success(t("admin_users.messages.promote_success"));
-    } catch (error) {
-      toast.error(getErrorMessage(error, t("admin_users.messages.status_update_failed")));
-      throw error;
-    }
-  };
-
-  const handleConvertToStudent = async (user: User) => {
-    try {
-      await convertAdmin.mutateAsync(user.id);
-      toast.success(t("admin_users.messages.to_student_success"));
-      setSelectedUser((current) =>
-        current?.id === user.id ? { ...current, role: "STUDENT", is_super_admin: false } : current,
-      );
-    } catch (error) {
-      toast.error(getErrorMessage(error, t("admin_users.messages.status_update_failed")));
-      throw error;
-    }
-  };
-
-  const handleTransferSuperAdmin = async (user: User) => {
-    try {
-      await transferSuperAdmin.mutateAsync(user.id);
-      toast.success(t("admin_users.messages.transfer_success"));
-      window.location.reload();
-    } catch (error) {
-      toast.error(getErrorMessage(error, t("admin_users.messages.status_update_failed")));
-      throw error;
-    }
-  };
-
-  const submitConfirmDialog = async () => {
-    if (!confirmDialog) return;
-    setIsConfirming(true);
-    try {
-      await confirmDialog.action();
-      setConfirmDialog(null);
-    } finally {
-      setIsConfirming(false);
-    }
-  };
-
-  const getRoleLabel = (user: User) => {
-    if (user.is_blocked) return t("admin_users.roles.blocked");
-    if (user.is_super_admin || user.role === "SUPER_ADMIN") return t("admin_users.roles.super_admin");
-    if (user.role === "ADMIN") return t("admin_users.roles.admin");
-    return t("admin_users.roles.student");
-  };
-
-  const getRoleBadgeClassName = (user: User) => {
-    if (user.is_blocked) return "bg-red-50 text-red-700";
-    if (user.is_super_admin || user.role === "SUPER_ADMIN") return "bg-amber-50 text-amber-700";
-    if (user.role === "ADMIN") return "bg-[#E1DEE5] text-[#142B6F]";
-    return "bg-green-50 text-green-700";
-  };
-
-  const getUserActions = (user: User) => {
-    const actions: Array<{
-      key: string;
-      label: string;
-      tone: "default" | "danger" | "amber";
-      disabled?: boolean;
-      onClick: () => void;
-    }> = [];
-
-    const canManageUser = isSuperAdminViewer
-      ? !user.is_super_admin && user.id !== currentUser?.id
-      : user.role === "STUDENT";
-
-    if (!canManageUser) {
-      return actions;
-    }
-
-    actions.push({
-      key: user.is_blocked ? "unblock" : "block",
-      label: user.is_blocked ? t("admin_users.actions.unblock") : t("admin_users.actions.block"),
-      tone: "default",
-      onClick: () =>
-        openConfirmDialog({
-          title: t(`admin_users.confirm.${user.is_blocked ? "unblock" : "block"}_title`, { name: user.name }),
-          description: t(`admin_users.confirm.${user.is_blocked ? "unblock" : "block"}_desc`),
-          confirmLabel: user.is_blocked ? t("admin_users.actions.unblock") : t("admin_users.actions.block"),
-          tone: "amber",
-          action: () => handleToggleBlock(user),
-        }),
+    items.push({ key:"block", label: u.is_blocked ? String(t("admin_users.actions.unblock")) : String(t("admin_users.actions.block")), tone:"default",
+      onClick:()=>openConfirm({
+        title: String(t(`admin_users.confirm.${u.is_blocked?"unblock":"block"}_title`,{name:u.name})),
+        description: String(t(`admin_users.confirm.${u.is_blocked?"unblock":"block"}_desc`)),
+        confirmLabel: u.is_blocked ? String(t("admin_users.actions.unblock")) : String(t("admin_users.actions.block")),
+        tone:"amber",
+        action: async () => {
+          try {
+            if (u.is_blocked) { await unblockUser.mutateAsync(u.id); toast.success(String(t("admin_users.messages.unblock_success"))); }
+            else               { await blockUser.mutateAsync(u.id);   toast.success(String(t("admin_users.messages.block_success"))); }
+          } catch(e) { toast.error(err(e, String(t("admin_users.messages.status_update_failed")))); throw e; }
+        },
+      }),
     });
 
-    actions.push({
-      key: "delete",
-      label: t("admin_users.actions.delete"),
-      tone: "danger",
-      onClick: () =>
-        openConfirmDialog({
-          title: t("admin_users.confirm.delete_title", { name: user.name }),
-          description: t("admin_users.confirm.delete_desc"),
-          confirmLabel: t("admin_users.actions.delete"),
-          tone: "danger",
-          action: () => handleDelete(user.id),
-        }),
+    items.push({ key:"delete", label:String(t("admin_users.actions.delete")), tone:"danger",
+      onClick:()=>openConfirm({
+        title:String(t("admin_users.confirm.delete_title",{name:u.name})),
+        description:String(t("admin_users.confirm.delete_desc")),
+        confirmLabel:String(t("admin_users.actions.delete")), tone:"danger",
+        action: async () => {
+          try { await deleteUser.mutateAsync(u.id); toast.success(String(t("admin_users.messages.delete_success"))); setSelected(s=>s?.id===u.id?null:s); }
+          catch(e) { toast.error(err(e,String(t("admin_users.messages.status_update_failed")))); throw e; }
+        },
+      }),
     });
 
-    if (isSuperAdminViewer && user.role === "STUDENT") {
-      actions.unshift({
-        key: "promote",
-        label: t("admin_users.actions.promote"),
-        tone: "default",
-        disabled: Boolean(user.is_blocked),
-        onClick: () =>
-          openConfirmDialog({
-            title: t("admin_users.confirm.promote_title", { name: user.name }),
-            description: t("admin_users.confirm.promote_desc"),
-            confirmLabel: t("admin_users.actions.promote"),
-            tone: "primary",
-            action: () => handlePromote(user),
-          }),
+    if (isSuperAdmin && u.role==="STUDENT") items.unshift({ key:"promote", label:String(t("admin_users.actions.promote")), tone:"default", disabled:Boolean(u.is_blocked),
+      onClick:()=>openConfirm({ title:String(t("admin_users.confirm.promote_title",{name:u.name})), description:String(t("admin_users.confirm.promote_desc")), confirmLabel:String(t("admin_users.actions.promote")), tone:"primary",
+        action:async()=>{ try{ await promote.mutateAsync(u.id); toast.success(String(t("admin_users.messages.promote_success"))); } catch(e){ toast.error(err(e,String(t("admin_users.messages.status_update_failed")))); throw e; } },
+      }),
+    });
+
+    if (isSuperAdmin && u.role==="ADMIN") {
+      items.unshift({ key:"to-student", label:String(t("admin_users.actions.make_student")), tone:"default", disabled:Boolean(u.is_blocked),
+        onClick:()=>openConfirm({ title:String(t("admin_users.confirm.to_student_title",{name:u.name})), description:String(t("admin_users.confirm.to_student_desc")), confirmLabel:String(t("admin_users.actions.make_student")), tone:"primary",
+          action:async()=>{ try{ await toStudent.mutateAsync(u.id); toast.success(String(t("admin_users.messages.to_student_success"))); } catch(e){ toast.error(err(e,String(t("admin_users.messages.status_update_failed")))); throw e; } },
+        }),
+      });
+      items.unshift({ key:"super", label:String(t("admin_users.actions.make_super_admin")), tone:"amber", disabled:Boolean(u.is_blocked),
+        onClick:()=>openConfirm({ title:String(t("admin_users.confirm.transfer_super_title",{name:u.name})), description:String(t("admin_users.confirm.transfer_super_desc")), confirmLabel:String(t("admin_users.actions.make_super_admin")), tone:"amber",
+          action:async()=>{ try{ await transferSuper.mutateAsync(u.id); toast.success(String(t("admin_users.messages.transfer_success"))); window.location.reload(); } catch(e){ toast.error(err(e,String(t("admin_users.messages.status_update_failed")))); throw e; } },
+        }),
       });
     }
-
-    if (isSuperAdminViewer && user.role === "ADMIN") {
-      actions.unshift({
-        key: "to-student",
-        label: t("admin_users.actions.make_student"),
-        tone: "default",
-        disabled: Boolean(user.is_blocked),
-        onClick: () =>
-          openConfirmDialog({
-            title: t("admin_users.confirm.to_student_title", { name: user.name }),
-            description: t("admin_users.confirm.to_student_desc"),
-            confirmLabel: t("admin_users.actions.make_student"),
-            tone: "primary",
-            action: () => handleConvertToStudent(user),
-          }),
-      });
-
-      actions.unshift({
-        key: "transfer-super-admin",
-        label: t("admin_users.actions.make_super_admin"),
-        tone: "amber",
-        disabled: Boolean(user.is_blocked),
-        onClick: () =>
-          openConfirmDialog({
-            title: t("admin_users.confirm.transfer_super_title", { name: user.name }),
-            description: t("admin_users.confirm.transfer_super_desc"),
-            confirmLabel: t("admin_users.actions.make_super_admin"),
-            tone: "amber",
-            action: () => handleTransferSuperAdmin(user),
-          }),
-      });
-    }
-
-    return actions;
+    return items;
   };
 
-  const userColumns: ColumnDef<User, unknown>[] = [
+  const cols: ColumnDef<User,unknown>[] = [
+    { id:"name",   header:String(t("admin_users.table.name")),    cell:({row})=><div><p className="text-[13px] font-bold text-[#0d0d0d] truncate">{row.original.name}</p><p className="text-[11px] text-[#0d0d0d]/40 truncate">{row.original.email}</p></div> },
+    { id:"id_no",  header:String(t("admin_users.table.id_no")),   cell:({row})=><span className="text-[12px] text-[#0d0d0d]/50">{row.original.student_id||"—"}</span> },
+    { id:"year",   header:String(t("admin_users.table.year")),    cell:({row})=><span className="text-[12px] text-[#0d0d0d]/50">{row.original.year||"—"}</span> },
+    { id:"phone",  header:String(t("admin_users.table.phone_no")),cell:({row})=><span className="text-[12px] text-[#0d0d0d]/50">{row.original.phone||"—"}</span> },
+    { id:"status", header:String(t("admin_users.table.status")),  cell:({row})=><Badge user={row.original} /> },
     {
-      id: "name",
-      header: t("admin_users.table.name"),
-      cell: ({ row }) => <span className="text-sm font-bold text-[#111111] truncate block">{row.original.name}</span>,
-    },
-    {
-      id: "email",
-      header: t("admin_users.table.email"),
-      cell: ({ row }) => <span className="text-sm text-[#142B6F] truncate block">{row.original.email}</span>,
-    },
-    {
-      id: "id_no",
-      header: t("admin_users.table.id_no"),
-      cell: ({ row }) => <span className="text-sm text-[#111111]/70">{row.original.student_id || "-"}</span>,
-    },
-    {
-      id: "year",
-      header: t("admin_users.table.year"),
-      cell: ({ row }) => <span className="text-sm text-[#111111]/70">{row.original.year || "-"}</span>,
-    },
-    {
-      id: "phone_no",
-      header: t("admin_users.table.phone_no"),
-      cell: ({ row }) => <span className="text-sm text-[#111111]/70">{row.original.phone || "-"}</span>,
-    },
-    {
-      id: "status",
-      header: t("admin_users.table.status"),
-      meta: {
-        headerClassName: "text-left",
-        cellClassName: "text-left",
-      },
-      cell: ({ row }) => {
-        const user = row.original;
+      id:"actions", header:"",
+      cell:({row})=>{
+        const u = row.original; const acts = actions(u);
         return (
-          <span className={`text-xs font-bold px-2.5 py-1 rounded-lg w-fit block ${getRoleBadgeClassName(user)}`}>
-            {getRoleLabel(user)}
-          </span>
-        );
-      },
-    },
-    {
-      id: "actions",
-      header: t("admin_users.table.actions"),
-      meta: {
-        headerClassName: "text-left w-[96px]",
-        cellClassName: "text-left w-[96px]",
-      },
-      cell: ({ row }) => {
-        const user = row.original;
-        const actions = getUserActions(user);
-
-        return (
-          <div className="flex items-center justify-start">
-            <div className="relative" onClick={(event) => event.stopPropagation()}>
-              <button
-                type="button"
-                onClick={() => setOpenMenuUserId((current) => (current === user.id ? null : user.id))}
-                disabled={actions.length === 0}
-                className="h-9 w-9 rounded-full border border-[#E1DEE5] bg-[#FFFFFF] text-[#142B6F] flex items-center justify-center disabled:opacity-40"
-                aria-label={`Open actions for ${user.name}`}
-              >
-                <MoreHorizontal size={16} />
-              </button>
-              {openMenuUserId === user.id && actions.length > 0 ? (
-                <div className="absolute right-0 top-11 z-2147483646 min-w-48 overflow-hidden sm:left-0 sm:right-auto sm:min-w-56 rounded-xl border border-[#E1DEE5] bg-white shadow-[0_18px_40px_rgba(0,0,0,0.18)]">
-                  {actions.map((action) => (
-                    <button
-                      key={action.key}
-                      type="button"
-                      onClick={action.onClick}
-                      disabled={action.disabled}
-                      className={`flex w-full items-center px-3 py-2.5 text-left text-sm font-semibold transition-colors disabled:opacity-40 ${
-                        action.tone === "danger"
-                          ? "text-red-700 hover:bg-red-50"
-                          : action.tone === "amber"
-                            ? "text-amber-700 hover:bg-amber-50"
-                            : "text-[#111111] hover:bg-[#FFFFFF]"
-                      }`}
-                    >
-                      {action.label}
+          <div className="relative flex justify-end" onClick={e=>e.stopPropagation()}>
+            <button type="button" disabled={acts.length===0}
+              onClick={()=>setOpenMenu(c=>c===u.id?null:u.id)}
+              className="w-8 h-8 rounded-xl border border-[#e8e4dc] bg-white flex items-center justify-center text-[#0d0d0d]/40 hover:text-[#0d0d0d] disabled:opacity-30 transition-colors">
+              <MoreHorizontal size={15}/>
+            </button>
+            <AnimatePresence>
+              {openMenu===u.id && acts.length>0 && (
+                <motion.div initial={{opacity:0,scale:0.95,y:-4}} animate={{opacity:1,scale:1,y:0}} exit={{opacity:0,scale:0.95,y:-4}}
+                  transition={{duration:0.15,ease:[0.16,1,0.3,1]}}
+                  className="absolute right-0 top-10 z-50 min-w-[168px] bg-white rounded-xl border border-[#e8e4dc] shadow-[0_12px_36px_rgba(0,0,0,0.14)] overflow-hidden">
+                  {acts.map(a=>(
+                    <button key={a.key} type="button" disabled={a.disabled} onClick={a.onClick}
+                      className={`flex w-full items-center px-3.5 py-2.5 text-left text-[12.5px] font-semibold transition-colors disabled:opacity-35 ${a.tone==="danger"?"text-red-600 hover:bg-red-50":a.tone==="amber"?"text-amber-700 hover:bg-amber-50":"text-[#0d0d0d] hover:bg-[#f5f4f0]"}`}>
+                      {a.label}
                     </button>
                   ))}
-                </div>
-              ) : null}
-            </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         );
       },
@@ -399,228 +320,64 @@ export default function AdminUsersPage() {
   ];
 
   return (
-    <div className="p-4 sm:p-6 lg:p-12 space-y-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-1">
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-extrabold text-[#111111]">
-            {t("admin_users.title")}
-          </h1>
-          <p className="text-[#142B6F] font-medium">
-            {isSuperAdminViewer ? t("admin_users.subtitle_super") : t("admin_users.subtitle_admin")}
-          </p>
-          {isSuperAdminViewer ? (
-            <div className="mt-4 flex w-full sm:w-fit overflow-x-auto rounded-xl border border-[#E1DEE5] bg-white p-1">
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab("STUDENTS");
-                  setCurrentPage(1);
-                }}
-                className={`whitespace-nowrap px-4 py-2 text-xs font-bold rounded-lg ${
-                  activeTab === "STUDENTS" ? "bg-[#142B6F] text-white" : "text-[#142B6F]"
-                }`}
-              >
-                {t("admin_users.tabs.students")}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab("ADMINS");
-                  setCurrentPage(1);
-                }}
-                className={`whitespace-nowrap px-4 py-2 text-xs font-bold rounded-lg ${
-                  activeTab === "ADMINS" ? "bg-[#142B6F] text-white" : "text-[#142B6F]"
-                }`}
-              >
-                {t("admin_users.tabs.admins")}
-              </button>
-            </div>
-          ) : null}
-        </div>
-        <div className="relative mt-2 w-full sm:w-auto">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#142B6F]" />
-          <input
-            type="text"
-            placeholder={t("admin_users.search_placeholder")}
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="w-full sm:w-56 pl-9 pr-4 py-2.5 text-sm bg-white border border-[#E1DEE5] rounded-xl text-[#111111] placeholder:text-[#E1DEE5]"
-          />
-        </div>
-      </div>
+    <>
+      <style>{`.badge-chip{display:inline-flex;padding:2px 10px;border-radius:9999px;font-size:10px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase}`}</style>
 
-      <div onClick={() => setOpenMenuUserId(null)}>
-        <TanStackTable
-          data={paginated}
-          columns={userColumns}
-          isLoading={isLoading}
-          emptyText={t("admin_users.table.no_users")}
-          skeletonRows={5}
-          rowClassName="cursor-pointer"
-          onRowClick={(row) => setSelectedUser(row)}
-        />
-      </div>
+      <motion.div variants={stagger} initial="hidden" animate="show" className="p-4 sm:p-6 space-y-6" onClick={()=>setOpenMenu(null)}>
 
-      {!isLoading && totalPages > 1 && (
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <button
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            disabled={currentPage === 1}
-            className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-[#111111]/60 disabled:opacity-30"
-          >
-            <ChevronLeft size={16} />
-            {t("common.previous")}
-          </button>
-          <div className="flex w-full items-center justify-center gap-1.5 overflow-x-auto sm:w-auto sm:justify-start">
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-              <button
-                key={page}
-                onClick={() => setCurrentPage(page)}
-                className={`w-8 h-8 shrink-0 rounded-lg text-sm font-bold ${page === currentPage ? "bg-[#142B6F] text-white" : "text-[#111111]/60 hover:bg-[#E1DEE5]"}`}
-              >
-                {page}
+        {/* Header */}
+        <motion.div variants={fadeUp} className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.2em] mb-1">Admin</p>
+            <h1 className="text-[26px] font-serif font-black text-[#0d0d0d]">{String(t("admin_users.title"))}</h1>
+            <p className="text-sm text-[#0d0d0d]/45 mt-1">{isSuperAdmin ? String(t("admin_users.subtitle_super")) : String(t("admin_users.subtitle_admin"))}</p>
+          </div>
+          <div className="relative w-full sm:w-56">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#0d0d0d]/30" />
+            <input type="text" value={search}
+              onChange={e=>{setSearch(e.target.value);setPage(1);}}
+              placeholder={String(t("admin_users.search_placeholder"))}
+              className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-[#e8e4dc] bg-white text-[#0d0d0d] placeholder:text-[#0d0d0d]/25 focus:outline-none focus:border-[#0d0d0d] focus:shadow-[0_0_0_3px_rgba(245,197,24,0.2)] transition-all"/>
+          </div>
+        </motion.div>
+
+        {/* Tab switcher — super admin only */}
+        {isSuperAdmin && (
+          <motion.div variants={fadeUp} className="flex gap-1 p-1 bg-white rounded-xl border border-[#e8e4dc] w-fit">
+            {(["STUDENTS","ADMINS"] as const).map(tb=>(
+              <button key={tb} onClick={()=>{setTab(tb);setPage(1);}}
+                className={`px-5 py-2 rounded-lg text-[12px] font-bold transition-all ${tab===tb?"bg-[#0d0d0d] text-white shadow-sm":"text-[#0d0d0d]/50 hover:text-[#0d0d0d]"}`}>
+                {tb==="STUDENTS" ? String(t("admin_users.tabs.students")) : String(t("admin_users.tabs.admins"))}
               </button>
             ))}
-          </div>
-          <button
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            disabled={currentPage === totalPages}
-            className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-[#111111]/60 disabled:opacity-30"
-          >
-            {t("common.next")}
-            <ChevronRight size={16} />
-          </button>
-        </div>
-      )}
+          </motion.div>
+        )}
 
-      {selectedUser && (
-        <div className="fixed inset-0 z-50 bg-black/20" onClick={() => setSelectedUser(null)}>
-          <aside
-            onClick={(e) => e.stopPropagation()}
-            className="absolute right-0 top-0 h-full w-full sm:w-[78%] lg:w-[40%] bg-[#FFFFFF] border-l border-[#E1DEE5] p-4 sm:p-6 overflow-y-auto"
-          >
-            <div className="flex items-start justify-between mb-5">
-              <div>
-                <h2 className="text-2xl font-serif font-black text-[#111111]">{selectedUser.name}</h2>
-                <p className="text-sm text-[#142B6F]">{selectedUser.email}</p>
-              </div>
-              <button
-                onClick={() => setSelectedUser(null)}
-                className="w-9 h-9 rounded-xl border border-[#E1DEE5] flex items-center justify-center text-[#142B6F]"
-                title="Close user details"
-                aria-label="Close user details"
-              >
-                <X size={16} />
-              </button>
-            </div>
-            {insights ? (
-              <div className="space-y-5">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <Card label={t("admin_users.insights.total_rentals")} value={String(insights.stats.totalRentals)} />
-                  <Card label={t("admin_users.insights.on_time_rate")} value={`${insights.stats.onTimeRate}%`} />
-                  <Card label={t("admin_users.insights.active_overdue")} value={String(insights.stats.activeOverdue)} />
-                  <Card label={t("admin_users.insights.wishlist")} value={String(insights.stats.wishlistCount)} />
-                </div>
-                <div className="bg-white rounded-2xl border border-[#E1DEE5]/50 p-4">
-                  <h3 className="text-sm font-bold text-[#111111] mb-3">
-                    {t("admin_users.insights.favorite_categories")}
-                  </h3>
-                  {insights.favoriteCategories.length === 0 ? (
-                    <p className="text-xs text-[#142B6F]">{t("admin_users.insights.no_category_data")}</p>
-                  ) : (
-                    insights.favoriteCategories.map((cat) => (
-                      <div key={cat.name} className="flex items-center justify-between py-1.5 text-sm">
-                        <span className="text-[#111111]">{cat.name}</span>
-                        <span className="text-[#142B6F]">{cat.count}</span>
-                      </div>
-                    ))
-                  )}
-                </div>
-                <div className="bg-white rounded-2xl border border-[#E1DEE5]/50 overflow-hidden">
-                  <div className="px-4 py-3 border-b border-[#E1DEE5]/40">
-                    <h3 className="text-sm font-bold text-[#111111]">{t("admin_users.insights.borrowing_history")}</h3>
-                  </div>
-                  <div className="max-h-95 overflow-y-auto">
-                    {insights.history.length === 0 ? (
-                      <p className="p-4 text-xs text-[#142B6F]">{t("admin_users.insights.history_empty")}</p>
-                    ) : (
-                      insights.history.map((item) => (
-                        <div key={item.id} className="p-4 border-b border-[#E1DEE5]/30 last:border-0">
-                          <p className="text-sm font-bold text-[#111111]">{item.bookTitle}</p>
-                          <p className="text-xs text-[#142B6F]">
-                            {t("admin_users.insights.due", { date: new Date(item.dueDate).toLocaleDateString() })} •{" "}
-                            {item.status}
-                          </p>
-                          <p className={`text-xs mt-1 ${item.isLate ? "text-red-700" : "text-green-700"}`}>
-                            {item.isLate
-                              ? t("admin_users.insights.late", { count: item.daysLate })
-                              : t("admin_users.insights.on_time")}
-                          </p>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm text-[#142B6F]">{t("admin_users.insights.loading")}</p>
-            )}
-          </aside>
-        </div>
-      )}
+        {/* Table */}
+        <motion.div variants={fadeUp} className="bg-white rounded-2xl border border-[#e8e4dc] overflow-hidden">
+          <TanStackTable data={paginated} columns={cols} isLoading={isLoading}
+            emptyText={String(t("admin_users.table.no_users"))} skeletonRows={6}
+            rowClassName="cursor-pointer" onRowClick={u=>setSelected(u)} />
+        </motion.div>
 
-      {confirmDialog ? (
-        <div
-          className="fixed inset-0 z-10000 bg-[#142B6F]/35 flex items-center justify-center p-4"
-          onClick={() => !isConfirming && setConfirmDialog(null)}
-        >
-          <div
-            onClick={(event) => event.stopPropagation()}
-            className="w-full max-w-md rounded-[28px] border border-[#E1DEE5] bg-[#FFFFFF] p-5 sm:p-6 shadow-2xl"
-          >
-            <div className="space-y-2">
-              <h3 className="text-2xl font-serif font-black text-[#111111]">{confirmDialog.title}</h3>
-              <p className="text-sm text-[#142B6F] leading-6">{confirmDialog.description}</p>
-            </div>
-            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
-              <button
-                type="button"
-                onClick={() => setConfirmDialog(null)}
-                disabled={isConfirming}
-                className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-[#E1DEE5] text-sm font-bold text-[#142B6F] disabled:opacity-40"
-              >
-                {t("common.cancel")}
-              </button>
-              <button
-                type="button"
-                onClick={submitConfirmDialog}
-                disabled={isConfirming}
-                className={`w-full sm:w-auto px-4 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-40 ${
-                  confirmDialog.tone === "danger"
-                    ? "bg-red-700"
-                    : confirmDialog.tone === "amber"
-                      ? "bg-amber-700"
-                      : "bg-[#142B6F]"
-                }`}
-              >
-                {isConfirming ? t("admin_users.actions.processing") : confirmDialog.confirmLabel}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-    </div>
-  );
-}
+        {/* Pagination */}
+        {!isLoading && totalPages > 1 && (
+          <motion.div variants={fadeUp} className="flex items-center justify-between">
+            <button onClick={()=>setPage(p=>Math.max(1,p-1))} disabled={page===1}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-bold text-[#0d0d0d]/50 hover:text-[#0d0d0d] disabled:opacity-30 transition-colors">
+              <ChevronLeft size={14}/> {String(t("common.pagination.previous"))}
+            </button>
+            <span className="text-[12px] text-[#0d0d0d]/40 tabular-nums">{page} / {totalPages}</span>
+            <button onClick={()=>setPage(p=>Math.min(totalPages,p+1))} disabled={page===totalPages}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-bold text-[#0d0d0d]/50 hover:text-[#0d0d0d] disabled:opacity-30 transition-colors">
+              {String(t("common.pagination.next"))} <ChevronRight size={14}/>
+            </button>
+          </motion.div>
+        )}
+      </motion.div>
 
-function Card({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="bg-white rounded-2xl border border-[#E1DEE5]/50 p-3">
-      <p className="text-[11px] font-bold text-[#142B6F] uppercase tracking-wider">{label}</p>
-      <p className="text-lg font-black text-[#111111]">{value}</p>
-    </div>
+      {selected && <InsightsPanel user={selected} insights={insights} onClose={()=>setSelected(null)} />}
+      <ConfirmDialog state={confirm} onClose={()=>setConfirm(null)} onConfirm={handleConfirm} loading={confirming} />
+    </>
   );
 }

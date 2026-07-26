@@ -1,124 +1,44 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { motion } from "framer-motion";
 import { useActivityLogs } from "@/lib/hooks/useQueries";
-import { Clock, User, Shield, Terminal } from "lucide-react";
 import { useLanguage } from "@/components/providers/LanguageProvider";
-import { ColumnDef } from "@tanstack/react-table";
 import { TanStackTable } from "@/components/ui/TanStackTable";
+import { ColumnDef } from "@tanstack/react-table";
 
-type LogRow = {
-  id: string;
-  action: string;
-  entity_type: string;
-  entity_id: string | null;
-  description: string;
-  metadata: any;
-  ip_address: string | null;
-  user_agent: string | null;
-  created_at: string;
-  admin: { name: string; email: string };
-};
+const fadeUp={hidden:{opacity:0,y:16},show:{opacity:1,y:0,transition:{duration:0.38,ease:[0.16,1,0.3,1]}}};
+const stagger={hidden:{},show:{transition:{staggerChildren:0.07}}};
+
+type LogRow={id:string;action:string;entity_type:string;entity_id:string|null;description:string;metadata:any;ip_address:string|null;created_at:string;admin:{name:string;email:string}};
+
+const actionStyle=(a:string)=>{switch(a){case "CREATE":return "bg-emerald-50 text-emerald-700";case "DELETE":return "bg-red-50 text-red-700";case "UPDATE":return "bg-amber-50 text-amber-700";default:return "bg-[#f5f4f0] text-[#0d0d0d]/50";}};
 
 export default function AdminActivityLogsPage() {
-  const { data: logsData, isLoading } = useActivityLogs("limit=200");
-  const logs: LogRow[] = (logsData as unknown as { logs?: LogRow[] })?.logs || [];
-  const { t } = useLanguage();
+  const { t }=useLanguage();
+  const {data,isLoading}=useActivityLogs("limit=200");
+  const logs:LogRow[]=(data as unknown as {logs?:LogRow[]})?.logs||[];
 
-  const columns: ColumnDef<LogRow, unknown>[] = [
-    {
-      id: "admin",
-      header: (
-        <span className="flex items-center gap-2">
-          <User size={14} /> {t("admin_activity_logs.table.admin")}
-        </span>
-      ),
-      cell: ({ row }) => (
-        <div className="min-w-0">
-          <p className="text-sm font-bold text-[#111111] truncate">
-            {row.original.admin?.name || t("admin_activity_logs.system")}
-          </p>
-          <p className="text-[11px] text-[#142B6F] truncate font-medium">
-            {row.original.admin?.email || "internal@system"}
-          </p>
-        </div>
-      ),
-    },
-    {
-      id: "action",
-      header: (
-        <span className="flex items-center gap-2">
-          <Terminal size={14} /> {t("admin_activity_logs.table.action")}
-        </span>
-      ),
-      cell: ({ row }) => (
-        <span
-          className={`text-[10px] font-black px-2.5 py-1 rounded-md tracking-tighter uppercase ${
-            row.original.action === "DELETE"
-              ? "bg-red-50 text-red-600"
-              : row.original.action === "CREATE"
-                ? "bg-green-50 text-green-600"
-                : row.original.action === "UPDATE"
-                  ? "bg-blue-50 text-blue-600"
-                  : "bg-[#E1DEE5] text-[#111111]"
-          }`}
-        >
-          {row.original.action}
-        </span>
-      ),
-    },
-    {
-      id: "description",
-      header: t("admin_activity_logs.table.description"),
-      cell: ({ row }) => (
-        <div className="max-w-md">
-          <span className="text-sm text-[#111111]/90 leading-relaxed block">{row.original.description}</span>
-          <span className="text-[10px] text-[#142B6F] font-bold uppercase mt-0.5 block">
-            {row.original.entity_type}
-          </span>
-        </div>
-      ),
-    },
-    {
-      id: "timestamp",
-      header: (
-        <span className="flex items-center gap-2">
-          <Clock size={14} /> {t("admin_activity_logs.table.timestamp")}
-        </span>
-      ),
-      cell: ({ row }) => (
-        <div className="text-xs font-medium text-[#142B6F]">
-          <p className="text-[#111111]/70">{new Date(row.original.created_at).toLocaleDateString()}</p>
-          <p className="text-[10px]">{new Date(row.original.created_at).toLocaleTimeString()}</p>
-        </div>
-      ),
-    },
+  const cols:ColumnDef<LogRow,unknown>[]=[
+    {id:"admin",   header:String(t("admin_activity_logs.table.admin")),       cell:({row})=><div><p className="text-[13px] font-bold text-[#0d0d0d] truncate">{row.original.admin?.name||String(t("admin_activity_logs.system"))}</p><p className="text-[11px] text-[#0d0d0d]/40 truncate">{row.original.admin?.email||"internal@system"}</p></div>},
+    {id:"action",  header:String(t("admin_activity_logs.table.action")),       cell:({row})=><span className={`inline-flex px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wide ${actionStyle(row.original.action)}`}>{row.original.action}</span>},
+    {id:"entity",  header:"Entity",                                             cell:({row})=><span className="inline-flex px-2 py-0.5 rounded-md bg-[#f5f4f0] text-[9px] font-black uppercase text-[#0d0d0d]/50">{row.original.entity_type}</span>},
+    {id:"desc",    header:String(t("admin_activity_logs.table.description")),  cell:({row})=><p className="text-[12px] text-[#0d0d0d]/80 leading-relaxed line-clamp-2 max-w-xs">{row.original.description}</p>},
+    {id:"time",    header:String(t("admin_activity_logs.table.timestamp")),    cell:({row})=><div><p className="text-[12px] text-[#0d0d0d]/50">{new Date(row.original.created_at).toLocaleDateString()}</p><p className="text-[10px] text-[#0d0d0d]/30">{new Date(row.original.created_at).toLocaleTimeString()}</p></div>},
   ];
 
   return (
-    <div className="p-4 sm:p-6 lg:p-12 space-y-8 max-w-[1600px] mx-auto">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+    <motion.div variants={stagger} initial="hidden" animate="show" className="p-4 sm:p-6 space-y-5">
+      <motion.div variants={fadeUp} className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-extrabold text-[#111111] flex flex-wrap items-center gap-3">
-            <Shield className="w-10 h-10 lg:w-12 lg:h-12 text-[#142B6F]" />
-            {t("admin_activity_logs.title")}
-          </h1>
-          <p className="text-[#142B6F] font-medium mt-2">{t("admin_activity_logs.subtitle")}</p>
+          <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.2em] mb-1">System</p>
+          <h1 className="text-[26px] font-serif font-black text-[#0d0d0d]">{String(t("admin_activity_logs.title"))}</h1>
+          <p className="text-sm text-[#0d0d0d]/45 mt-1">{String(t("admin_activity_logs.subtitle"))}</p>
         </div>
-        <div className="px-4 py-2 bg-[#FFFFFF] border border-[#E1DEE5]/50 rounded-xl text-xs font-bold text-[#142B6F] uppercase tracking-wider">
-          {t("admin_activity_logs.retention")}
-        </div>
-      </div>
-
-      <div className="bg-white rounded-3xl border border-[#E1DEE5]/50 shadow-xl shadow-[#111111]/5 overflow-visible">
-        <TanStackTable
-          data={logs}
-          columns={columns}
-          isLoading={isLoading}
-          emptyText={t("admin_activity_logs.no_logs")}
-          skeletonRows={4}
-        />
-      </div>
-    </div>
+        <span className="px-4 py-2 bg-white border border-[#e8e4dc] rounded-xl text-[10px] font-black text-[#0d0d0d]/45 uppercase tracking-wider shrink-0">{String(t("admin_activity_logs.retention"))}</span>
+      </motion.div>
+      <motion.div variants={fadeUp} className="bg-white rounded-2xl border border-[#e8e4dc] overflow-hidden">
+        <TanStackTable data={logs} columns={cols} isLoading={isLoading} emptyText={String(t("admin_activity_logs.no_logs"))} skeletonRows={5}/>
+      </motion.div>
+    </motion.div>
   );
 }

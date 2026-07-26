@@ -1,446 +1,113 @@
 "use client";
-
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Search, Plus, X, Upload, MoreHorizontal, ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
-import { Search, Plus, ChevronLeft, ChevronRight, X, Upload, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
-import { useAuthors, useCreateAuthor, useUpdateAuthor, useDeleteAuthor, Author } from "@/lib/hooks/useQueries";
+import { useAuthors, useCreateAuthor, useUpdateAuthor, useDeleteAuthor, type Author } from "@/lib/hooks/useQueries";
 import { useLanguage } from "@/components/providers/LanguageProvider";
-import { ColumnDef } from "@tanstack/react-table";
 import { TanStackTable } from "@/components/ui/TanStackTable";
+import { ColumnDef } from "@tanstack/react-table";
 
-const ITEMS_PER_PAGE = 8;
+const fadeUp={hidden:{opacity:0,y:16},show:{opacity:1,y:0,transition:{duration:0.38,ease:[0.16,1,0.3,1]}}};
+const stagger={hidden:{},show:{transition:{staggerChildren:0.07}}};
+const IC="w-full px-4 py-3 rounded-xl border border-[#e8e4dc] bg-[#f5f4f0] text-sm text-[#0d0d0d] focus:outline-none focus:border-[#0d0d0d] focus:bg-white focus:shadow-[0_0_0_3px_rgba(245,197,24,0.2)] transition-all placeholder:text-[#0d0d0d]/25";
+const ITEMS=10;
 
 export default function AdminAuthorsPage() {
-  const [search, setSearch] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [showModal, setShowModal] = useState(false);
-  const [editingAuthorId, setEditingAuthorId] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", bio: "" });
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [openMenuAuthorId, setOpenMenuAuthorId] = useState<string | null>(null);
-  const [deleteAuthorCandidate, setDeleteAuthorCandidate] = useState<{ id: string; name: string } | null>(null);
-  const imageInputRef = useRef<HTMLInputElement>(null);
-  const { t } = useLanguage();
-
-  const { data: authorsData, isLoading } = useAuthors();
-  const createAuthor = useCreateAuthor();
-  const updateAuthor = useUpdateAuthor();
-  const deleteAuthor = useDeleteAuthor();
-  const deletingAuthorId = deleteAuthor.isPending ? deleteAuthor.variables : undefined;
-  const isSubmitting = createAuthor.isPending || updateAuthor.isPending;
-
-  const getErrorMessage = (error: unknown, fallback: string) =>
-    error instanceof Error && error.message ? error.message : fallback;
-
-  const authors: Author[] = authorsData?.authors || [];
-
-  const filteredAuthors = authors.filter(
-    (a) =>
-      a.name.toLowerCase().includes(search.toLowerCase()) ||
-      (a.bio?.toLowerCase().includes(search.toLowerCase()) ?? false),
-  );
-
-  const totalPages = Math.max(1, Math.ceil(filteredAuthors.length / ITEMS_PER_PAGE));
-  const paginatedAuthors = filteredAuthors.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
-
-  const resetModal = () => {
-    setShowModal(false);
-    setEditingAuthorId(null);
-    setForm({ name: "", bio: "" });
-    setImageFile(null);
-    setImagePreview(null);
-  };
-
-  const openCreateModal = () => {
-    setEditingAuthorId(null);
-    setForm({ name: "", bio: "" });
-    setImageFile(null);
-    setImagePreview(null);
-    setShowModal(true);
-  };
-
-  const openEditModal = (author: Author) => {
-    setEditingAuthorId(author.id);
-    setForm({ name: author.name || "", bio: author.bio || "" });
-    setImageFile(null);
-    setImagePreview(author.image || null);
-    setShowModal(true);
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
-    }
-  };
-
-  const handleSubmitAuthor = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const fd = new FormData();
-    fd.append("name", form.name);
-    fd.append("bio", form.bio);
-    if (imageFile) fd.append("image", imageFile);
+  const { t }=useLanguage();
+  const [search,setSearch]=useState(""); const [page,setPage]=useState(1);
+  const [showModal,setModal]=useState(false); const [editId,setEditId]=useState<string|null>(null);
+  const [form,setForm]=useState({name:"",bio:""});
+  const [imgFile,setImg]=useState<File|null>(null); const [imgPreview,setPreview]=useState<string|null>(null);
+  const [openMenu,setMenu]=useState<string|null>(null);
+  const [delAuthor,setDel]=useState<{id:string;name:string}|null>(null);
+  const imgRef=useRef<HTMLInputElement>(null);
+  const {data,isLoading}=useAuthors(); const create=useCreateAuthor(); const upd=useUpdateAuthor(); const del=useDeleteAuthor();
+  const authors:Author[]=data?.authors||[];
+  const err=(e:unknown,fb:string)=>e instanceof Error&&e.message?e.message:fb;
+  useEffect(()=>{const h=()=>setMenu(null);window.addEventListener("click",h);return()=>window.removeEventListener("click",h);},[]);
+  const filtered=authors.filter(a=>a.name.toLowerCase().includes(search.toLowerCase())||(a.bio?.toLowerCase().includes(search.toLowerCase())??false));
+  const totalPages=Math.max(1,Math.ceil(filtered.length/ITEMS));
+  const paginated=filtered.slice((page-1)*ITEMS,page*ITEMS);
+  const openEdit=(a:Author)=>{setEditId(a.id);setForm({name:a.name||"",bio:a.bio||""});setImg(null);setPreview(a.image||null);setModal(true);};
+  const openNew=()=>{setEditId(null);setForm({name:"",bio:""});setImg(null);setPreview(null);setModal(true);};
+  const close=()=>{setModal(false);setEditId(null);setForm({name:"",bio:""});setImg(null);setPreview(null);};
+  const handleFile=(e:React.ChangeEvent<HTMLInputElement>)=>{const f=e.target.files?.[0];if(f){setImg(f);setPreview(URL.createObjectURL(f));}};
+  const handleSubmit=async(e:React.FormEvent)=>{
+    e.preventDefault(); const fd=new FormData(); fd.append("name",form.name); fd.append("bio",form.bio); if(imgFile) fd.append("image",imgFile);
     try {
-      if (editingAuthorId) {
-        await updateAuthor.mutateAsync({ id: editingAuthorId, formData: fd });
-        toast.success(t("admin_authors.messages.update_success"));
-      } else {
-        await createAuthor.mutateAsync(fd);
-        toast.success(t("admin_authors.messages.add_success"));
-      }
-      resetModal();
-    } catch (error) {
-      toast.error(
-        getErrorMessage(
-          error,
-          editingAuthorId
-            ? t("admin_authors.messages.update_failed") || "Failed to update author"
-            : t("admin_authors.messages.add_failed") || "Failed to create author",
-        ),
-      );
-    }
+      if(editId){await upd.mutateAsync({id:editId,formData:fd});toast.success(String(t("admin_authors.messages.update_success")));}
+      else{await create.mutateAsync(fd);toast.success(String(t("admin_authors.messages.add_success")));}
+      close();
+    } catch(e2){toast.error(err(e2,String(t("admin_authors.messages.add_failed"))));}
   };
-
-  const handleDeleteAuthor = async (candidate: { id: string; name: string }) => {
-    try {
-      await deleteAuthor.mutateAsync(candidate.id);
-      toast.success(t("admin_authors.messages.delete_success"));
-      setDeleteAuthorCandidate(null);
-    } catch (error) {
-      toast.error(getErrorMessage(error, t("admin_authors.messages.delete_failed") || "Failed to delete author"));
-    }
+  const handleDelete=async()=>{
+    if(!delAuthor) return;
+    try{await del.mutateAsync(delAuthor.id);toast.success(String(t("admin_authors.messages.delete_success")));setDel(null);}
+    catch(e2){toast.error(err(e2,String(t("admin_authors.messages.delete_failed"))));}
   };
-
-  const authorColumns: ColumnDef<Author, unknown>[] = [
-    {
-      id: "image",
-      header: t("admin_authors.table.image"),
-      cell: ({ row }) => {
-        const author = row.original;
-        return (
-          <div className="w-12 h-12 rounded-full overflow-hidden bg-[#E1DEE5] border border-[#E1DEE5]/50">
-            {author.image ? (
-              <Image
-                src={author.image}
-                alt={author.name}
-                width={48}
-                height={48}
-                className="w-full h-full object-cover"
-                unoptimized
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-[#142B6F] text-xs">
-                {author.name.charAt(0)}
-              </div>
-            )}
-          </div>
-        );
-      },
-    },
-    {
-      id: "name",
-      header: t("admin_authors.table.name"),
-      cell: ({ row }) => <span className="text-sm font-bold text-[#111111]">{row.original.name}</span>,
-    },
-    {
-      id: "bio",
-      header: t("admin_authors.table.bio"),
-      cell: ({ row }) => <p className="text-sm text-[#142B6F] line-clamp-1">{row.original.bio}</p>,
-    },
-    {
-      id: "category",
-      header: t("admin_authors.table.category"),
-      meta: {
-        headerClassName: "text-left",
-        cellClassName: "text-left",
-      },
-      cell: () => <span className="text-sm text-[#111111]/70 block">Mixed</span>,
-    },
-    {
-      id: "books",
-      header: t("admin_authors.table.books"),
-      meta: {
-        headerClassName: "text-left",
-        cellClassName: "text-left",
-      },
-      cell: ({ row }) => (
-        <span className="text-sm text-[#111111]/70 font-bold block">
-          {(row.original._count?.books || 0) + (row.original._count?.digital_books || 0)}
-        </span>
-      ),
-    },
-    {
-      id: "status",
-      header: t("admin_authors.table.status"),
-      meta: {
-        headerClassName: "text-left",
-        cellClassName: "text-left",
-      },
-      cell: () => (
-        <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-green-50 text-green-700 w-fit block">
-          {t("admin_authors.status.active")}
-        </span>
-      ),
-    },
-    {
-      id: "actions",
-      header: "",
-      meta: {
-        headerClassName: "text-left w-[88px]",
-        cellClassName: "text-left w-[88px]",
-      },
-      cell: ({ row }) => {
-        const author = row.original;
-        return (
-          <div className="relative flex justify-start" onClick={(event) => event.stopPropagation()}>
-            <button
-              type="button"
-              onClick={() => setOpenMenuAuthorId((current) => (current === author.id ? null : author.id))}
-              className="h-9 w-9 rounded-full border border-[#E1DEE5] bg-[#FFFFFF] text-[#142B6F] flex items-center justify-center"
-              aria-label={`Open actions for ${author.name}`}
-            >
-              <MoreHorizontal size={16} />
-            </button>
-
-            {openMenuAuthorId === author.id ? (
-              <div className="absolute right-0 top-11 z-2147483646 min-w-48 overflow-hidden sm:left-0 sm:right-auto sm:min-w-56 rounded-xl border border-[#E1DEE5] bg-white shadow-[0_18px_40px_rgba(0,0,0,0.18)]">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOpenMenuAuthorId(null);
-                    openEditModal(author);
-                  }}
-                  className="flex w-full items-center px-3 py-2.5 text-left text-sm font-semibold text-[#111111] hover:bg-[#FFFFFF]"
-                >
-                  {t("admin_authors.modal.submit_update")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOpenMenuAuthorId(null);
-                    setDeleteAuthorCandidate({ id: author.id, name: author.name });
-                  }}
-                  disabled={deletingAuthorId === author.id}
-                  className="flex w-full items-center px-3 py-2.5 text-left text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-40"
-                >
-                  {t("admin_books.actions.delete")}
-                </button>
-              </div>
-            ) : null}
-          </div>
-        );
-      },
-    },
-  ];
-
-  return (
-    <>
-      <div className="p-4 sm:p-6 lg:p-12 space-y-8">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="space-y-1">
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-extrabold text-[#111111]">
-              {t("admin_authors.title")}
-            </h1>
-            <p className="text-[#142B6F] font-medium">{t("admin_authors.subtitle")}</p>
-          </div>
-          <div className="flex w-full flex-col gap-3 sm:mt-2 sm:w-auto sm:flex-row sm:items-center">
-            <div className="relative w-full sm:w-auto">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#142B6F]" />
-              <input
-                type="text"
-                placeholder={t("admin_authors.search_placeholder")}
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="w-full sm:w-52 pl-9 pr-4 py-2.5 text-sm bg-white border border-[#E1DEE5] rounded-xl text-[#111111] placeholder:text-[#E1DEE5]"
-              />
-            </div>
-            <button
-              onClick={openCreateModal}
-              className="flex w-full sm:w-auto justify-center items-center gap-2 px-4 py-2.5 bg-[#142B6F] text-white text-sm font-bold rounded-xl"
-            >
-              <Plus size={16} />
-              {t("admin_authors.add_new")}
-            </button>
-          </div>
-        </div>
-
-        <TanStackTable
-          data={paginatedAuthors}
-          columns={authorColumns}
-          isLoading={isLoading}
-          emptyText={t("admin_authors.table.no_authors")}
-          skeletonRows={5}
-        />
-
-        {!isLoading && totalPages > 1 && (
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <button
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-[#111111]/60 disabled:opacity-30"
-            >
-              <ChevronLeft size={16} />
-              {t("common.previous")}
-            </button>
-            <div className="flex w-full items-center justify-center gap-1.5 overflow-x-auto sm:w-auto sm:justify-start">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  className={`w-8 h-8 shrink-0 rounded-lg text-sm font-bold ${page === currentPage ? "bg-[#142B6F] text-white" : "text-[#111111]/60 hover:bg-[#E1DEE5]"}`}
-                >
-                  {page}
-                </button>
-              ))}
-            </div>
-            <button
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-              className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-[#111111]/60 disabled:opacity-30"
-            >
-              {t("common.next")}
-              <ChevronRight size={16} />
-            </button>
-          </div>
-        )}
+  const cols:ColumnDef<Author,unknown>[]=[
+    {id:"img",header:"",cell:({row})=><div className="w-9 h-9 rounded-xl overflow-hidden bg-[#f5f4f0] border border-[#e8e4dc] flex items-center justify-center text-[12px] font-black text-[#0d0d0d]/40">{row.original.image?<Image src={row.original.image} alt={row.original.name} width={36} height={36} className="object-cover w-full h-full" unoptimized/>:row.original.name.charAt(0)}</div>},
+    {id:"name",header:String(t("admin_authors.table.name")),cell:({row})=><span className="text-[13px] font-bold text-[#0d0d0d]">{row.original.name}</span>},
+    {id:"bio", header:String(t("admin_authors.table.bio")), cell:({row})=><p className="text-[12px] text-[#0d0d0d]/45 line-clamp-1">{row.original.bio||"—"}</p>},
+    {id:"books",header:String(t("admin_authors.table.books")),cell:({row})=><span className="text-[12px] text-[#0d0d0d]/50 tabular-nums">{(row.original._count?.books||0)+(row.original._count?.digital_books||0)}</span>},
+    {id:"status",header:String(t("admin_authors.table.status")),cell:()=><span className="inline-flex px-2.5 py-1 rounded-lg text-[10px] font-black uppercase bg-emerald-50 text-emerald-700">{String(t("admin_authors.status.active"))}</span>},
+    {id:"actions",header:"",cell:({row})=>{const a=row.original;return(
+      <div className="relative flex justify-end" onClick={e=>e.stopPropagation()}>
+        <button onClick={()=>setMenu(v=>v===a.id?null:a.id)} className="w-8 h-8 rounded-xl border border-[#e8e4dc] bg-white flex items-center justify-center text-[#0d0d0d]/40 hover:text-[#0d0d0d] transition-colors"><MoreHorizontal size={15}/></button>
+        <AnimatePresence>{openMenu===a.id&&(<motion.div initial={{opacity:0,scale:0.95,y:-4}} animate={{opacity:1,scale:1,y:0}} exit={{opacity:0,scale:0.95}} transition={{duration:0.14}} className="absolute right-0 top-10 z-50 min-w-[148px] bg-white rounded-xl border border-[#e8e4dc] shadow-xl overflow-hidden">
+          <button type="button" onClick={()=>{setMenu(null);openEdit(a);}} className="flex w-full items-center px-3.5 py-2.5 text-[12.5px] font-semibold text-[#0d0d0d] hover:bg-[#f5f4f0] transition-colors">Edit</button>
+          <button type="button" onClick={()=>{setMenu(null);setDel({id:a.id,name:a.name});}} className="flex w-full items-center px-3.5 py-2.5 text-[12.5px] font-semibold text-red-600 hover:bg-red-50 transition-colors">{String(t("admin_books.actions.delete"))}</button>
+        </motion.div>)}</AnimatePresence>
       </div>
-
-      {showModal && (
-        <div
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) resetModal();
-          }}
-        >
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="flex items-center justify-between px-5 sm:px-8 pt-6 sm:pt-8 pb-4 border-b border-[#E1DEE5]/50">
-              <h2 className="text-xl font-serif font-bold text-[#111111]">
-                {editingAuthorId ? t("admin_authors.modal.edit_title") : t("admin_authors.modal.add_title")}
-              </h2>
-              <button
-                onClick={resetModal}
-                title="Close"
-                aria-label="Close"
-                className="w-8 h-8 flex items-center justify-center text-[#142B6F] hover:text-[#111111] rounded-lg"
-              >
-                <X size={18} />
-              </button>
-            </div>
-            <form onSubmit={handleSubmitAuthor} className="px-5 sm:px-8 py-5 sm:py-6 space-y-4">
-              <div>
-                <label className="block text-sm font-bold text-[#111111] mb-1.5">
-                  {t("admin_authors.modal.labels.name")}
-                </label>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                  required
-                  placeholder={t("admin_authors.modal.placeholders.name")}
-                  className="w-full px-3 py-2.5 text-sm border border-[#E1DEE5] rounded-xl text-[#111111]"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-[#111111] mb-1.5">
-                  {t("admin_authors.modal.labels.bio")}
-                </label>
-                <textarea
-                  rows={4}
-                  value={form.bio}
-                  onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))}
-                  required
-                  placeholder={t("admin_authors.modal.placeholders.bio")}
-                  className="w-full px-3 py-2.5 text-sm border border-[#E1DEE5] rounded-xl text-[#111111] resize-none"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-[#111111] mb-1.5">
-                  {t("admin_authors.modal.labels.image")}
-                </label>
-                <div
-                  onClick={() => imageInputRef.current?.click()}
-                  className="w-full h-32 border-2 border-dashed border-[#E1DEE5] rounded-2xl flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-[#142B6F] overflow-hidden relative"
-                >
-                  {imagePreview ? (
-                    <Image src={imagePreview} alt="preview" fill sizes="100vw" className="object-cover" unoptimized />
-                  ) : (
-                    <>
-                      <Upload size={24} className="text-[#142B6F]" />
-                      <p className="text-xs text-[#142B6F]">{t("admin_authors.modal.drop_image")}</p>
-                    </>
-                  )}
-                </div>
-                <input
-                  ref={imageInputRef}
-                  title="Author image"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full py-3 bg-[#142B6F] text-white text-sm font-bold rounded-xl disabled:opacity-50 mt-2"
-              >
-                {isSubmitting
-                  ? t("admin_authors.modal.submitting_add")
-                  : editingAuthorId
-                    ? t("admin_authors.modal.submit_update")
-                    : t("admin_authors.modal.submit_add")}
-              </button>
-            </form>
-          </div>
+    );}},
+  ];
+  return (<>
+    <motion.div variants={stagger} initial="hidden" animate="show" className="p-4 sm:p-6 space-y-5" onClick={()=>setMenu(null)}>
+      <motion.div variants={fadeUp} className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div><p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.2em] mb-1">Library</p><h1 className="text-[26px] font-serif font-black text-[#0d0d0d]">{String(t("admin_authors.title"))}</h1><p className="text-sm text-[#0d0d0d]/45 mt-1">{String(t("admin_authors.subtitle"))}</p></div>
+        <div className="flex gap-3 w-full sm:w-auto">
+          <div className="relative flex-1 sm:w-52 sm:flex-none"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#0d0d0d]/30"/><input value={search} onChange={e=>{setSearch(e.target.value);setPage(1);}} placeholder={String(t("admin_authors.search_placeholder"))} className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-[#e8e4dc] bg-white placeholder:text-[#0d0d0d]/25 focus:outline-none focus:border-[#0d0d0d] focus:shadow-[0_0_0_3px_rgba(245,197,24,0.2)] transition-all"/></div>
+          <button onClick={openNew} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#0d0d0d] text-white text-[12px] font-bold hover:bg-[#292524] transition-colors shrink-0"><Plus size={15}/>{String(t("admin_authors.add_new"))}</button>
         </div>
-      )}
-
-      {deleteAuthorCandidate && (
-        <div
-          className="fixed inset-0 z-10000 bg-[#142B6F]/35 flex items-center justify-center p-4"
-          onClick={() => !deleteAuthor.isPending && setDeleteAuthorCandidate(null)}
-        >
-          <div
-            onClick={(event) => event.stopPropagation()}
-            className="w-full max-w-md rounded-[28px] border border-[#E1DEE5] bg-[#FFFFFF] p-5 sm:p-6 shadow-2xl"
-          >
-            <div className="space-y-2">
-              <h3 className="text-2xl font-serif font-black text-[#111111]">
-                {t("admin_authors.confirm.delete_title")}
-              </h3>
-              <p className="text-sm text-[#142B6F] leading-6">
-                {t("admin_authors.confirm.delete_desc", { name: deleteAuthorCandidate.name })}
-              </p>
-            </div>
-            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
-              <button
-                type="button"
-                onClick={() => setDeleteAuthorCandidate(null)}
-                disabled={deleteAuthor.isPending}
-                className="px-4 py-2.5 rounded-xl border border-[#E1DEE5] text-sm font-bold text-[#142B6F] disabled:opacity-40"
-              >
-                {t("common.cancel")}
+      </motion.div>
+      <motion.div variants={fadeUp} className="bg-white rounded-2xl border border-[#e8e4dc] overflow-hidden"><TanStackTable data={paginated} columns={cols} isLoading={isLoading} emptyText={String(t("admin_authors.table.no_authors"))} skeletonRows={5}/></motion.div>
+      {!isLoading&&totalPages>1&&(<motion.div variants={fadeUp} className="flex items-center justify-between">
+        <button onClick={()=>setPage(p=>Math.max(1,p-1))} disabled={page===1} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-bold text-[#0d0d0d]/50 hover:text-[#0d0d0d] disabled:opacity-30 transition-colors"><ChevronLeft size={14}/>{String(t("common.pagination.previous"))}</button>
+        <span className="text-[12px] text-[#0d0d0d]/40 tabular-nums">{page} / {totalPages}</span>
+        <button onClick={()=>setPage(p=>Math.min(totalPages,p+1))} disabled={page===totalPages} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-bold text-[#0d0d0d]/50 hover:text-[#0d0d0d] disabled:opacity-30 transition-colors">{String(t("common.pagination.next"))}<ChevronRight size={14}/></button>
+      </motion.div>)}
+    </motion.div>
+    <AnimatePresence>
+      {showModal&&(<motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="fixed inset-0 z-[2147483647] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4" onClick={e=>{if(e.target===e.currentTarget)close();}}>
+        <motion.div initial={{opacity:0,y:40}} animate={{opacity:1,y:0}} exit={{opacity:0,y:40}} transition={{duration:0.28,ease:[0.16,1,0.3,1]}} className="bg-white w-full sm:rounded-2xl sm:max-w-md max-h-[92dvh] flex flex-col overflow-hidden shadow-2xl" onClick={e=>e.stopPropagation()}>
+          <div className="flex items-center justify-between px-5 py-4 border-b border-[#e8e4dc] shrink-0"><h2 className="text-[16px] font-serif font-black text-[#0d0d0d]">{editId?String(t("admin_authors.modal.edit_title")):String(t("admin_authors.modal.add_title"))}</h2><button onClick={close} className="w-8 h-8 rounded-xl bg-[#f5f4f0] flex items-center justify-center text-[#0d0d0d]/40 hover:text-[#0d0d0d] transition-colors"><X size={15}/></button></div>
+          <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-5 py-5 space-y-4">
+            <div className="space-y-1.5"><label className="text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-wider">{String(t("admin_authors.modal.labels.name"))} *</label><input required value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))} placeholder={String(t("admin_authors.modal.placeholders.name"))} className={IC}/></div>
+            <div className="space-y-1.5"><label className="text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-wider">{String(t("admin_authors.modal.labels.bio"))} *</label><textarea required rows={4} value={form.bio} onChange={e=>setForm(p=>({...p,bio:e.target.value}))} placeholder={String(t("admin_authors.modal.placeholders.bio"))} className={`${IC} resize-none`}/></div>
+            <div className="space-y-1.5"><label className="text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-wider">{String(t("admin_authors.modal.labels.image"))}</label>
+              <button type="button" onClick={()=>imgRef.current?.click()} className="w-full h-28 rounded-xl border-2 border-dashed border-[#e8e4dc] overflow-hidden relative flex items-center justify-center gap-2 text-sm text-[#0d0d0d]/40 hover:border-[#0d0d0d]/30 transition-colors">
+                {imgPreview?<Image src={imgPreview} alt="preview" fill className="object-cover" unoptimized/>:<><Upload size={16}/>{String(t("admin_authors.modal.drop_image"))}</>}
               </button>
-              <button
-                type="button"
-                onClick={() => handleDeleteAuthor(deleteAuthorCandidate)}
-                disabled={deleteAuthor.isPending}
-                className="px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-red-700 disabled:opacity-40"
-              >
-                {deleteAuthor.isPending
-                  ? t("admin_authors.modal.submitting_add")
-                  : t("admin_authors.confirm.delete_confirm")}
-              </button>
+              <input ref={imgRef} type="file" accept="image/*" className="hidden" onChange={handleFile}/>
             </div>
+            <button type="submit" disabled={create.isPending||upd.isPending} className="w-full py-3 rounded-xl bg-[#0d0d0d] text-white text-[13px] font-bold disabled:opacity-50 hover:bg-[#292524] transition-colors">
+              {create.isPending||upd.isPending?"Saving…":editId?String(t("admin_authors.modal.submit_update")):String(t("admin_authors.modal.submit_add"))}
+            </button>
+          </form>
+        </motion.div>
+      </motion.div>)}
+      {delAuthor&&(<motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="fixed inset-0 z-[2147483647] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={e=>{if(e.target===e.currentTarget)setDel(null);}}>
+        <motion.div initial={{opacity:0,scale:0.97,y:16}} animate={{opacity:1,scale:1,y:0}} exit={{opacity:0,scale:0.97}} transition={{duration:0.25,ease:[0.16,1,0.3,1]}} className="bg-white rounded-2xl border border-[#e8e4dc] p-6 w-full max-w-sm shadow-2xl" onClick={e=>e.stopPropagation()}>
+          <h3 className="text-[17px] font-serif font-black text-[#0d0d0d] mb-2">{String(t("admin_authors.confirm.delete_title"))}</h3>
+          <p className="text-sm text-[#0d0d0d]/55 mb-6">{String(t("admin_authors.confirm.delete_desc",{name:delAuthor.name}))}</p>
+          <div className="flex gap-3 justify-end">
+            <button onClick={()=>setDel(null)} disabled={del.isPending} className="px-4 py-2.5 rounded-xl border border-[#e8e4dc] text-sm font-bold text-[#0d0d0d]/60 hover:text-[#0d0d0d] disabled:opacity-40 transition-colors">Cancel</button>
+            <button onClick={handleDelete} disabled={del.isPending} className="px-4 py-2.5 rounded-xl bg-red-600 text-white text-sm font-bold hover:bg-red-700 disabled:opacity-50 transition-colors">{del.isPending?"Deleting…":String(t("admin_authors.confirm.delete_confirm"))}</button>
           </div>
-        </div>
-      )}
-    </>
-  );
+        </motion.div>
+      </motion.div>)}
+    </AnimatePresence>
+  </>);
 }

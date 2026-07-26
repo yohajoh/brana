@@ -1,155 +1,79 @@
 "use client";
-
-import { useState } from "react";
-import { Search, Plus, ChevronLeft, ChevronRight, X, MoreHorizontal } from "lucide-react";
+import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Search, Plus, X, ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory } from "@/lib/hooks/useQueries";
-import { ColumnDef } from "@tanstack/react-table";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 import { TanStackTable } from "@/components/ui/TanStackTable";
+import { ColumnDef } from "@tanstack/react-table";
 
-interface Category {
-  id: string;
-  name: string;
-  _count?: { books: number; digital_books: number };
-}
+const fadeUp  = {hidden:{opacity:0,y:16},show:{opacity:1,y:0,transition:{duration:0.38,ease:[0.16,1,0.3,1]}}};
+const stagger = {hidden:{},show:{transition:{staggerChildren:0.07}}};
+const IC = "w-full px-4 py-3 rounded-xl border border-[#e8e4dc] bg-[#f5f4f0] text-sm text-[#0d0d0d] focus:outline-none focus:border-[#0d0d0d] focus:bg-white focus:shadow-[0_0_0_3px_rgba(245,197,24,0.2)] transition-all placeholder:text-[#0d0d0d]/25";
+const ITEMS = 10;
 
-const ITEMS_PER_PAGE = 8;
+interface Category { id:string; name:string; _count?:{books:number;digital_books:number} }
 
 export default function AdminCategoriesPage() {
-  const [search, setSearch] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [showModal, setShowModal] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [name, setName] = useState("");
-  const [openMenuCategoryId, setOpenMenuCategoryId] = useState<string | null>(null);
-  const [deleteCategoryCandidate, setDeleteCategoryCandidate] = useState<{ id: string; name: string } | null>(null);
+  const { t } = useLanguage();
+  const [search, setSearch]   = useState("");
+  const [page, setPage]       = useState(1);
+  const [showModal, setModal] = useState(false);
+  const [editId, setEditId]   = useState<string|null>(null);
+  const [name, setName]       = useState("");
+  const [delCat, setDelCat]   = useState<{id:string;name:string}|null>(null);
+  const [openMenu, setMenu]   = useState<string|null>(null);
 
-  const { data: categoriesData, isLoading } = useCategories();
-  const createCategory = useCreateCategory();
-  const updateCategory = useUpdateCategory();
-  const deleteCategory = useDeleteCategory();
-  const deletingCategoryId = deleteCategory.isPending ? deleteCategory.variables : undefined;
+  const { data, isLoading } = useCategories();
+  const create = useCreateCategory(); const update = useUpdateCategory(); const del = useDeleteCategory();
+  const cats: Category[] = data?.categories||[];
+  const err = (e:unknown,fb:string) => e instanceof Error&&e.message?e.message:fb;
 
-  const getErrorMessage = (error: unknown, fallback: string) =>
-    error instanceof Error && error.message ? error.message : fallback;
+  useEffect(()=>{const h=()=>setMenu(null);window.addEventListener("click",h);return()=>window.removeEventListener("click",h);},[]);
 
-  const categories: Category[] = categoriesData?.categories || [];
+  const filtered   = cats.filter(c=>c.name.toLowerCase().includes(search.toLowerCase()));
+  const totalPages = Math.max(1,Math.ceil(filtered.length/ITEMS));
+  const paginated  = filtered.slice((page-1)*ITEMS,page*ITEMS);
 
-  const filtered = categories.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()));
-  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
-  const paginated = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  const openEdit = (c:Category)=>{setEditId(c.id);setName(c.name);setModal(true);};
+  const openNew  = ()=>{setEditId(null);setName("");setModal(true);};
+  const close    = ()=>{setModal(false);setEditId(null);setName("");};
 
-  const openCreate = () => {
-    setEditingId(null);
-    setName("");
-    setShowModal(true);
-  };
-  const openEdit = (category: Category) => {
-    setEditingId(category.id);
-    setName(category.name);
-    setShowModal(true);
-  };
-
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim()) return;
+  const handleSave = async (e:React.FormEvent) => {
+    e.preventDefault(); if (!name.trim()) return;
     try {
-      if (editingId) {
-        await updateCategory.mutateAsync({ id: editingId, data: { name: name.trim() } });
-        toast.success("Category updated successfully");
-      } else {
-        await createCategory.mutateAsync({ name: name.trim() });
-        toast.success("Category created successfully");
-      }
-      setShowModal(false);
-      setEditingId(null);
-      setName("");
-    } catch (error) {
-      toast.error(getErrorMessage(error, "Failed to save category"));
-    }
+      if (editId){ await update.mutateAsync({id:editId,data:{name:name.trim()}}); toast.success(String(t("admin_categories.messages.update_success"))); }
+      else       { await create.mutateAsync({name:name.trim()});                  toast.success(String(t("admin_categories.messages.add_success"))); }
+      close();
+    } catch(e2) { toast.error(err(e2,"Failed")); }
   };
 
-  const handleDelete = async (candidate: { id: string; name: string }) => {
-    try {
-      await deleteCategory.mutateAsync(candidate.id);
-      toast.success("Category deleted successfully");
-      setDeleteCategoryCandidate(null);
-    } catch (error) {
-      toast.error(getErrorMessage(error, "Failed to delete category"));
-    }
+  const handleDelete = async () => {
+    if (!delCat) return;
+    try { await del.mutateAsync(delCat.id); toast.success(String(t("admin_categories.messages.delete_success"))); setDelCat(null); }
+    catch(e2) { toast.error(err(e2,String(t("admin_categories.messages.add_failed")||"Failed"))); }
   };
 
-  const categoryColumns: ColumnDef<Category, unknown>[] = [
-    {
-      id: "category",
-      header: "Category",
-      cell: ({ row }) => <span className="text-sm font-bold text-[#111111]">{row.original.name}</span>,
-    },
-    {
-      id: "physical",
-      header: "Physical",
-      meta: {
-        headerClassName: "text-left",
-        cellClassName: "text-left",
-      },
-      cell: ({ row }) => <span className="text-sm text-[#111111]/70 block">{row.original._count?.books || 0}</span>,
-    },
-    {
-      id: "digital",
-      header: "Digital",
-      meta: {
-        headerClassName: "text-left",
-        cellClassName: "text-left",
-      },
-      cell: ({ row }) => (
-        <span className="text-sm text-[#111111]/70 block">{row.original._count?.digital_books || 0}</span>
-      ),
-    },
-    {
-      id: "actions",
-      header: "",
-      meta: {
-        headerClassName: "text-left w-[88px]",
-        cellClassName: "text-left w-[88px]",
-      },
-      cell: ({ row }) => {
-        const category = row.original;
+  const cols: ColumnDef<Category,unknown>[] = [
+    { id:"name",     header:String(t("admin_categories.table.category")), cell:({row})=><span className="text-[13px] font-bold text-[#0d0d0d]">{row.original.name}</span> },
+    { id:"physical", header:String(t("admin_categories.table.physical")), cell:({row})=><span className="text-[12px] text-[#0d0d0d]/50 tabular-nums">{row.original._count?.books||0}</span> },
+    { id:"digital",  header:String(t("admin_categories.table.digital")),  cell:({row})=><span className="text-[12px] text-[#0d0d0d]/50 tabular-nums">{row.original._count?.digital_books||0}</span> },
+    { id:"actions",  header:"",
+      cell:({row})=>{
+        const c=row.original;
         return (
-          <div className="relative flex justify-start" onClick={(event) => event.stopPropagation()}>
-            <button
-              type="button"
-              onClick={() => setOpenMenuCategoryId((current) => (current === category.id ? null : category.id))}
-              className="h-9 w-9 rounded-full border border-[#E1DEE5] bg-[#FFFFFF] text-[#142B6F] flex items-center justify-center"
-              aria-label={`Open actions for ${category.name}`}
-            >
-              <MoreHorizontal size={16} />
-            </button>
-
-            {openMenuCategoryId === category.id ? (
-              <div className="absolute right-0 top-11 z-2147483646 min-w-48 overflow-hidden sm:left-0 sm:right-auto sm:min-w-56 rounded-xl border border-[#E1DEE5] bg-white shadow-[0_18px_40px_rgba(0,0,0,0.18)]">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOpenMenuCategoryId(null);
-                    openEdit(category);
-                  }}
-                  className="flex w-full items-center px-3 py-2.5 text-left text-sm font-semibold text-[#111111] hover:bg-[#FFFFFF]"
-                >
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOpenMenuCategoryId(null);
-                    setDeleteCategoryCandidate({ id: category.id, name: category.name });
-                  }}
-                  disabled={deletingCategoryId === category.id}
-                  className="flex w-full items-center px-3 py-2.5 text-left text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-40"
-                >
-                  Delete
-                </button>
-              </div>
-            ) : null}
+          <div className="relative flex justify-end" onClick={e=>e.stopPropagation()}>
+            <button onClick={()=>setMenu(v=>v===c.id?null:c.id)} className="w-8 h-8 rounded-xl border border-[#e8e4dc] bg-white flex items-center justify-center text-[#0d0d0d]/40 hover:text-[#0d0d0d] transition-colors"><MoreHorizontal size={15}/></button>
+            <AnimatePresence>
+              {openMenu===c.id && (
+                <motion.div initial={{opacity:0,scale:0.95,y:-4}} animate={{opacity:1,scale:1,y:0}} exit={{opacity:0,scale:0.95}} transition={{duration:0.14}}
+                  className="absolute right-0 top-10 z-50 min-w-[140px] bg-white rounded-xl border border-[#e8e4dc] shadow-xl overflow-hidden">
+                  <button type="button" onClick={()=>{setMenu(null);openEdit(c);}} className="flex w-full items-center px-3.5 py-2.5 text-[12.5px] font-semibold text-[#0d0d0d] hover:bg-[#f5f4f0] transition-colors">{String(t("admin_categories.actions.edit"))}</button>
+                  <button type="button" onClick={()=>{setMenu(null);setDelCat({id:c.id,name:c.name});}} className="flex w-full items-center px-3.5 py-2.5 text-[12.5px] font-semibold text-red-600 hover:bg-red-50 transition-colors">{String(t("admin_categories.actions.delete"))}</button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         );
       },
@@ -158,165 +82,66 @@ export default function AdminCategoriesPage() {
 
   return (
     <>
-      <div className="p-4 sm:p-6 lg:p-12 space-y-8">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="space-y-1">
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-extrabold text-[#111111]">
-              Manage Categories
-            </h1>
-            <p className="text-[#142B6F] font-medium">Create, edit and remove categories used by books.</p>
+      <motion.div variants={stagger} initial="hidden" animate="show" className="p-4 sm:p-6 space-y-5" onClick={()=>setMenu(null)}>
+        <motion.div variants={fadeUp} className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.2em] mb-1">Library</p>
+            <h1 className="text-[26px] font-serif font-black text-[#0d0d0d]">{String(t("admin_categories.title"))}</h1>
+            <p className="text-sm text-[#0d0d0d]/45 mt-1">{String(t("admin_categories.subtitle"))}</p>
           </div>
-          <div className="flex w-full flex-col gap-3 sm:mt-2 sm:w-auto sm:flex-row sm:items-center">
-            <div className="relative w-full sm:w-auto">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#142B6F]" />
-              <input
-                type="text"
-                placeholder="Search category"
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="w-full sm:w-52 pl-9 pr-4 py-2.5 text-sm bg-white border border-[#E1DEE5] rounded-xl text-[#111111] placeholder:text-[#E1DEE5]"
-              />
+          <div className="flex gap-3 w-full sm:w-auto">
+            <div className="relative flex-1 sm:w-52 sm:flex-none">
+              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#0d0d0d]/30"/>
+              <input value={search} onChange={e=>{setSearch(e.target.value);setPage(1);}} placeholder={String(t("admin_categories.search_placeholder"))} className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-[#e8e4dc] bg-white placeholder:text-[#0d0d0d]/25 focus:outline-none focus:border-[#0d0d0d] focus:shadow-[0_0_0_3px_rgba(245,197,24,0.2)] transition-all"/>
             </div>
-            <button
-              onClick={openCreate}
-              className="flex w-full sm:w-auto justify-center items-center gap-2 px-4 py-2.5 bg-[#142B6F] text-white text-sm font-bold rounded-xl"
-            >
-              <Plus size={16} />
-              Add new category
-            </button>
+            <button onClick={openNew} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#0d0d0d] text-white text-[12px] font-bold hover:bg-[#292524] transition-colors shrink-0"><Plus size={15}/>{String(t("admin_categories.add_new"))}</button>
           </div>
-        </div>
-
-        <TanStackTable
-          data={paginated}
-          columns={categoryColumns}
-          isLoading={isLoading}
-          emptyText="No categories found"
-          skeletonRows={4}
-        />
-
-        {!isLoading && totalPages > 1 && (
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <button
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-[#111111]/60 disabled:opacity-30"
-            >
-              <ChevronLeft size={16} />
-              Previous
-            </button>
-            <div className="flex w-full items-center justify-center gap-1.5 overflow-x-auto sm:w-auto sm:justify-start">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  className={`w-8 h-8 shrink-0 rounded-lg text-sm font-bold ${page === currentPage ? "bg-[#142B6F] text-white" : "text-[#111111]/60 hover:bg-[#E1DEE5]"}`}
-                >
-                  {page}
-                </button>
-              ))}
-            </div>
-            <button
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-              className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-[#111111]/60 disabled:opacity-30"
-            >
-              Next
-              <ChevronRight size={16} />
-            </button>
-          </div>
+        </motion.div>
+        <motion.div variants={fadeUp} className="bg-white rounded-2xl border border-[#e8e4dc] overflow-hidden">
+          <TanStackTable data={paginated} columns={cols} isLoading={isLoading} emptyText={String(t("admin_categories.table.no_categories"))} skeletonRows={5}/>
+        </motion.div>
+        {!isLoading && totalPages>1 && (
+          <motion.div variants={fadeUp} className="flex items-center justify-between">
+            <button onClick={()=>setPage(p=>Math.max(1,p-1))} disabled={page===1} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-bold text-[#0d0d0d]/50 hover:text-[#0d0d0d] disabled:opacity-30 transition-colors"><ChevronLeft size={14}/>{String(t("common.pagination.previous"))}</button>
+            <span className="text-[12px] text-[#0d0d0d]/40 tabular-nums">{page} / {totalPages}</span>
+            <button onClick={()=>setPage(p=>Math.min(totalPages,p+1))} disabled={page===totalPages} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-bold text-[#0d0d0d]/50 hover:text-[#0d0d0d] disabled:opacity-30 transition-colors">{String(t("common.pagination.next"))}<ChevronRight size={14}/></button>
+          </motion.div>
         )}
-      </div>
+      </motion.div>
 
-      {showModal && (
-        <div
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowModal(false);
-          }}
-        >
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="flex items-center justify-between px-5 sm:px-8 pt-6 sm:pt-7 pb-4 border-b border-[#E1DEE5]/50">
-              <h3 className="text-xl font-serif font-extrabold text-[#111111]">
-                {editingId ? "Edit Category" : "Add Category"}
-              </h3>
-              <button
-                onClick={() => setShowModal(false)}
-                title="Close"
-                aria-label="Close"
-                className="w-8 h-8 flex items-center justify-center text-[#142B6F] hover:text-[#111111] rounded-lg"
-              >
-                <X size={18} />
-              </button>
-            </div>
-            <form onSubmit={handleSave} className="px-5 sm:px-8 py-5 sm:py-6 space-y-4">
-              <div>
-                <label className="block text-sm font-bold text-[#111111] mb-1.5">Category Name</label>
-                <input
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3 py-2.5 text-sm border border-[#E1DEE5] rounded-xl text-[#111111]"
-                  placeholder="Enter category name"
-                />
+      <AnimatePresence>
+        {showModal && (
+          <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="fixed inset-0 z-[2147483647] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={e=>{if(e.target===e.currentTarget)close();}}>
+            <motion.div initial={{opacity:0,scale:0.97,y:16}} animate={{opacity:1,scale:1,y:0}} exit={{opacity:0,scale:0.97}} transition={{duration:0.25,ease:[0.16,1,0.3,1]}} className="bg-white rounded-2xl border border-[#e8e4dc] p-6 w-full max-w-sm shadow-2xl" onClick={e=>e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="text-[16px] font-serif font-black text-[#0d0d0d]">{editId?String(t("admin_categories.modal.edit_title")):String(t("admin_categories.modal.add_title"))}</h3>
+                <button onClick={close} className="w-7 h-7 rounded-lg bg-[#f5f4f0] flex items-center justify-center text-[#0d0d0d]/40 hover:text-[#0d0d0d] transition-colors"><X size={14}/></button>
               </div>
-              <button
-                type="submit"
-                disabled={createCategory.isPending || updateCategory.isPending}
-                className="w-full py-3 bg-[#142B6F] text-white text-sm font-bold rounded-xl disabled:opacity-50"
-              >
-                {createCategory.isPending || updateCategory.isPending
-                  ? "Saving..."
-                  : editingId
-                    ? "Update Category"
-                    : "Create Category"}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {deleteCategoryCandidate && (
-        <div
-          className="fixed inset-0 z-10000 bg-[#142B6F]/35 flex items-center justify-center p-4"
-          onClick={() => !deleteCategory.isPending && setDeleteCategoryCandidate(null)}
-        >
-          <div
-            onClick={(event) => event.stopPropagation()}
-            className="w-full max-w-md rounded-[28px] border border-[#E1DEE5] bg-[#FFFFFF] p-5 sm:p-6 shadow-2xl"
-          >
-            <div className="space-y-2">
-              <h3 className="text-2xl font-serif font-black text-[#111111]">Delete Category?</h3>
-              <p className="text-sm text-[#142B6F] leading-6">
-                This will remove <span className="font-bold text-[#111111]">{deleteCategoryCandidate.name}</span> if no
-                linked books depend on it.
-              </p>
-            </div>
-            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
-              <button
-                type="button"
-                onClick={() => setDeleteCategoryCandidate(null)}
-                disabled={deleteCategory.isPending}
-                className="px-4 py-2.5 rounded-xl border border-[#E1DEE5] text-sm font-bold text-[#142B6F] disabled:opacity-40"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDelete(deleteCategoryCandidate)}
-                disabled={deleteCategory.isPending}
-                className="px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-red-700 disabled:opacity-40"
-              >
-                {deleteCategory.isPending ? "Deleting..." : "Delete Category"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+              <form onSubmit={handleSave} className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-wider">{String(t("admin_categories.modal.label_name"))}</label>
+                  <input required value={name} onChange={e=>setName(e.target.value)} placeholder={String(t("admin_categories.modal.placeholder_name"))} className={IC}/>
+                </div>
+                <button type="submit" disabled={create.isPending||update.isPending} className="w-full py-3 rounded-xl bg-[#0d0d0d] text-white text-[13px] font-bold disabled:opacity-50 hover:bg-[#292524] transition-colors">
+                  {create.isPending||update.isPending ? String(t("admin_categories.modal.submitting")) : editId?String(t("admin_categories.modal.submit_update")):String(t("admin_categories.modal.submit_add"))}
+                </button>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+        {delCat && (
+          <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="fixed inset-0 z-[2147483647] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={e=>{if(e.target===e.currentTarget)setDelCat(null);}}>
+            <motion.div initial={{opacity:0,scale:0.97,y:16}} animate={{opacity:1,scale:1,y:0}} exit={{opacity:0,scale:0.97}} transition={{duration:0.25,ease:[0.16,1,0.3,1]}} className="bg-white rounded-2xl border border-[#e8e4dc] p-6 w-full max-w-sm shadow-2xl" onClick={e=>e.stopPropagation()}>
+              <h3 className="text-[17px] font-serif font-black text-[#0d0d0d] mb-2">{String(t("admin_categories.confirm.delete_title"))}</h3>
+              <p className="text-sm text-[#0d0d0d]/55 mb-6">{String(t("admin_categories.confirm.delete_desc",{name:delCat.name}))}</p>
+              <div className="flex gap-3 justify-end">
+                <button onClick={()=>setDelCat(null)} disabled={del.isPending} className="px-4 py-2.5 rounded-xl border border-[#e8e4dc] text-sm font-bold text-[#0d0d0d]/60 hover:text-[#0d0d0d] transition-colors disabled:opacity-40">{String(t("admin_categories.confirm.cancel"))}</button>
+                <button onClick={handleDelete} disabled={del.isPending} className="px-4 py-2.5 rounded-xl bg-red-600 text-white text-sm font-bold hover:bg-red-700 disabled:opacity-50 transition-colors">{del.isPending?"Deleting…":String(t("admin_categories.confirm.delete_btn"))}</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

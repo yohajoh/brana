@@ -1,326 +1,317 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { useStatsOverview, useStatsTargets, useUpdateTargets } from "@/lib/hooks/useQueries";
+import {
+  useStatsOverview,
+  useStatsTargets,
+  useUpdateTargets,
+} from "@/lib/hooks/useQueries";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 
-type WeeklyPoint = { week_start: string; count: number };
-
-type GoalProgress = {
-  target: number;
-  actual: number;
-  progress: number;
+/* ── animation variants ─────────────────────────────────── */
+const fadeUp = {
+  hidden: { opacity: 0, y: 16 },
+  show:   { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] } },
 };
+const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
 
+/* ── types ──────────────────────────────────────────────── */
+type WeeklyPoint = { week_start: string; count: number };
+type GoalProgress = { target: number; actual: number; progress: number };
 type Overview = {
-  users: { total: number; newThisMonth: number; blocked: number };
-  books: { total: number; available: number; outOfStock: number };
+  users:   { total: number; newThisMonth: number; blocked: number };
+  books:   { total: number; available: number; outOfStock: number };
   rentals: { active: number; overdue: number; reservations: number; completed: number };
   revenue: { thisMonth: number; growth: number };
-  monthlyTargets: {
-    progress: {
-      rentals: GoalProgress;
-      activeReaders: GoalProgress;
-      onTimeReturns: GoalProgress;
-      newBooks: GoalProgress;
-    };
-  };
-  trends: { rentalsPerWeek: WeeklyPoint[] };
+  monthlyTargets: { progress: { rentals: GoalProgress; activeReaders: GoalProgress; onTimeReturns: GoalProgress; newBooks: GoalProgress } };
+  trends:  { rentalsPerWeek: WeeklyPoint[] };
 };
 
-const toNumber = (value: unknown) => {
-  const num = Number(value);
-  return Number.isFinite(num) ? num : 0;
+/* ── normalisation helpers ───────────────────────────────── */
+const toN  = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
+const clamp = (v: unknown) => Math.max(0, Math.min(100, toN(v)));
+const obj   = (v: unknown): Record<string, unknown> => (v && typeof v === "object" ? v as Record<string, unknown> : {});
+
+const normGoal = (v: unknown): GoalProgress => {
+  const s = obj(v);
+  const target = toN(s.target), actual = toN(s.actual);
+  const progress = s.progress == null && target > 0 ? (actual / target) * 100 : toN(s.progress);
+  return { target, actual, progress: clamp(progress) };
 };
 
-const clampProgress = (value: unknown) => Math.max(0, Math.min(100, toNumber(value)));
+const normPoints = (v: unknown): WeeklyPoint[] =>
+  Array.isArray(v)
+    ? v.map(i => { const p = obj(i); return { week_start: String(p.week_start ?? p.weekStart ?? ""), count: toN(p.count ?? p.value ?? p.total) }; })
+    : [];
 
-const readObject = (value: unknown): Record<string, unknown> => {
-  return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
-};
-
-const normalizeGoalProgress = (value: unknown): GoalProgress => {
-  const source = readObject(value);
-  const target = toNumber(source.target);
-  const actual = toNumber(source.actual);
-  const progress = source.progress == null && target > 0 ? (actual / target) * 100 : toNumber(source.progress);
-
+const normOverview = (v: unknown): Overview => {
+  const r = obj(v);
+  const u = obj(r.users); const b = obj(r.books); const ren = obj(r.rentals);
+  const rev = obj(r.revenue);
+  const mt  = obj(r.monthlyTargets ?? r.monthly_targets);
+  const pr  = obj(mt.progress);
+  const tr  = obj(r.trends);
   return {
-    target,
-    actual,
-    progress: clampProgress(progress),
-  };
-};
-
-const normalizeWeeklyPoints = (value: unknown): WeeklyPoint[] => {
-  if (!Array.isArray(value)) return [];
-  return value.map((item) => {
-    const point = readObject(item);
-    return {
-      week_start: String(point.week_start ?? point.weekStart ?? ""),
-      count: toNumber(point.count ?? point.value ?? point.total),
-    };
-  });
-};
-
-const normalizeOverview = (value: unknown): Overview => {
-  const root = readObject(value);
-  const users = readObject(root.users);
-  const books = readObject(root.books);
-  const rentals = readObject(root.rentals);
-  const revenue = readObject(root.revenue);
-  const monthlyTargets = readObject(root.monthlyTargets ?? root.monthly_targets);
-  const progress = readObject(monthlyTargets.progress);
-  const trends = readObject(root.trends);
-
-  return {
-    users: {
-      total: toNumber(users.total),
-      newThisMonth: toNumber(users.newThisMonth ?? users.new_this_month),
-      blocked: toNumber(users.blocked),
-    },
-    books: {
-      total: toNumber(books.total),
-      available: toNumber(books.available),
-      outOfStock: toNumber(books.outOfStock ?? books.out_of_stock),
-    },
-    rentals: {
-      active: toNumber(rentals.active),
-      overdue: toNumber(rentals.overdue),
-      reservations: toNumber(rentals.reservations),
-      completed: toNumber(rentals.completed),
-    },
-    revenue: {
-      thisMonth: toNumber(revenue.thisMonth ?? revenue.this_month),
-      growth: toNumber(revenue.growth),
-    },
-    monthlyTargets: {
-      progress: {
-        rentals: normalizeGoalProgress(progress.rentals),
-        activeReaders: normalizeGoalProgress(progress.activeReaders ?? progress.active_readers),
-        onTimeReturns: normalizeGoalProgress(progress.onTimeReturns ?? progress.on_time_returns),
-        newBooks: normalizeGoalProgress(progress.newBooks ?? progress.new_books),
-      },
-    },
-    trends: {
-      rentalsPerWeek: normalizeWeeklyPoints(trends.rentalsPerWeek ?? trends.rentals_per_week),
-    },
+    users:   { total: toN(u.total), newThisMonth: toN(u.newThisMonth ?? u.new_this_month), blocked: toN(u.blocked) },
+    books:   { total: toN(b.total), available: toN(b.available), outOfStock: toN(b.outOfStock ?? b.out_of_stock) },
+    rentals: { active: toN(ren.active), overdue: toN(ren.overdue), reservations: toN(ren.reservations), completed: toN(ren.completed) },
+    revenue: { thisMonth: toN(rev.thisMonth ?? rev.this_month), growth: toN(rev.growth) },
+    monthlyTargets: { progress: {
+      rentals:       normGoal(pr.rentals),
+      activeReaders: normGoal(pr.activeReaders ?? pr.active_readers),
+      onTimeReturns: normGoal(pr.onTimeReturns ?? pr.on_time_returns),
+      newBooks:      normGoal(pr.newBooks ?? pr.new_books),
+    }},
+    trends: { rentalsPerWeek: normPoints(tr.rentalsPerWeek ?? tr.rentals_per_week) },
   };
 };
 
 const defaultOverview: Overview = {
-  users: { total: 0, newThisMonth: 0, blocked: 0 },
-  books: { total: 0, available: 0, outOfStock: 0 },
+  users:   { total: 0, newThisMonth: 0, blocked: 0 },
+  books:   { total: 0, available: 0, outOfStock: 0 },
   rentals: { active: 0, overdue: 0, reservations: 0, completed: 0 },
   revenue: { thisMonth: 0, growth: 0 },
-  monthlyTargets: {
-    progress: {
-      rentals: { target: 0, actual: 0, progress: 0 },
-      activeReaders: { target: 0, actual: 0, progress: 0 },
-      onTimeReturns: { target: 0, actual: 0, progress: 0 },
-      newBooks: { target: 0, actual: 0, progress: 0 },
-    },
-  },
-  trends: { rentalsPerWeek: [] },
+  monthlyTargets: { progress: { rentals: { target:0,actual:0,progress:0 }, activeReaders: { target:0,actual:0,progress:0 }, onTimeReturns: { target:0,actual:0,progress:0 }, newBooks: { target:0,actual:0,progress:0 } } },
+  trends:  { rentalsPerWeek: [] },
 };
 
-function ProgressRow({ label, item }: { label: string; item: GoalProgress }) {
-  const width = clampProgress(item.progress);
+/* ── stat card ───────────────────────────────────────────── */
+function StatCard({ label, value, sub, accent = false, loading = false }: { label: string; value: string | number; sub?: string; accent?: boolean; loading?: boolean }) {
+  return (
+    <motion.div variants={fadeUp}
+      className={`rounded-2xl border p-5 ${accent ? "bg-[#0d0d0d] border-[#0d0d0d]" : "bg-white border-[#e8e4dc]"}`}>
+      {loading ? (
+        <div className="animate-pulse space-y-2">
+          <div className={`h-7 w-12 rounded ${accent ? "bg-white/10" : "bg-[#f0eeea]"}`} />
+          <div className={`h-3 w-24 rounded ${accent ? "bg-white/10" : "bg-[#f0eeea]"}`} />
+        </div>
+      ) : (
+        <>
+          <p className={`text-[28px] font-serif font-black leading-none ${accent ? "text-[#f5c518]" : "text-[#0d0d0d]"}`}>{value}</p>
+          <p className={`text-[9px] font-black uppercase tracking-[0.16em] mt-2 ${accent ? "text-white/45" : "text-[#0d0d0d]/40"}`}>{label}</p>
+          {sub && <p className={`text-[11px] mt-0.5 ${accent ? "text-white/30" : "text-[#0d0d0d]/30"}`}>{sub}</p>}
+        </>
+      )}
+    </motion.div>
+  );
+}
 
+/* ── goal progress row ───────────────────────────────────── */
+function GoalRow({ label, item }: { label: string; item: GoalProgress }) {
+  const pct = clamp(item.progress);
   return (
     <div className="space-y-1.5">
-      <div className="flex items-center justify-between text-xs">
-        <span className="font-bold text-[#111111]">{label}</span>
-        <span className="text-[#142B6F]">
-          {item.actual} / {item.target}
-        </span>
+      <div className="flex items-center justify-between">
+        <span className="text-[12px] font-semibold text-[#0d0d0d]">{label}</span>
+        <span className="text-[11px] text-[#0d0d0d]/50 tabular-nums">{item.actual} / {item.target}</span>
       </div>
-      <progress
-        value={width}
-        max={100}
-        className="w-full h-2 rounded-full overflow-hidden [&::-webkit-progress-bar]:bg-[#E1DEE5] [&::-webkit-progress-value]:bg-[#142B6F] [&::-moz-progress-bar]:bg-[#142B6F]"
-      />
+      <div className="h-1.5 bg-[#e8e4dc] rounded-full overflow-hidden">
+        <motion.div
+          initial={{ width: 0 }}
+          animate={{ width: `${pct}%` }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
+          className="h-full rounded-full bg-[#f5c518]"
+        />
+      </div>
+      <p className="text-[10px] text-[#0d0d0d]/35">{pct.toFixed(0)}% of target</p>
     </div>
   );
 }
 
-function LineChart({ points }: { points: WeeklyPoint[] }) {
+/* ── sparkline chart ─────────────────────────────────────── */
+function Sparkline({ points }: { points: WeeklyPoint[] }) {
   const { t } = useLanguage();
-  const width = 680;
-  const height = 220;
-  const pad = 24;
-  const safePoints = points.length > 0 ? points : [{ week_start: "", count: 0 }];
-  const max = Math.max(...safePoints.map((p) => p.count), 1);
+  const W = 600; const H = 180; const PAD = 20;
+  const safe = points.length > 0 ? points : [{ week_start: "", count: 0 }];
+  const max  = Math.max(...safe.map(p => p.count), 1);
 
-  const mapped = safePoints.map((p, i) => {
-    const x = pad + (i * (width - pad * 2)) / Math.max(1, safePoints.length - 1);
-    const y = height - pad - (p.count / max) * (height - pad * 2);
-    return { x, y, label: p.week_start, value: p.count };
-  });
+  const pts = safe.map((p, i) => ({
+    x: PAD + (i * (W - PAD * 2)) / Math.max(1, safe.length - 1),
+    y: H - PAD - (p.count / max) * (H - PAD * 2),
+    label: p.week_start, count: p.count,
+  }));
 
-  const d = mapped.map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`).join(" ");
+  const path = pts.map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`).join(" ");
+
+  // Filled area path
+  const area = `${path} L${pts[pts.length-1].x},${H-PAD} L${pts[0].x},${H-PAD} Z`;
 
   return (
-    <div className="bg-white rounded-2xl border border-[#E1DEE5]/50 p-4">
-      <h3 className="text-sm font-bold text-[#111111] mb-3">{t("dashboard.rentals_per_week")}</h3>
-      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-52">
-        <rect x="0" y="0" width={width} height={height} fill="#FFFFFF" />
-        {Array.from({ length: 5 }).map((_, i) => {
-          const y = pad + (i * (height - pad * 2)) / 4;
-          return <line key={i} x1={pad} y1={y} x2={width - pad} y2={y} stroke="#E1DEE5" strokeWidth="1" />;
-        })}
-        <path d={d} fill="none" stroke="#142B6F" strokeWidth="3" />
-        {mapped.map((p, i) => (
-          <circle key={i} cx={p.x} cy={p.y} r="4" fill="#111111" />
-        ))}
-      </svg>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[11px] text-[#142B6F] mt-2">
-        {mapped.map((p, i) => (
-          <div key={i} className="truncate">{p.label || t("sidebar.history").split(" ")[0]}: {p.value}</div>
-        ))}
+    <div className="space-y-3">
+      <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.18em]">
+        {String(t("dashboard.rentals_per_week"))}
+      </p>
+      <div className="bg-white rounded-2xl border border-[#e8e4dc] p-5 overflow-hidden">
+        <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 140 }}>
+          {/* Grid lines */}
+          {[0,1,2,3,4].map(i => (
+            <line key={i}
+              x1={PAD} y1={PAD + i * (H - PAD*2) / 4}
+              x2={W - PAD} y2={PAD + i * (H - PAD*2) / 4}
+              stroke="#e8e4dc" strokeWidth="1"
+            />
+          ))}
+          {/* Fill */}
+          <path d={area} fill="rgba(245,197,24,0.08)" />
+          {/* Line */}
+          <motion.path
+            d={path}
+            fill="none"
+            stroke="#f5c518"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            initial={{ pathLength: 0 }}
+            animate={{ pathLength: 1 }}
+            transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+          />
+          {/* Dots */}
+          {pts.map((p, i) => (
+            <circle key={i} cx={p.x} cy={p.y} r="4" fill="#f5c518" stroke="white" strokeWidth="2" />
+          ))}
+        </svg>
+        {safe.length > 1 && (
+          <div className="flex justify-between mt-2">
+            {pts.map((p, i) => (
+              <div key={i} className="text-center">
+                <p className="text-[10px] font-black text-[#0d0d0d]">{p.count}</p>
+                <p className="text-[8px] text-[#0d0d0d]/30 mt-0.5 truncate max-w-[60px]">
+                  {p.label ? new Date(p.label).toLocaleDateString("en-US", { month:"short", day:"numeric" }) : ""}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-export default function DashboardPage() {
+/* ── page ────────────────────────────────────────────────── */
+export default function AdminDashboardPage() {
   const { t } = useLanguage();
+
   const [form, setForm] = useState({
-    target_rentals: "",
-    target_active_readers: "",
-    target_on_time_returns: "",
-    target_new_books: "",
+    target_rentals: "", target_active_readers: "",
+    target_on_time_returns: "", target_new_books: "",
   });
 
-  const { data: overviewData, isLoading: overviewLoading } = useStatsOverview();
-  const { data: targetsData } = useStatsTargets();
-  const updateTargets = useUpdateTargets();
+  const { data: overviewData, isLoading } = useStatsOverview();
+  const { data: targetsData }             = useStatsTargets();
+  const updateTargets                     = useUpdateTargets();
 
   const overview = useMemo(() => {
     const payload = (overviewData as { data?: unknown } | undefined)?.data ?? overviewData;
-    if (!payload) return defaultOverview;
-    return normalizeOverview(payload);
+    return payload ? normOverview(payload) : defaultOverview;
   }, [overviewData]);
 
   const target = targetsData?.data?.target as {
-    target_rentals?: number;
-    target_active_readers?: number;
-    target_on_time_returns?: number;
-    target_new_books?: number;
+    target_rentals?: number; target_active_readers?: number;
+    target_on_time_returns?: number; target_new_books?: number;
   } | undefined;
 
-  // Load targets into form when data is available
   useEffect(() => {
-    if (target) {
-      const timer = setTimeout(() => {
-        setForm({
-          target_rentals: String(target.target_rentals ?? 0),
-          target_active_readers: String(target.target_active_readers ?? 0),
-          target_on_time_returns: String(target.target_on_time_returns ?? 0),
-          target_new_books: String(target.target_new_books ?? 0),
-        });
-      }, 0);
-
-      return () => clearTimeout(timer);
-    }
+    if (!target) return;
+    const t2 = setTimeout(() => setForm({
+      target_rentals:       String(target.target_rentals        ?? 0),
+      target_active_readers:String(target.target_active_readers ?? 0),
+      target_on_time_returns:String(target.target_on_time_returns ?? 0),
+      target_new_books:     String(target.target_new_books      ?? 0),
+    }), 0);
+    return () => clearTimeout(t2);
   }, [target]);
-
-  const loading = overviewLoading;
-
-  const summary = useMemo(
-    () => [
-      { label: t("dashboard.stats.students"), value: overview.users.total },
-      { label: t("dashboard.stats.books"), value: overview.books.total },
-      { label: t("dashboard.stats.active_rentals"), value: overview.rentals.active },
-      { label: t("dashboard.stats.overdue"), value: overview.rentals.overdue },
-      { label: t("dashboard.stats.reservations"), value: overview.rentals.reservations },
-      { label: t("dashboard.stats.revenue"), value: `${overview.revenue.thisMonth} ETB` },
-    ],
-    [overview, t],
-  );
 
   const saveTargets = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       await updateTargets.mutateAsync({
-        target_rentals: Number(form.target_rentals || 0),
-        target_active_readers: Number(form.target_active_readers || 0),
+        target_rentals:         Number(form.target_rentals || 0),
+        target_active_readers:  Number(form.target_active_readers || 0),
         target_on_time_returns: Number(form.target_on_time_returns || 0),
-        target_new_books: Number(form.target_new_books || 0),
+        target_new_books:       Number(form.target_new_books || 0),
       });
-      toast.success("Targets saved successfully");
-    } catch {
-      toast.error("Failed to save targets");
-    }
+      toast.success("Targets saved");
+    } catch { toast.error("Failed to save targets"); }
   };
 
-  return (
-    <div className="p-4 sm:p-6 lg:p-12 space-y-8">
-      <div>
-        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-extrabold text-[#111111]">
-          {t("dashboard.analytics_title")}
-        </h1>
-        <p className="text-[#142B6F] font-medium">{t("dashboard.analytics_subtitle")}</p>
-      </div>
+  const IC = "w-full px-3 py-2.5 rounded-xl border border-[#e8e4dc] bg-[#f5f4f0] text-sm text-[#0d0d0d] focus:outline-none focus:border-[#0d0d0d] focus:bg-white focus:shadow-[0_0_0_3px_rgba(245,197,24,0.2)] transition-all";
 
-      {loading ? (
-        <div className="py-16 text-center text-[#142B6F]">{t("dashboard.loading")}</div>
-      ) : (
-        <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
-            {summary.map((item) => (
-              <div key={item.label} className="bg-white border border-[#E1DEE5]/50 rounded-xl p-3 sm:p-4 shadow-sm">
-                <p className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#142B6F] font-bold truncate">
-                  {item.label}
-                </p>
-                <p className="text-xl sm:text-2xl font-black text-[#111111] mt-1 truncate">{item.value}</p>
+  return (
+    <motion.div variants={stagger} initial="hidden" animate="show" className="p-4 sm:p-6 space-y-8">
+
+      {/* Header */}
+      <motion.div variants={fadeUp}>
+        <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.2em] mb-1">Admin</p>
+        <h1 className="text-[26px] font-serif font-black text-[#0d0d0d]">{String(t("dashboard.analytics_title"))}</h1>
+        <p className="text-sm text-[#0d0d0d]/45 mt-1">{String(t("dashboard.analytics_subtitle"))}</p>
+      </motion.div>
+
+      {/* Stats grid */}
+      <motion.div variants={stagger} className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
+        <StatCard label={String(t("dashboard.stats.students"))}     value={overview.users.total}         sub={`+${overview.users.newThisMonth} this month`} loading={isLoading} />
+        <StatCard label={String(t("dashboard.stats.books"))}        value={overview.books.total}         sub={`${overview.books.available} available`}       loading={isLoading} />
+        <StatCard label={String(t("dashboard.stats.active_rentals"))} value={overview.rentals.active}    loading={isLoading} />
+        <StatCard label={String(t("dashboard.stats.overdue"))}      value={overview.rentals.overdue}     accent={overview.rentals.overdue > 0} loading={isLoading} />
+        <StatCard label={String(t("dashboard.stats.reservations"))} value={overview.rentals.reservations} loading={isLoading} />
+        <StatCard label={String(t("dashboard.stats.revenue"))}      value={`${overview.revenue.thisMonth} ETB`} loading={isLoading} />
+      </motion.div>
+
+      {/* Chart + goals */}
+      <motion.div variants={stagger} className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+
+        {/* Sparkline */}
+        <motion.div variants={fadeUp} className="xl:col-span-2">
+          <Sparkline points={overview.trends.rentalsPerWeek} />
+        </motion.div>
+
+        {/* Goal progress */}
+        <motion.div variants={fadeUp} className="bg-white rounded-2xl border border-[#e8e4dc] p-5 space-y-4">
+          <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.18em]">
+            {String(t("dashboard.goal_progress"))}
+          </p>
+          <GoalRow label={String(t("dashboard.targets.rentals"))}        item={overview.monthlyTargets.progress.rentals} />
+          <GoalRow label={String(t("dashboard.targets.active_readers"))} item={overview.monthlyTargets.progress.activeReaders} />
+          <GoalRow label={String(t("dashboard.targets.on_time_returns"))} item={overview.monthlyTargets.progress.onTimeReturns} />
+          <GoalRow label={String(t("dashboard.targets.new_books"))}      item={overview.monthlyTargets.progress.newBooks} />
+        </motion.div>
+      </motion.div>
+
+      {/* Set targets */}
+      <motion.div variants={fadeUp}>
+        <form onSubmit={saveTargets} className="bg-white rounded-2xl border border-[#e8e4dc] p-5 sm:p-6 space-y-5">
+          <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.18em]">
+            {String(t("dashboard.targets.title"))}
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {([
+              ["target_rentals",         t("dashboard.targets.rentals")],
+              ["target_active_readers",  t("dashboard.targets.active_readers")],
+              ["target_on_time_returns", t("dashboard.targets.on_time_returns")],
+              ["target_new_books",       t("dashboard.targets.new_books")],
+            ] as const).map(([key, label]) => (
+              <div key={key} className="space-y-1.5">
+                <label className="text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-wide">{label}</label>
+                <input
+                  type="number" min={0}
+                  value={form[key as keyof typeof form]}
+                  onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))}
+                  className={IC}
+                />
               </div>
             ))}
           </div>
+          <button
+            type="submit"
+            disabled={updateTargets.isPending}
+            className="px-6 py-2.5 rounded-full bg-[#0d0d0d] text-white text-[12px] font-bold hover:bg-[#292524] disabled:opacity-50 transition-colors"
+          >
+            {updateTargets.isPending ? String(t("dashboard.targets.saving")) : String(t("dashboard.targets.save"))}
+          </button>
+        </form>
+      </motion.div>
 
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
-            <div className="xl:col-span-2">
-              <LineChart points={overview.trends?.rentalsPerWeek || []} />
-            </div>
-            <div className="bg-white rounded-2xl border border-[#E1DEE5]/50 p-4 space-y-3">
-              <h3 className="text-sm font-bold text-[#111111]">{t("dashboard.goal_progress")}</h3>
-              <ProgressRow label={t("dashboard.targets.rentals")} item={overview.monthlyTargets.progress.rentals} />
-              <ProgressRow label={t("dashboard.targets.active_readers")} item={overview.monthlyTargets.progress.activeReaders} />
-              <ProgressRow label={t("dashboard.targets.on_time_returns")} item={overview.monthlyTargets.progress.onTimeReturns} />
-              <ProgressRow label={t("dashboard.targets.new_books")} item={overview.monthlyTargets.progress.newBooks} />
-            </div>
-          </div>
-
-          <form onSubmit={saveTargets} className="bg-white rounded-2xl border border-[#E1DEE5]/50 p-5 space-y-4">
-            <h3 className="text-sm font-bold text-[#111111]">{t("dashboard.targets.title")}</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-              <Field label={t("dashboard.targets.rentals")} value={form.target_rentals} onChange={(v) => setForm((p) => ({ ...p, target_rentals: v }))} />
-              <Field label={t("dashboard.targets.active_readers")} value={form.target_active_readers} onChange={(v) => setForm((p) => ({ ...p, target_active_readers: v }))} />
-              <Field label={t("dashboard.targets.on_time_returns")} value={form.target_on_time_returns} onChange={(v) => setForm((p) => ({ ...p, target_on_time_returns: v }))} />
-              <Field label={t("dashboard.targets.new_books")} value={form.target_new_books} onChange={(v) => setForm((p) => ({ ...p, target_new_books: v }))} />
-            </div>
-            <button type="submit" disabled={updateTargets.isPending} className="px-4 py-2.5 rounded-xl bg-[#142B6F] text-white text-sm font-bold disabled:opacity-50">
-              {updateTargets.isPending ? t("dashboard.targets.saving") : t("dashboard.targets.save")}
-            </button>
-          </form>
-        </>
-      )}
-    </div>
-  );
-}
-
-function Field({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
-  return (
-    <label className="space-y-1 block">
-      <span className="text-xs font-bold text-[#111111]">{label}</span>
-      <input
-        type="number"
-        min={0}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full px-3 py-2 rounded-lg border border-[#E1DEE5] text-sm"
-      />
-    </label>
+    </motion.div>
   );
 }
