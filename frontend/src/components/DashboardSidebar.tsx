@@ -234,7 +234,7 @@ export const DashboardSidebar = ({ variant = "default" }: DashboardSidebarProps)
         </nav>
 
         {/* ── Bottom: logout only ───────── */}
-        <div className={`mt-2 pt-3 pb-5 space-y-0.5 ${collapsed ? "px-2" : "px-3"}`}
+        <div className={`shrink-0 mt-2 pt-3 pb-5 space-y-0.5 ${collapsed ? "px-2" : "px-3"}`}
           style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
 
           {/* Logout */}
