@@ -11,6 +11,8 @@ router.get('/alerts', adminController.getInventoryAlerts);
 router.get('/activity-logs', adminController.getActivityLogs);
 router.get('/inventory-alerts', adminController.getInventoryAlerts);
 router.patch('/inventory-alerts/:id/resolve', adminController.resolveInventoryAlert);
+router.delete('/inventory-alerts/:id', adminController.deleteInventoryAlert);
+router.delete('/inventory-alerts', adminController.bulkDeleteInventoryAlerts);
 router.post('/inventory-alerts/scan', adminController.scanInventoryAlerts);
 router.get('/reports/export', adminController.exportReport);
 router.get('/users/:id/insights', adminController.getUserInsights);

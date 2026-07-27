@@ -49,6 +49,20 @@ export const scanInventoryAlerts = async (req, res) => {
   res.json({ status: 'success', data: result });
 };
 
+export const deleteInventoryAlert = async (req, res) => {
+  await prisma.inventoryAlert.delete({ where: { id: req.params.id } });
+  res.json({ status: 'success', message: 'Alert deleted' });
+};
+
+export const bulkDeleteInventoryAlerts = async (req, res) => {
+  const { ids } = req.body;
+  if (!Array.isArray(ids) || ids.length === 0) {
+    throw new AppError('ids array is required', 400);
+  }
+  const result = await prisma.inventoryAlert.deleteMany({ where: { id: { in: ids } } });
+  res.json({ status: 'success', data: { deleted: result.count } });
+};
+
 export const exportReport = async (req, res) => {
   const type = req.query.type;
   const format = (req.query.format || 'json').toLowerCase();

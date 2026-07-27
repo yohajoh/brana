@@ -6,9 +6,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { Trash2, CheckCheck } from "lucide-react";
 import {
-  useNotifications, useMarkAsRead, useMarkAllAsRead, useDeleteNotification,
+  useNotifications, useMarkAsRead, useMarkAllAsRead,
   type Notification,
 } from "@/lib/hooks/useNotifications";
+import { fetchApi } from "@/lib/api";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { NotificationOverlay } from "@/components/notifications/NotificationOverlay";
 
@@ -118,7 +119,6 @@ function NotificationsContent() {
   const { data, isLoading, refetch } = useNotifications({ limit: 100 });
   const markOne    = useMarkAsRead();
   const markAll    = useMarkAllAsRead();
-  const deleteOne  = useDeleteNotification();
 
   const [bulkSelected, setBulkSelected]   = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting]   = useState(false);
@@ -155,11 +155,13 @@ function NotificationsContent() {
   const handleDeleteOne = async (id: string) => {
     setDeletingId(id);
     try {
-      await deleteOne.mutateAsync(id);
+      await fetchApi(`/notifications/${id}`, { method: "DELETE" });
       setBulkSelected(p => { const n = new Set(p); n.delete(id); return n; });
       toast.success("Notification deleted");
-    } catch { toast.error("Failed to delete"); }
-    finally { setDeletingId(null); }
+      await refetch();
+    } catch(e) {
+      toast.error(e instanceof Error ? e.message : "Failed to delete");
+    } finally { setDeletingId(null); }
   };
 
   const handleBulkDelete = async () => {
@@ -168,12 +170,16 @@ function NotificationsContent() {
     const ids = Array.from(bulkSelected);
     let success = 0;
     try {
-      for (const id of ids) { await deleteOne.mutateAsync(id); success++; }
+      for (const id of ids) {
+        await fetchApi(`/notifications/${id}`, { method: "DELETE" });
+        success++;
+      }
       toast.success(`Deleted ${success} notification${success > 1 ? "s" : ""}`);
       setBulkSelected(new Set());
-    } catch {
-      if (success > 0) toast.success(`Deleted ${success} of ${ids.length}`);
-      toast.error("Failed to delete some notifications");
+      await refetch();
+    } catch(e) {
+      if (success > 0) { toast.success(`Deleted ${success} of ${ids.length}`); await refetch(); }
+      toast.error(e instanceof Error ? e.message : "Failed to delete some");
     } finally { setBulkDeleting(false); }
   };
 
