@@ -301,10 +301,19 @@ export default function AdminUsersPage() {
       tone: "danger",
       action: async () => {
         setBulkDeleting(true);
+        const ids = Array.from(bulkSelected);
+        let success = 0;
         try {
-          await Promise.all(Array.from(bulkSelected).map(id => deleteUser.mutateAsync(id)));
-          toast.success(`Deleted ${bulkSelected.size} user${bulkSelected.size > 1 ? "s" : ""}`);
+          for (const id of ids) {
+            await deleteUser.mutateAsync(id);
+            success++;
+          }
+          toast.success(`Deleted ${success} user${success > 1 ? "s" : ""}`);
           setBulkSelected(new Set());
+          setSelected(s => s && bulkSelected.has(s.id) ? null : s);
+        } catch(e) {
+          if (success > 0) toast.success(`Deleted ${success} of ${ids.length} users`);
+          toast.error(err(e, "Failed to delete some users"));
         } finally { setBulkDeleting(false); }
       },
     });

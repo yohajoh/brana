@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { useMyReservations, useCancelReservation } from "@/lib/hooks/useQueries";
@@ -35,12 +36,52 @@ export default function StudentReservationsPage() {
   const active   = rows.filter(r => ["QUEUED","NOTIFIED"].includes(r.status)).length;
   const notified = rows.filter(r => r.status === "NOTIFIED").length;
 
+  const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
+  const [bulkCancelling, setBulkCancelling] = useState(false);
+  const cancellable = rows.filter(r => ["QUEUED","NOTIFIED"].includes(r.status));
+  const allSelected = cancellable.length > 0 && cancellable.every(r => bulkSelected.has(r.id));
+  const toggleBulk = (id: string) => setBulkSelected(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggleAll = () => setBulkSelected(allSelected ? new Set() : new Set(cancellable.map(r => r.id)));
+
+  const handleBulkCancel = async () => {
+    if (!bulkSelected.size) return;
+    setBulkCancelling(true);
+    const ids = Array.from(bulkSelected);
+    let success = 0;
+    try {
+      for (const id of ids) { await cancel.mutateAsync(id); success++; }
+      toast.success(`Cancelled ${success} reservation${success > 1 ? "s" : ""}`);
+      setBulkSelected(new Set());
+    } catch {
+      if (success > 0) toast.success(`Cancelled ${success} of ${ids.length}`);
+      toast.error(String(t("student_reservations.error_cancel")));
+    } finally { setBulkCancelling(false); }
+  };
+
   const handleCancel = async (id: string) => {
     try { await cancel.mutateAsync(id); toast.success(String(t("student_reservations.success_cancel"))); }
     catch  { toast.error(String(t("student_reservations.error_cancel"))); }
   };
 
   const cols: ColumnDef<Reservation, unknown>[] = [
+    {
+      id: "sel",
+      header: () => (
+        <input type="checkbox" checked={allSelected}
+          onChange={toggleAll}
+          className="w-4 h-4 rounded border-[#e8e4dc] accent-[#142b6f]"
+          onClick={e => e.stopPropagation()} />
+      ),
+      cell: ({ row }) => {
+        const cancellableRow = ["QUEUED","NOTIFIED"].includes(row.original.status);
+        return cancellableRow ? (
+          <input type="checkbox" checked={bulkSelected.has(row.original.id)}
+            onChange={() => toggleBulk(row.original.id)}
+            className="w-4 h-4 rounded border-[#e8e4dc] accent-[#142b6f]"
+            onClick={e => e.stopPropagation()} />
+        ) : null;
+      },
+    },
     {
       id: "book",
       header: String(t("admin_reservations.table.book")),
@@ -127,6 +168,21 @@ export default function StudentReservationsPage() {
 
       <motion.div variants={fadeUp}
         className="bg-white rounded-2xl border border-[#e8e4dc] overflow-hidden pb-2">
+        {bulkSelected.size > 0 && (
+          <div className="flex items-center justify-between gap-3 px-4 py-3 bg-red-50 border-b border-red-100">
+            <span className="text-[12px] font-bold text-red-700">{bulkSelected.size} selected</span>
+            <div className="flex gap-2">
+              <button onClick={() => setBulkSelected(new Set())}
+                className="px-3 py-1.5 rounded-lg text-[11px] font-bold border border-red-200 text-red-500 hover:bg-red-100 transition-colors">
+                Clear
+              </button>
+              <button onClick={handleBulkCancel} disabled={bulkCancelling}
+                className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 transition-colors">
+                {bulkCancelling ? "Cancelling…" : `Cancel ${bulkSelected.size}`}
+              </button>
+            </div>
+          </div>
+        )}
         <TanStackTable
           data={rows} columns={cols}
           isLoading={isLoading}

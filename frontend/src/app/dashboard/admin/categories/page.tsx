@@ -62,11 +62,19 @@ export default function AdminCategoriesPage() {
   const handleBulkDelete = async () => {
     if (!bulkSelected.size) return;
     setBulkDeleting(true);
+    const ids = Array.from(bulkSelected);
+    let success = 0;
     try {
-      await Promise.all(Array.from(bulkSelected).map(id=>del.mutateAsync(id)));
-      toast.success(`Deleted ${bulkSelected.size} categor${bulkSelected.size>1?"ies":"y"}`);
+      for (const id of ids) {
+        await del.mutateAsync(id);
+        success++;
+      }
+      toast.success(`Deleted ${success} categor${success>1?"ies":"y"}`);
       setBulkSelected(new Set());
-    } catch(e2) { toast.error(err(e2,"Failed to delete")); }
+    } catch(e2) {
+      if (success > 0) toast.success(`Deleted ${success} of ${ids.length} categories`);
+      toast.error(err(e2,"Failed to delete some categories"));
+    }
     finally { setBulkDeleting(false); }
   };
 

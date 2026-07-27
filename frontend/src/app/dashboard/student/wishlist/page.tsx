@@ -23,8 +23,10 @@ type WishlistItem = {
 
 export default function WishlistPage() {
   const { t }  = useLanguage();
-  const [page, setPage]     = useState(1);
-  const [filter, setFilter] = useState<"all"|"physical"|"digital">("all");
+  const [page, setPage]           = useState(1);
+  const [filter, setFilter]       = useState<"all"|"physical"|"digital">("all");
+  const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
+  const [bulkRemoving, setBulkRemoving] = useState(false);
   const limit = 12;
 
   const params = new URLSearchParams({ page: String(page), limit: String(limit) });
@@ -36,6 +38,28 @@ export default function WishlistPage() {
   const wishlist: WishlistItem[] = (data?.wishlist || []) as unknown as WishlistItem[];
   const totalPages = data?.meta?.totalPages || 1;
   const available  = wishlist.filter(i => i.bookAvailable && !i.bookDeleted).length;
+
+  const toggleBulk = (id: string) => setBulkSelected(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const allSelected = wishlist.length > 0 && wishlist.every(i => bulkSelected.has(i.id));
+  const toggleAll = () => setBulkSelected(allSelected ? new Set() : new Set(wishlist.map(i => i.id)));
+
+  const handleBulkRemove = async () => {
+    if (!bulkSelected.size) return;
+    setBulkRemoving(true);
+    const ids = Array.from(bulkSelected);
+    let success = 0;
+    try {
+      for (const id of ids) {
+        await remove.mutateAsync(id);
+        success++;
+      }
+      toast.success(`Removed ${success} item${success > 1 ? "s" : ""} from wishlist`);
+      setBulkSelected(new Set());
+    } catch {
+      if (success > 0) toast.success(`Removed ${success} of ${ids.length} items`);
+      toast.error(String(t("student_wishlist.failed_remove")));
+    } finally { setBulkRemoving(false); }
+  };
 
   const handleRemove = async (id: string) => {
     try   { await remove.mutateAsync(id); toast.success(String(t("student_wishlist.removed"))); }
@@ -74,8 +98,8 @@ export default function WishlistPage() {
         </motion.div>
       )}
 
-      {/* Filter pills */}
-      <motion.div variants={fadeUp} className="flex items-center gap-2">
+      {/* Filter pills + select all */}
+      <motion.div variants={fadeUp} className="flex items-center gap-2 flex-wrap">
         {(["all","physical","digital"] as const).map(f => (
           <button key={f} onClick={() => { setFilter(f); setPage(1); }}
             className={`px-4 py-1.5 rounded-full text-[11px] font-bold transition-all ${
@@ -84,7 +108,32 @@ export default function WishlistPage() {
             {String(t(`student_wishlist.filters.${f}`))}
           </button>
         ))}
+        {wishlist.length > 0 && (
+          <button onClick={toggleAll}
+            className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold border border-[#e8e4dc] text-[#0d0d0d]/50 hover:text-[#0d0d0d] transition-colors">
+            <input type="checkbox" checked={allSelected} readOnly className="w-3.5 h-3.5 rounded accent-[#142b6f] pointer-events-none" />
+            Select all
+          </button>
+        )}
       </motion.div>
+
+      {/* Bulk bar */}
+      {bulkSelected.size > 0 && (
+        <motion.div initial={{opacity:0,y:-8}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-8}}
+          className="flex items-center justify-between gap-3 px-4 py-3 bg-red-50 border border-red-100 rounded-xl">
+          <span className="text-[12px] font-bold text-red-700">{bulkSelected.size} selected</span>
+          <div className="flex gap-2">
+            <button onClick={() => setBulkSelected(new Set())}
+              className="px-3 py-1.5 rounded-lg text-[11px] font-bold border border-red-200 text-red-500 hover:bg-red-100 transition-colors">
+              Clear
+            </button>
+            <button onClick={handleBulkRemove} disabled={bulkRemoving}
+              className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 transition-colors">
+              {bulkRemoving ? "Removing…" : `Remove ${bulkSelected.size}`}
+            </button>
+          </div>
+        </motion.div>
+      )}
 
       {/* Grid */}
       {isLoading ? (
@@ -114,6 +163,22 @@ export default function WishlistPage() {
             if (!book) return null;
             return (
               <motion.div key={item.id} variants={cardVar} className="group relative">
+                {/* Bulk select checkbox */}
+                <button
+                  type="button"
+                  onClick={e => { e.preventDefault(); e.stopPropagation(); toggleBulk(item.id); }}
+                  className={`absolute top-2 left-2 z-10 w-6 h-6 rounded-lg flex items-center justify-center transition-all ${
+                    bulkSelected.has(item.id)
+                      ? "opacity-100 bg-[#142b6f] shadow-md"
+                      : "opacity-0 group-hover:opacity-100 bg-white/90 shadow-md"
+                  }`}
+                >
+                  {bulkSelected.has(item.id) && (
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                      <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  )}
+                </button>
                 <Link href={`/books/${book.id}`} className="block space-y-2">
                   <div className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-[#e8e4dc]">
                     <Image

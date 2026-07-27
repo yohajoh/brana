@@ -54,11 +54,19 @@ export default function AdminAuthorsPage() {
   const handleBulkDelete=async()=>{
     if(!bulkSelected.size) return;
     setBulkDeleting(true);
+    const ids = Array.from(bulkSelected);
+    let success = 0;
     try{
-      await Promise.all(Array.from(bulkSelected).map(id=>del.mutateAsync(id)));
-      toast.success(`Deleted ${bulkSelected.size} author${bulkSelected.size>1?"s":""}`);
+      for (const id of ids) {
+        await del.mutateAsync(id);
+        success++;
+      }
+      toast.success(`Deleted ${success} author${success>1?"s":""}`);
       setBulkSelected(new Set());
-    }catch(e2){toast.error(err(e2,"Failed to delete"));}
+    }catch(e2){
+      if (success > 0) toast.success(`Deleted ${success} of ${ids.length} authors`);
+      toast.error(err(e2,"Failed to delete some authors"));
+    }
     finally{setBulkDeleting(false);}
   };
   const cols:ColumnDef<Author,unknown>[]=[

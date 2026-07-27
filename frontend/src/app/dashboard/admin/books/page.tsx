@@ -452,14 +452,22 @@ export default function AdminBooksPage() {
   const handleBulkDelete=async()=>{
     if(!bulkSelected.size) return;
     setBulkDeleting(true);
+    const ids = Array.from(bulkSelected);
+    let success = 0;
     try{
-      await Promise.all(Array.from(bulkSelected).map(id=>{
-        const b=allBooks.find(bk=>bk.id===id);
-        return b?deleteBook.mutateAsync({id,type:b.type||"physical"}):Promise.resolve();
-      }));
-      toast.success(`Deleted ${bulkSelected.size} book${bulkSelected.size>1?"s":""}`);
+      for (const id of ids) {
+        const b = allBooks.find(bk=>bk.id===id);
+        if (b) {
+          await deleteBook.mutateAsync({id, type: b.type||"physical"});
+          success++;
+        }
+      }
+      toast.success(`Deleted ${success} book${success>1?"s":""}`);
       setBulkSelected(new Set());
-    }catch(e){toast.error(err(e,"Failed to delete"));}
+    }catch(e){
+      if (success > 0) toast.success(`Deleted ${success} of ${ids.length} books`);
+      toast.error(err(e,"Failed to delete some books"));
+    }
     finally{setBulkDeleting(false);}
   };
 
