@@ -64,6 +64,7 @@ export function useNotifications(
     gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
+    refetchInterval: 30 * 1000,
     enabled: queryOptions?.enabled ?? true,
   });
 }
@@ -91,6 +92,7 @@ export function useAllNotifications(
     staleTime: 30 * 1000,
     gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: true,
+    refetchInterval: 30 * 1000,
     enabled: queryOptions?.enabled ?? true,
   });
 }

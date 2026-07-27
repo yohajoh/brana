@@ -51,10 +51,21 @@ const normGoal = (v: unknown): GoalProgress => {
   return { target, actual, progress: clamp(progress) };
 };
 
-const normPoints = (v: unknown): WeeklyPoint[] =>
-  Array.isArray(v)
-    ? v.map(i => { const p = obj(i); return { week_start: String(p.week_start ?? p.weekStart ?? ""), count: toN(p.count ?? p.value ?? p.total) }; })
-    : [];
+const normPoints = (v: unknown): WeeklyPoint[] => {
+  if (!Array.isArray(v)) return [];
+  return v
+    .map((i) => {
+      const p = obj(i);
+      const week_start = String(
+        p.week_start ?? p.weekStart ?? p.week ?? p.date ?? p.period ?? ""
+      );
+      const count = toN(
+        p.count ?? p.value ?? p.total ?? p.rentals ?? p.rental_count ?? 0
+      );
+      return { week_start, count };
+    })
+    .filter((p) => p.week_start !== "");
+};
 
 const normOverview = (v: unknown): Overview => {
   const r = obj(v);
@@ -74,7 +85,7 @@ const normOverview = (v: unknown): Overview => {
       onTimeReturns: normGoal(pr.onTimeReturns ?? pr.on_time_returns),
       newBooks:      normGoal(pr.newBooks ?? pr.new_books),
     }},
-    trends: { rentalsPerWeek: normPoints(tr.rentalsPerWeek ?? tr.rentals_per_week) },
+    trends: { rentalsPerWeek: normPoints(tr.rentalsPerWeek ?? tr.rentals_per_week ?? tr.weekly ?? tr.weekly_rentals ?? r.rentalsPerWeek ?? r.rentals_per_week) },
   };
 };
 
@@ -141,17 +152,10 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
 function RentalsChart({ points, loading }: { points: WeeklyPoint[]; loading: boolean }) {
   const { t } = useLanguage();
 
-  const data = useMemo(() => {
-    if (points.length === 0) {
-      // show 8 empty weeks so the chart area is visible
-      return Array.from({ length: 8 }, (_, i) => ({
-        week_start: new Date(Date.now() - (7 - i) * 7 * 24 * 3600 * 1000).toISOString(),
-        count: 0,
-      }));
-    }
-    return points;
-  }, [points]);
+  // Only use real data — never fabricate zeros
+  const hasData = points.length > 0 && points.some((p) => p.count > 0);
 
+  const data = points;
   const maxVal = Math.max(...data.map((d) => d.count), 1);
 
   return (
@@ -176,20 +180,21 @@ function RentalsChart({ points, loading }: { points: WeeklyPoint[]; loading: boo
       <div className="bg-white rounded-2xl border border-[#e8e4dc] p-5 pt-4">
         {loading ? (
           <div className="h-[220px] bg-[#f5f4f0] rounded-xl animate-pulse" />
+        ) : !hasData ? (
+          <div className="h-[220px] flex flex-col items-center justify-center gap-2">
+            <TrendingUp size={28} className="text-[#e8e4dc]" />
+            <p className="text-[13px] font-semibold text-[#0d0d0d]/25">No rental data yet</p>
+            <p className="text-[11px] text-[#0d0d0d]/20">Chart will appear once rentals are recorded</p>
+          </div>
         ) : (
           <>
             <ResponsiveContainer width="100%" height={220}>
               <AreaChart data={data} margin={{ top: 8, right: 4, left: -24, bottom: 0 }}>
                 <defs>
                   <linearGradient id="rentalGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#f5c518" stopOpacity={0.28} />
-                    <stop offset="60%" stopColor="#f5c518" stopOpacity={0.08} />
+                    <stop offset="0%" stopColor="#f5c518" stopOpacity={0.32} />
+                    <stop offset="55%" stopColor="#f5c518" stopOpacity={0.10} />
                     <stop offset="100%" stopColor="#f5c518" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor="#e8a800" />
-                    <stop offset="50%" stopColor="#f5c518" />
-                    <stop offset="100%" stopColor="#e8a800" />
                   </linearGradient>
                 </defs>
                 <CartesianGrid
@@ -204,9 +209,7 @@ function RentalsChart({ points, loading }: { points: WeeklyPoint[]; loading: boo
                   axisLine={false}
                   tick={{ fontSize: 10, fill: "rgba(13,13,13,0.3)", fontWeight: 700 }}
                   tickFormatter={(v) =>
-                    v
-                      ? new Date(v).toLocaleDateString("en-US", { month: "short", day: "numeric" })
-                      : ""
+                    v ? new Date(v).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : ""
                   }
                   interval="preserveStartEnd"
                 />
@@ -215,22 +218,17 @@ function RentalsChart({ points, loading }: { points: WeeklyPoint[]; loading: boo
                   axisLine={false}
                   tick={{ fontSize: 10, fill: "rgba(13,13,13,0.3)", fontWeight: 700 }}
                   allowDecimals={false}
-                  domain={[0, Math.ceil(maxVal * 1.2)]}
+                  domain={[0, Math.ceil(maxVal * 1.25)]}
                 />
-                <Tooltip content={<CustomTooltip />} cursor={{ stroke: "rgba(245,197,24,0.3)", strokeWidth: 1 }} />
+                <Tooltip content={<CustomTooltip />} cursor={{ stroke: "rgba(245,197,24,0.25)", strokeWidth: 1 }} />
                 <Area
-                  type="linear"
+                  type="monotone"
                   dataKey="count"
-                  stroke="url(#lineGrad)"
+                  stroke="#f5c518"
                   strokeWidth={2.5}
                   fill="url(#rentalGrad)"
                   dot={{ r: 3.5, fill: "#f5c518", stroke: "white", strokeWidth: 2 }}
-                  activeDot={{
-                    r: 6,
-                    fill: "#f5c518",
-                    stroke: "white",
-                    strokeWidth: 2.5,
-                  }}
+                  activeDot={{ r: 6, fill: "#f5c518", stroke: "white", strokeWidth: 2.5 }}
                   animationDuration={1200}
                   animationEasing="ease-out"
                 />
