@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { Trash2 } from "lucide-react";
 import { fetchApi } from "@/lib/api";
-import { useNotifications, useMarkAsRead, useDeleteNotification, type Notification } from "@/lib/hooks/useNotifications";
+import { useAllNotifications, useMarkAsRead, useDeleteNotification, type Notification } from "@/lib/hooks/useNotifications";
 import { NotificationOverlay } from "@/components/notifications/NotificationOverlay";
 import { toast } from "sonner";
 import { useLanguage } from "@/components/providers/LanguageProvider";
@@ -28,7 +28,7 @@ function AlertsContent() {
   const notifId=params.get("notification"); const activeTab=(params.get("tab") as TabType)||"alerts";
   const {data:alertsData,isLoading:loadAlerts}=useInventoryAlerts();
   const resolve=useResolveAlert(); const scan=useScanAlerts();
-  const {data:notifData,isLoading:loadNotifs,refetch}=useNotifications({limit:100},{enabled:activeTab==="notifications"});
+  const {data:notifData,isLoading:loadNotifs,refetch}=useAllNotifications({limit:100});
   const markRead=useMarkAsRead();
   const deleteOne=useDeleteNotification();
   const [bulkSelected,setBulkSelected]=useState<Set<string>>(new Set());
@@ -45,8 +45,8 @@ function AlertsContent() {
   const clickNotif=(n:Notification)=>{const p=new URLSearchParams(params.toString());p.set("notification",n.id);p.set("tab","notifications");router.push(`?${p.toString()}`,{scroll:false});if(!n.is_read)markRead.mutate(n.id);};
   const handleScan=async()=>{try{await scan.mutateAsync();toast.success(String(t("admin_alerts.messages.scan_success")));}catch{toast.error(String(t("admin_alerts.messages.scan_failed")));}};
   const handleResolve=async(id:string)=>{try{await resolve.mutateAsync(id);toast.success(String(t("admin_alerts.messages.resolve_success")));}catch{toast.error(String(t("admin_alerts.messages.resolve_failed")));}};
-  const handleDeleteOne=async(id:string)=>{setDeletingId(id);try{await deleteOne.mutateAsync(id);setBulkSelected(p=>{const n=new Set(p);n.delete(id);return n;});toast.success("Notification deleted");}catch{toast.error("Failed to delete");}finally{setDeletingId(null);}};
-  const handleBulkDelete=async()=>{if(!bulkSelected.size)return;setBulkDeleting(true);const ids=Array.from(bulkSelected);let ok=0;try{for(const id of ids){await deleteOne.mutateAsync(id);ok++;}toast.success(`Deleted ${ok} notification${ok>1?"s":""}`);setBulkSelected(new Set());}catch{if(ok>0)toast.success(`Deleted ${ok} of ${ids.length}`);toast.error("Failed to delete some");}finally{setBulkDeleting(false);}};
+  const handleDeleteOne=async(id:string)=>{setDeletingId(id);try{await deleteOne.mutateAsync(id);setBulkSelected(p=>{const n=new Set(p);n.delete(id);return n;});toast.success("Notification deleted");await refetch();}catch{toast.error("Failed to delete");}finally{setDeletingId(null);}};
+  const handleBulkDelete=async()=>{if(!bulkSelected.size)return;setBulkDeleting(true);const ids=Array.from(bulkSelected);let ok=0;try{for(const id of ids){await deleteOne.mutateAsync(id);ok++;}toast.success(`Deleted ${ok} notification${ok>1?"s":""}`);setBulkSelected(new Set());await refetch();}catch{if(ok>0){toast.success(`Deleted ${ok} of ${ids.length}`);await refetch();}toast.error("Failed to delete some");}finally{setBulkDeleting(false);}};
   return (
     <motion.div variants={stagger} initial="hidden" animate="show" className="p-2 sm:p-4 lg:p-6 space-y-5">
       <motion.div variants={fadeUp} className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">

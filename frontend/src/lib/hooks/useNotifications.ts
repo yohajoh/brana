@@ -60,10 +60,11 @@ export function useNotifications(
         meta: res.meta || { page: 1, limit: 20, total: 0, totalPages: 0 },
       };
     },
-    staleTime: 30 * 1000,
+    staleTime: 15 * 1000,
     gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
+    refetchOnMount: true,
     refetchInterval: 30 * 1000,
     enabled: queryOptions?.enabled ?? true,
   });
@@ -89,9 +90,10 @@ export function useAllNotifications(
         meta: res.meta || { page: 1, limit: 20, total: 0, totalPages: 0 },
       };
     },
-    staleTime: 30 * 1000,
+    staleTime: 15 * 1000,
     gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: true,
+    refetchOnMount: true,
     refetchInterval: 30 * 1000,
     enabled: queryOptions?.enabled ?? true,
   });

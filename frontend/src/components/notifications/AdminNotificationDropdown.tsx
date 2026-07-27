@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Bell, ChevronRight, AlertCircle, BookOpen, Clock, Info, CheckCheck } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useAllNotifications, useMarkAsRead, type Notification } from "@/lib/hooks/useNotifications";
+import { useAllNotifications, useNotifications, useMarkAsRead, type Notification } from "@/lib/hooks/useNotifications";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 
 /* ── type config ─────────────────────────────────────────── */
@@ -44,14 +44,12 @@ export function AdminNotificationDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const [panelPos, setPanelPos] = useState({ top: 0, right: 0 });
 
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  /* Refetch every 30 s so unread count stays live */
-  const { data, isLoading, refetch } = useAllNotifications(
-    { limit: 15 },
-    // refetchInterval only works via useQuery options — pass through staleTime instead
-  );
+  /* useNotifications fetches /notifications/mine — the admin's own unread count for the badge */
+  const { data, isLoading, refetch } = useNotifications({ limit: 15 });
 
   const notifications = data?.notifications || [];
   const unreadCount = data?.unreadCount || 0;
@@ -93,7 +91,7 @@ export function AdminNotificationDropdown() {
     const handler = (e: MouseEvent) => {
       if (
         panelRef.current && !panelRef.current.contains(e.target as Node) &&
-        btnRef.current && !btnRef.current.contains(e.target as Node)
+        wrapperRef.current && !wrapperRef.current.contains(e.target as Node)
       ) {
         setIsOpen(false);
       }
@@ -135,41 +133,46 @@ export function AdminNotificationDropdown() {
 
   return (
     <>
-      {/* ── Bell button ────────────────────────────────── */}
-      <button
-        ref={btnRef}
-        type="button"
-        onClick={toggle}
-        aria-label="Notifications"
-        aria-expanded={isOpen}
-        className="relative flex items-center justify-center w-9 h-9 rounded-xl border border-[#e2e0e7] bg-white text-[#374151] hover:border-[#142b6f] hover:text-[#142b6f] transition-all duration-150"
-        style={{ isolation: "isolate" }}
-      >
-        <Bell size={16} strokeWidth={1.75} />
+      {/* ── Bell button wrapper — relative so badge can overflow ── */}
+      <div ref={wrapperRef} className="relative inline-flex">
+        <button
+          ref={btnRef}
+          type="button"
+          onClick={toggle}
+          aria-label="Notifications"
+          aria-expanded={isOpen}
+          className="relative flex items-center justify-center w-9 h-9 rounded-xl border border-[#e2e0e7] bg-white text-[#374151] hover:border-[#142b6f] hover:text-[#142b6f] transition-all duration-150"
+        >
+          <Bell size={16} strokeWidth={1.75} />
+        </button>
 
-        {/* Red badge — absolutely positioned, outside button clipping */}
-        {unreadCount > 0 && (
-          <motion.span
-            key={`badge-${unreadCount}`}
-            initial={{ scale: 0.5, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ type: "spring", stiffness: 520, damping: 22 }}
-            className="pointer-events-none absolute flex items-center justify-center rounded-full bg-red-500 text-white font-black leading-none"
-            style={{
-              top: "-7px",
-              right: "-7px",
-              minWidth: "18px",
-              height: "18px",
-              padding: "0 4px",
-              fontSize: "9px",
-              border: "2px solid white",
-              zIndex: 1,
-            }}
-          >
-            {unreadCount > 99 ? "99+" : unreadCount}
-          </motion.span>
-        )}
-      </button>
+        {/* Red badge — on the wrapper div, NOT inside button, so it never clips */}
+        <AnimatePresence>
+          {unreadCount > 0 && (
+            <motion.span
+              key={`badge-${unreadCount}`}
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 520, damping: 22 }}
+              className="pointer-events-none absolute flex items-center justify-center rounded-full bg-red-500 text-white font-black leading-none select-none"
+              style={{
+                top: "-6px",
+                right: "-6px",
+                minWidth: "18px",
+                height: "18px",
+                padding: "0 4px",
+                fontSize: "9px",
+                border: "2.5px solid white",
+                zIndex: 10,
+                boxShadow: "0 2px 6px rgba(239,68,68,0.5)",
+              }}
+            >
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </motion.span>
+          )}
+        </AnimatePresence>
+      </div>
 
       {/* ── Dropdown panel — rendered via portal so it's never clipped ── */}
       {typeof document !== "undefined" && createPortal(

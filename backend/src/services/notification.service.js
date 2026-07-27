@@ -234,12 +234,6 @@ export const getMyNotifications = async (userId, query) => {
 
 /**
  * Admin view of all system notifications with user context.
- *
- * Supports:
- *   ?user_id=uuid     – filter by user
- *   ?type=INFO|ALERT|SYSTEM
- *   ?is_read=true|false
- *   ?page=1&limit=20
  */
 export const getAllNotifications = async (query) => {
   const page = Math.max(1, parseInt(query.page, 10) || 1);
@@ -256,7 +250,7 @@ export const getAllNotifications = async (query) => {
     where.type = /** @type {any} */ (query.type.toUpperCase());
   }
 
-  const [notifications, total, statsResult] = await Promise.all([
+  const [notifications, total, unreadCount, statsResult] = await Promise.all([
     prisma.notification.findMany({
       where,
       orderBy: { created_at: 'desc' },
@@ -268,6 +262,8 @@ export const getAllNotifications = async (query) => {
       },
     }),
     prisma.notification.count({ where }),
+    // Total unread across all users (for admin badge / tab count)
+    prisma.notification.count({ where: { ...where, is_read: false } }),
     // Admin summary stats
     prisma.notification.groupBy({
       by: ['type'],
@@ -282,6 +278,7 @@ export const getAllNotifications = async (query) => {
 
   return {
     notifications,
+    unreadCount,
     typeStats,
     meta: paginationMeta(total, page, limit),
   };
