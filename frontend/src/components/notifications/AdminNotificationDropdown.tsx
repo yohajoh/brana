@@ -65,13 +65,16 @@ export function AdminNotificationDropdown() {
   const reposition = useCallback(() => {
     if (!btnRef.current) return;
     const rect = btnRef.current.getBoundingClientRect();
-    const panelWidth = Math.min(390, window.innerWidth - 16);
-    // right-align to button, but clamp so it never goes off left edge
-    const rightFromViewport = window.innerWidth - rect.right;
-    const clampedRight = Math.max(8, Math.min(rightFromViewport, window.innerWidth - panelWidth - 8));
+    const PANEL_W = Math.min(390, window.innerWidth - 16);
+    // Right-align under button, but never go off left edge
+    let rightEdge = window.innerWidth - rect.right;
+    // If panel would overflow left side, push it right
+    if (rect.right - PANEL_W < 8) {
+      rightEdge = window.innerWidth - PANEL_W - 8;
+    }
     setPanelPos({
-      top: rect.bottom + window.scrollY + 6,
-      right: clampedRight,
+      top: rect.bottom + 6,   // fixed — relative to viewport, not document
+      right: Math.max(8, rightEdge),
     });
   }, []);
 
@@ -128,9 +131,7 @@ export function AdminNotificationDropdown() {
   };
 
   /* ── panel width: never exceed viewport - 16px ── */
-  const panelWidth = typeof window !== "undefined"
-    ? Math.min(390, window.innerWidth - 16)
-    : 390;
+  // calculated inline in the style prop below
 
   return (
     <>
@@ -142,25 +143,32 @@ export function AdminNotificationDropdown() {
         aria-label="Notifications"
         aria-expanded={isOpen}
         className="relative flex items-center justify-center w-9 h-9 rounded-xl border border-[#e2e0e7] bg-white text-[#374151] hover:border-[#142b6f] hover:text-[#142b6f] transition-all duration-150"
+        style={{ isolation: "isolate" }}
       >
         <Bell size={16} strokeWidth={1.75} />
 
-        {/* Red badge — always rendered if count > 0 */}
-        <AnimatePresence>
-          {unreadCount > 0 && (
-            <motion.span
-              key="notif-badge"
-              initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 520, damping: 26 }}
-              className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-[3px] flex items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-black leading-none shadow-sm"
-              style={{ border: "2px solid white" }}
-            >
-              {unreadCount > 99 ? "99+" : unreadCount}
-            </motion.span>
-          )}
-        </AnimatePresence>
+        {/* Red badge — absolutely positioned, outside button clipping */}
+        {unreadCount > 0 && (
+          <motion.span
+            key={`badge-${unreadCount}`}
+            initial={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 520, damping: 22 }}
+            className="pointer-events-none absolute flex items-center justify-center rounded-full bg-red-500 text-white font-black leading-none"
+            style={{
+              top: "-7px",
+              right: "-7px",
+              minWidth: "18px",
+              height: "18px",
+              padding: "0 4px",
+              fontSize: "9px",
+              border: "2px solid white",
+              zIndex: 1,
+            }}
+          >
+            {unreadCount > 99 ? "99+" : unreadCount}
+          </motion.span>
+        )}
       </button>
 
       {/* ── Dropdown panel — rendered via portal so it's never clipped ── */}
@@ -178,7 +186,7 @@ export function AdminNotificationDropdown() {
                 position: "fixed",
                 top: panelPos.top,
                 right: panelPos.right,
-                width: panelWidth,
+                width: Math.min(390, window.innerWidth - 16),
                 maxHeight: "min(520px, calc(100dvh - 80px))",
                 zIndex: 2147483647,
               }}

@@ -13,6 +13,7 @@
   "common": {
     "dashboard_redirect": "ወደ ዳሽቦርድዎ እየዞረ ነው...",
     "error_occurred": "ችግር ተከስቷል። እባክዎ እንደገና ይሞክሩ።",
+    "refresh": "አድስ",
     "pagination": {
       "previous": "ቀዳሚ",
       "next": "ቀጣይ",
@@ -588,6 +589,7 @@
     }
   },
   "shared": {
+    "loading": "በመጫን ላይ...",
     "search_placeholder": "መጽሐፍትን፣ ደራሲያንን ወይም ምድቦችን ይፈልጉ...",
     "amount_owed": {
       "title": "ያለብዎት እዳ",

@@ -13,6 +13,7 @@
   "common": {
     "dashboard_redirect": "Redirecting to your dashboard...",
     "error_occurred": "Something went wrong. Please try again.",
+    "refresh": "Refresh",
     "pagination": {
       "previous": "Previous",
       "next": "Next",
@@ -589,6 +590,7 @@
     }
   },
   "shared": {
+    "loading": "Loading...",
     "search_placeholder": "Search for books, authors, or categories...",
     "amount_owed": {
       "title": "Amount Owed",

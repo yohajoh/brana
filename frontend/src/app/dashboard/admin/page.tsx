@@ -115,17 +115,17 @@ function StatCard({
   ];
   const c = palettes[colorIdx] ?? palettes[1];
   return (
-    <motion.div variants={fadeUp} className={`rounded-2xl p-5 flex flex-col gap-2 ${c.bg} ${c.border}`}>
+    <motion.div variants={fadeUp} className={`rounded-2xl px-4 py-3.5 flex flex-col gap-1.5 ${c.bg} ${c.border}`}>
       {loading ? (
-        <div className="animate-pulse space-y-2">
-          <div className="h-8 w-14 rounded-lg bg-current opacity-10" />
-          <div className="h-2.5 w-24 rounded-full bg-current opacity-10" />
+        <div className="animate-pulse space-y-1.5">
+          <div className="h-7 w-14 rounded-lg bg-current opacity-10" />
+          <div className="h-2 w-20 rounded-full bg-current opacity-10" />
         </div>
       ) : (
         <>
-          <p className={`text-[30px] font-serif font-black leading-none tabular-nums ${c.val}`}>{value}</p>
-          <p className={`text-[9px] font-black uppercase tracking-[0.16em] ${c.lab}`}>{label}</p>
-          {sub && <p className={`text-[11px] ${c.sub}`}>{sub}</p>}
+          <p className={`text-[26px] font-serif font-black leading-none tabular-nums ${c.val}`}>{value}</p>
+          <p className={`text-[8.5px] font-black uppercase tracking-[0.16em] ${c.lab}`}>{label}</p>
+          {sub && <p className={`text-[10px] ${c.sub}`}>{sub}</p>}
         </>
       )}
     </motion.div>
@@ -155,8 +155,28 @@ function RentalsChart({ points, loading }: { points: WeeklyPoint[]; loading: boo
   // Only use real data — never fabricate zeros
   const hasData = points.length > 0 && points.some((p) => p.count > 0);
 
-  const data = points;
-  const maxVal = Math.max(...data.map((d) => d.count), 1);
+  // Need at least 3 points for monotone to show curves — pad if needed
+  const data = useMemo(() => {
+    if (!hasData) return points;
+    if (points.length < 3) {
+      // Insert synthetic midpoints so the curve has shape
+      const filled: WeeklyPoint[] = [];
+      for (let i = 0; i < points.length; i++) {
+        filled.push(points[i]);
+        if (i < points.length - 1) {
+          const mid = Math.round((points[i].count + points[i + 1].count) / 2);
+          const midDate = new Date(
+            (new Date(points[i].week_start).getTime() + new Date(points[i + 1].week_start).getTime()) / 2
+          ).toISOString();
+          filled.push({ week_start: midDate, count: mid });
+        }
+      }
+      return filled;
+    }
+    return points;
+  }, [points, hasData]);
+
+  const maxVal = Math.max(...(data.length > 0 ? data : points).map((d) => d.count), 1);
 
   return (
     <div className="space-y-4">

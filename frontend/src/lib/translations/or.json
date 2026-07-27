@@ -13,6 +13,7 @@
   "common": {
     "dashboard_redirect": "Gara daashboordii keessaniitti qajeelaa jira...",
     "error_occurred": "Rakkoon uumameera. Maaloo irra deebi'ii yaali.",
+    "refresh": "Haaromsi",
     "pagination": {
       "previous": "Kan Duraa",
       "next": "Kan Itti Aanu",
@@ -588,6 +589,7 @@
     }
   },
   "shared": {
+    "loading": "Fe'aa...",
     "search_placeholder": "Kitaabota, barreessitoota ykn ramaddiiwwan barbaadi...",
     "amount_owed": {
       "title": "Hangam Siraa Jira",
