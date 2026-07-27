@@ -1,10 +1,11 @@
 "use client";
-import { Suspense, useMemo } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
+import { Trash2 } from "lucide-react";
 import { fetchApi } from "@/lib/api";
-import { useNotifications, useMarkAsRead, type Notification } from "@/lib/hooks/useNotifications";
+import { useNotifications, useMarkAsRead, useDeleteNotification, type Notification } from "@/lib/hooks/useNotifications";
 import { NotificationOverlay } from "@/components/notifications/NotificationOverlay";
 import { toast } from "sonner";
 import { useLanguage } from "@/components/providers/LanguageProvider";
@@ -27,8 +28,16 @@ function AlertsContent() {
   const notifId=params.get("notification"); const activeTab=(params.get("tab") as TabType)||"alerts";
   const {data:alertsData,isLoading:loadAlerts}=useInventoryAlerts();
   const resolve=useResolveAlert(); const scan=useScanAlerts();
-  const {data:notifData,isLoading:loadNotifs,refetch}=useNotifications({limit:50},{enabled:activeTab==="notifications"});
+  const {data:notifData,isLoading:loadNotifs,refetch}=useNotifications({limit:100},{enabled:activeTab==="notifications"});
   const markRead=useMarkAsRead();
+  const deleteOne=useDeleteNotification();
+  const [bulkSelected,setBulkSelected]=useState<Set<string>>(new Set());
+  const [bulkDeleting,setBulkDeleting]=useState(false);
+  const [deletingId,setDeletingId]=useState<string|null>(null);
+  const notifList=notifData?.notifications||[];
+  const allSelected=notifList.length>0&&notifList.every(n=>bulkSelected.has(n.id));
+  const toggleSelect=(id:string)=>setBulkSelected(p=>{const n=new Set(p);n.has(id)?n.delete(id):n.add(id);return n;});
+  const toggleAll=()=>setBulkSelected(allSelected?new Set():new Set(notifList.map(n=>n.id)));
   const active=useMemo(()=>{if(!notifId||!notifData?.notifications)return null;return notifData.notifications.find(n=>n.id===notifId)||null;},[notifId,notifData]);
   const alerts:Alert[]=alertsData?.alerts||alertsData?.data?.alerts||[];
   const setTab=(tab:TabType)=>{const p=new URLSearchParams(params.toString());p.set("tab",tab);router.push(`?${p.toString()}`,{scroll:false});};
@@ -36,7 +45,8 @@ function AlertsContent() {
   const clickNotif=(n:Notification)=>{const p=new URLSearchParams(params.toString());p.set("notification",n.id);p.set("tab","notifications");router.push(`?${p.toString()}`,{scroll:false});if(!n.is_read)markRead.mutate(n.id);};
   const handleScan=async()=>{try{await scan.mutateAsync();toast.success(String(t("admin_alerts.messages.scan_success")));}catch{toast.error(String(t("admin_alerts.messages.scan_failed")));}};
   const handleResolve=async(id:string)=>{try{await resolve.mutateAsync(id);toast.success(String(t("admin_alerts.messages.resolve_success")));}catch{toast.error(String(t("admin_alerts.messages.resolve_failed")));}};
-
+  const handleDeleteOne=async(id:string)=>{setDeletingId(id);try{await deleteOne.mutateAsync(id);setBulkSelected(p=>{const n=new Set(p);n.delete(id);return n;});toast.success("Notification deleted");}catch{toast.error("Failed to delete");}finally{setDeletingId(null);}};
+  const handleBulkDelete=async()=>{if(!bulkSelected.size)return;setBulkDeleting(true);const ids=Array.from(bulkSelected);let ok=0;try{for(const id of ids){await deleteOne.mutateAsync(id);ok++;}toast.success(`Deleted ${ok} notification${ok>1?"s":""}`);setBulkSelected(new Set());}catch{if(ok>0)toast.success(`Deleted ${ok} of ${ids.length}`);toast.error("Failed to delete some");}finally{setBulkDeleting(false);}};
   return (
     <motion.div variants={stagger} initial="hidden" animate="show" className="p-2 sm:p-4 lg:p-6 space-y-5">
       <motion.div variants={fadeUp} className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -78,19 +88,48 @@ function AlertsContent() {
           ))}
         </motion.div>
       ):(
-        <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-2">
-          {loadNotifs?([1,2,3,4].map(i=><div key={i} className="h-18 bg-white rounded-2xl border border-[#e8e4dc] animate-pulse"/>)):
-          notifData?.notifications?.length===0?(<div className="bg-white rounded-2xl border border-dashed border-[#e8e4dc] p-10 text-center"><p className="text-sm text-[#0d0d0d]/35">No notifications.</p></div>):
-          notifData?.notifications?.map(n=>{const cfg=typeStyle(n.type);return(
-            <motion.button key={n.id} variants={fadeUp} onClick={()=>clickNotif(n)}
-              className={`w-full text-left bg-white rounded-2xl border p-4 flex items-start gap-3 transition-all hover:shadow-sm ${!n.is_read?"border-[#f5c518]/50 shadow-[0_0_0_2px_rgba(245,197,24,0.1)]":"border-[#e8e4dc] hover:border-[#d8d4cc]"}`}>
-              <span className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${!n.is_read?cfg.dot:"bg-[#e8e4dc]"}`}/>
-              <div className="flex-1 min-w-0 space-y-1">
-                <div className="flex items-center gap-2 flex-wrap"><span className={`inline-flex px-2 py-0.5 rounded-md text-[9px] font-black uppercase border ${cfg.badge}`}>{n.type}</span>{!n.is_read&&<span className="text-[9px] font-black text-[#f5c518] uppercase">New</span>}</div>
-                <p className="text-[13px] font-medium text-[#0d0d0d] line-clamp-2">{n.message}</p>
-                <p className="text-[11px] text-[#0d0d0d]/30">{new Date(n.created_at).toLocaleString("en-US",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}</p>
+        <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-3">
+          {/* Bulk bar */}
+          {notifList.length>0&&(
+            bulkSelected.size>0?(
+              <div className="flex items-center justify-between gap-3 px-4 py-3 bg-red-50 border border-red-100 rounded-xl">
+                <span className="text-[12px] font-bold text-red-700">{bulkSelected.size} selected</span>
+                <div className="flex gap-2">
+                  <button onClick={()=>setBulkSelected(new Set())} className="px-3 py-1.5 rounded-lg text-[11px] font-bold border border-red-200 text-red-500 hover:bg-red-100 transition-colors">Clear</button>
+                  <button onClick={handleBulkDelete} disabled={bulkDeleting} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 transition-colors"><Trash2 size={12}/>{bulkDeleting?"Deleting…":`Delete ${bulkSelected.size}`}</button>
+                </div>
               </div>
-            </motion.button>
+            ):(
+              <button onClick={toggleAll} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#e8e4dc] text-[11px] font-bold text-[#0d0d0d]/45 hover:text-[#0d0d0d] hover:border-[#0d0d0d]/30 transition-colors">
+                <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${allSelected?"border-[#142b6f] bg-[#142b6f]":"border-[#e8e4dc]"}`}>
+                  {allSelected&&<svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                </div>
+                Select all
+              </button>
+            )
+          )}
+          {loadNotifs?([1,2,3,4].map(i=><div key={i} className="h-18 bg-white rounded-2xl border border-[#e8e4dc] animate-pulse"/>)):
+          notifList.length===0?(<div className="bg-white rounded-2xl border border-dashed border-[#e8e4dc] p-10 text-center"><p className="text-sm text-[#0d0d0d]/35">No notifications.</p></div>):
+          notifList.map(n=>{const cfg=typeStyle(n.type);return(
+            <motion.div key={n.id} variants={fadeUp} layout
+              className={`w-full bg-white rounded-2xl border p-4 flex items-start gap-3 transition-all group ${bulkSelected.has(n.id)?"border-[#142b6f] bg-[#f0f3ff]":!n.is_read?"border-[#f5c518]/50 shadow-[0_0_0_2px_rgba(245,197,24,0.1)]":"border-[#e8e4dc] hover:border-[#d8d4cc]"}`}>
+              {/* Checkbox */}
+              <button type="button" onClick={()=>toggleSelect(n.id)}
+                className={`shrink-0 mt-0.5 w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${bulkSelected.has(n.id)?"border-[#142b6f] bg-[#142b6f]":"border-[#e8e4dc] group-hover:border-[#142b6f]/40"}`}>
+                {bulkSelected.has(n.id)&&<svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+              </button>
+              <span className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${!n.is_read?cfg.dot:"bg-[#e8e4dc]"}`}/>
+              <button type="button" onClick={()=>clickNotif(n)} className="flex-1 min-w-0 text-left space-y-1">
+                <div className="flex items-center gap-2 flex-wrap"><span className={`inline-flex px-2 py-0.5 rounded-md text-[9px] font-black uppercase border ${cfg.badge}`}>{n.type}</span>{!n.is_read&&<span className="text-[9px] font-black text-[#f5c518] uppercase">New</span>}</div>
+                <p className={`text-[13px] line-clamp-2 ${!n.is_read?"font-semibold text-[#0d0d0d]":"font-medium text-[#0d0d0d]/70"}`}>{n.message}</p>
+                <p className="text-[11px] text-[#0d0d0d]/30">{new Date(n.created_at).toLocaleString("en-US",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}</p>
+              </button>
+              {/* Delete */}
+              <button type="button" onClick={()=>handleDeleteOne(n.id)} disabled={deletingId===n.id}
+                title="Delete" className="shrink-0 w-8 h-8 rounded-xl flex items-center justify-center text-[#0d0d0d]/25 hover:text-red-500 hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100 disabled:opacity-30">
+                {deletingId===n.id?<span className="w-3.5 h-3.5 border-2 border-red-400 border-t-transparent rounded-full animate-spin"/>:<Trash2 size={14}/>}
+              </button>
+            </motion.div>
           );})}
         </motion.div>
       )}
