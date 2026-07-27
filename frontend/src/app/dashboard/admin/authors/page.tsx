@@ -25,7 +25,7 @@ export default function AdminAuthorsPage() {
   const [bulkSelected,setBulkSelected]=useState<Set<string>>(new Set());
   const [bulkDeleting,setBulkDeleting]=useState(false);
   const imgRef=useRef<HTMLInputElement>(null);
-  const {data,isLoading}=useAuthors(); const create=useCreateAuthor(); const upd=useUpdateAuthor(); const del=useDeleteAuthor();
+  const {data,isLoading,refetch}=useAuthors(); const create=useCreateAuthor(); const upd=useUpdateAuthor(); const del=useDeleteAuthor();
   const authors:Author[]=data?.authors||[];
   const err=(e:unknown,fb:string)=>e instanceof Error&&e.message?e.message:fb;
   useEffect(()=>{const h=()=>setMenu(null);window.addEventListener("click",h);return()=>window.removeEventListener("click",h);},[]);
@@ -63,6 +63,7 @@ export default function AdminAuthorsPage() {
       }
       toast.success(`Deleted ${success} author${success>1?"s":""}`);
       setBulkSelected(new Set());
+      await refetch();
     }catch(e2){
       if (success > 0) toast.success(`Deleted ${success} of ${ids.length} authors`);
       toast.error(err(e2,"Failed to delete some authors"));

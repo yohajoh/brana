@@ -404,9 +404,9 @@ export default function AdminBooksPage() {
   const [catName, setCatName]         = useState("");
   const [delCat, setDelCat]           = useState<{id:string;name:string}|null>(null);
 
-  const { data: booksData,    isLoading: bl } = useBooks("limit=200");
-  const { data: digitalData,  isLoading: dl } = useDigitalBooks("limit=200");
-  const { data: catsData,     isLoading: cl } = useCategories("limit=200");
+  const { data: booksData,    isLoading: bl, refetch: refetchBooks }   = useBooks("limit=200");
+  const { data: digitalData,  isLoading: dl, refetch: refetchDigital } = useDigitalBooks("limit=200");
+  const { data: catsData,     isLoading: cl, refetch: refetchCats }    = useCategories("limit=200");
   const { data: authorsData }                 = useAuthors("limit=200");
 
   const createBook = useCreateBook(); const updateBook = useUpdateBook(); const deleteBook = useDeleteBook();
@@ -464,6 +464,8 @@ export default function AdminBooksPage() {
       }
       toast.success(`Deleted ${success} book${success>1?"s":""}`);
       setBulkSelected(new Set());
+      await refetchBooks();
+      await refetchDigital();
     }catch(e){
       if (success > 0) toast.success(`Deleted ${success} of ${ids.length} books`);
       toast.error(err(e,"Failed to delete some books"));

@@ -27,7 +27,7 @@ export default function AdminCategoriesPage() {
   const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
 
-  const { data, isLoading } = useCategories();
+  const { data, isLoading, refetch } = useCategories();
   const create = useCreateCategory(); const update = useUpdateCategory(); const del = useDeleteCategory();
   const cats: Category[] = data?.categories||[];
   const err = (e:unknown,fb:string) => e instanceof Error&&e.message?e.message:fb;
@@ -71,6 +71,7 @@ export default function AdminCategoriesPage() {
       }
       toast.success(`Deleted ${success} categor${success>1?"ies":"y"}`);
       setBulkSelected(new Set());
+      await refetch();
     } catch(e2) {
       if (success > 0) toast.success(`Deleted ${success} of ${ids.length} categories`);
       toast.error(err(e2,"Failed to delete some categories"));

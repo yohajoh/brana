@@ -30,7 +30,7 @@ const statusStyle = (s: string) => {
 
 export default function StudentReservationsPage() {
   const { t }              = useLanguage();
-  const { data, isLoading } = useMyReservations();
+  const { data, isLoading, refetch: refetchReservations } = useMyReservations();
   const cancel             = useCancelReservation();
   const rows: Reservation[] = (data?.reservations || []) as unknown as Reservation[];
   const active   = rows.filter(r => ["QUEUED","NOTIFIED"].includes(r.status)).length;
@@ -52,6 +52,7 @@ export default function StudentReservationsPage() {
       for (const id of ids) { await cancel.mutateAsync(id); success++; }
       toast.success(`Cancelled ${success} reservation${success > 1 ? "s" : ""}`);
       setBulkSelected(new Set());
+      await refetchReservations();
     } catch {
       if (success > 0) toast.success(`Cancelled ${success} of ${ids.length}`);
       toast.error(String(t("student_reservations.error_cancel")));

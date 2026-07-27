@@ -32,7 +32,7 @@ export default function WishlistPage() {
   const params = new URLSearchParams({ page: String(page), limit: String(limit) });
   if (filter !== "all") params.append("book_type", filter.toUpperCase());
 
-  const { data, isLoading, error } = useWishlist(params.toString());
+  const { data, isLoading, error, refetch: refetchWishlist } = useWishlist(params.toString());
   const remove = useRemoveFromWishlist();
 
   const wishlist: WishlistItem[] = (data?.wishlist || []) as unknown as WishlistItem[];
@@ -55,6 +55,7 @@ export default function WishlistPage() {
       }
       toast.success(`Removed ${success} item${success > 1 ? "s" : ""} from wishlist`);
       setBulkSelected(new Set());
+      await refetchWishlist();
     } catch {
       if (success > 0) toast.success(`Removed ${success} of ${ids.length} items`);
       toast.error(String(t("student_wishlist.failed_remove")));

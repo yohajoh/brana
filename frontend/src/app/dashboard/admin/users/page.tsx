@@ -187,7 +187,7 @@ export default function AdminUsersPage() {
   const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
 
-  const { data: usersData, isLoading } = useUsers();
+  const { data: usersData, isLoading, refetch: refetchUsers } = useUsers();
   const { data: insightsData }         = useUserInsights(selected?.id || "");
   const deleteUser      = useDeleteUser();
   const blockUser       = useBlockUser();
@@ -311,6 +311,7 @@ export default function AdminUsersPage() {
           toast.success(`Deleted ${success} user${success > 1 ? "s" : ""}`);
           setBulkSelected(new Set());
           setSelected(s => s && bulkSelected.has(s.id) ? null : s);
+          await refetchUsers();
         } catch(e) {
           if (success > 0) toast.success(`Deleted ${success} of ${ids.length} users`);
           toast.error(err(e, "Failed to delete some users"));

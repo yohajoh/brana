@@ -1,90 +1,72 @@
 "use client";
 
 import { useState } from "react";
+import { Lock, Mail } from "lucide-react";
 import { ChangePasswordModal } from "./ChangePasswordModal";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 
-type UserData = {
-  email: string;
-};
+type Props = { user: { email: string } | null; loading?: boolean; };
 
-type Props = {
-  user: UserData | null;
-  loading?: boolean;
-};
+const ICdis = "w-full px-4 py-3 rounded-xl border border-[#e8e4dc] bg-[#f0eeea] text-sm text-[#0d0d0d]/40 cursor-not-allowed";
+const LB    = "text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-wider mb-1.5 block";
 
 export const SecuritySettings = ({ user, loading }: Props) => {
   const { t } = useLanguage();
-  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [pwOpen, setPwOpen] = useState(false);
 
   if (loading) {
     return (
-      <div className="space-y-8">
-        <h3 className="text-xl font-serif font-extrabold text-primary">
-          {t("student_settings.security_title")}
-        </h3>
-        <div className="space-y-6 max-w-3xl animate-pulse">
-          <div className="h-16 bg-muted/50 rounded-xl" />
-          <div className="h-16 bg-muted/50 rounded-xl" />
-        </div>
+      <div className="space-y-4 animate-pulse">
+        <div className="h-14 bg-[#f0eeea] rounded-xl" />
+        <div className="h-14 bg-[#f0eeea] rounded-xl" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
-      <h3 className="text-xl font-serif font-extrabold text-primary">
-        {t("student_settings.security_title")}
-      </h3>
-
-      <div className="space-y-6 max-w-3xl">
-        {/* Email Section */}
-        <div className="flex flex-col md:flex-row md:items-end gap-4">
-          <div className="flex-1 space-y-2">
-            <label className="text-xs font-bold text-secondary uppercase tracking-widest px-1">
-              {t("student_settings.labels.email")}
-            </label>
-            <input
-              type="email"
-              value={user?.email || ""}
-              disabled
-              className="w-full px-5 py-3.5 rounded-xl border border-border bg-muted/30 text-sm text-secondary focus:outline-none transition-all cursor-not-allowed"
-            />
-          </div>
-          <button
-            disabled
-            className="px-6 py-3.5 rounded-xl bg-muted text-secondary text-xs font-extrabold transition-all cursor-not-allowed opacity-50"
-          >
-            {t("student_settings.messages.email_readonly_btn")}
-          </button>
+    <div className="space-y-5">
+      {/* Email row */}
+      <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+        <div className="flex-1">
+          <label className={LB}>
+            <span className="flex items-center gap-1.5">
+              <Mail size={10} className="opacity-60" />
+              {String(t("student_settings.labels.email"))}
+            </span>
+          </label>
+          <input type="email" value={user?.email || ""} disabled className={ICdis} />
         </div>
-
-        {/* Password Section */}
-        <div className="flex flex-col md:flex-row md:items-end gap-4">
-          <div className="flex-1 space-y-2">
-            <label className="text-xs font-bold text-secondary uppercase tracking-widest px-1">
-              {t("student_settings.labels.password")}
-            </label>
-            <input
-              type="password"
-              value="............"
-              disabled
-              className="w-full px-5 py-3.5 rounded-xl border border-border bg-muted/30 text-sm text-secondary focus:outline-none transition-all cursor-not-allowed tracking-widest"
-            />
-          </div>
-          <button
-            onClick={() => setIsPasswordModalOpen(true)}
-            className="px-6 py-3.5 rounded-xl bg-accent text-background text-xs font-extrabold hover:bg-primary transition-all active:scale-95 whitespace-nowrap shadow-md"
-          >
-            {t("student_settings.actions.change_password")}
-          </button>
-        </div>
+        <button disabled
+          className="px-5 py-3 rounded-xl bg-[#f0eeea] text-[#0d0d0d]/30 text-[12px] font-bold cursor-not-allowed whitespace-nowrap">
+          {String(t("student_settings.messages.email_readonly_btn"))}
+        </button>
       </div>
 
-      <ChangePasswordModal
-        isOpen={isPasswordModalOpen}
-        onClose={() => setIsPasswordModalOpen(false)}
-      />
+      {/* Password row */}
+      <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+        <div className="flex-1">
+          <label className={LB}>
+            <span className="flex items-center gap-1.5">
+              <Lock size={10} className="opacity-60" />
+              {String(t("student_settings.labels.password"))}
+            </span>
+          </label>
+          <input type="password" value="••••••••••••" disabled className={ICdis} />
+        </div>
+        <button onClick={() => setPwOpen(true)}
+          className="px-5 py-3 rounded-xl bg-[#142b6f] text-white text-[12px] font-bold hover:bg-[#1e3a8a] transition-colors whitespace-nowrap shadow-md">
+          {String(t("student_settings.actions.change_password"))}
+        </button>
+      </div>
+
+      {/* Info box */}
+      <div className="rounded-xl bg-[#f5f4f0] border border-[#e8e4dc] px-4 py-3">
+        <p className="text-[11px] text-[#0d0d0d]/40 leading-relaxed">
+          Your email cannot be changed. To update your password, click the button above. Use a strong password with at least 8 characters.
+        </p>
+      </div>
+
+      <ChangePasswordModal isOpen={pwOpen} onClose={() => setPwOpen(false)} />
     </div>
   );
 };
