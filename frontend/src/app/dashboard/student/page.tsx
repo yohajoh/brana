@@ -118,7 +118,7 @@ export default function DashboardPage() {
   return (
     <motion.div
       variants={stagger} initial="hidden" animate="show"
-      className="p-4 sm:p-6 space-y-7"
+      className="p-2 sm:p-4 lg:p-6 space-y-7"
     >
 
       {/* ── Greeting ───────────────────────────────── */}

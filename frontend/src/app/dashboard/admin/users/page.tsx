@@ -325,7 +325,7 @@ export default function AdminUsersPage() {
     <>
       <style>{`.badge-chip{display:inline-flex;padding:2px 10px;border-radius:9999px;font-size:10px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase}`}</style>
 
-      <motion.div variants={stagger} initial="hidden" animate="show" className="p-4 sm:p-6 space-y-6" onClick={()=>setOpenMenu(null)}>
+      <motion.div variants={stagger} initial="hidden" animate="show" className="p-2 sm:p-4 lg:p-6 space-y-6" onClick={()=>setOpenMenu(null)}>
 
         {/* Header */}
         <motion.div variants={fadeUp} className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">

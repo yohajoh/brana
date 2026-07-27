@@ -86,7 +86,7 @@ function AdminOrdersContent() {
   ];
 
   return (
-    <div className="space-y-8 p-4 sm:p-6 lg:p-12">
+    <div className="space-y-8 p-2 sm:p-4 lg:p-12">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">
           <h1 className="text-3xl font-serif font-extrabold text-[#111111] sm:text-4xl lg:text-5xl">Orders</h1>
@@ -130,7 +130,7 @@ function AdminOrdersContent() {
 
 function AdminOrdersLoading() {
   return (
-    <div className="space-y-8 p-4 sm:p-6 lg:p-12">
+    <div className="space-y-8 p-2 sm:p-4 lg:p-12">
       <div className="space-y-1">
         <div className="h-12 w-56 animate-pulse rounded-lg bg-[#E1DEE5]/30" />
         <div className="h-5 w-full max-w-md animate-pulse rounded-lg bg-[#E1DEE5]/30" />

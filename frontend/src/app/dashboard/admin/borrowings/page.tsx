@@ -49,7 +49,7 @@ function BorrowingsContent() {
   ];
 
   return (
-    <motion.div variants={stagger} initial="hidden" animate="show" className="p-4 sm:p-6 space-y-5">
+    <motion.div variants={stagger} initial="hidden" animate="show" className="p-2 sm:p-4 lg:p-6 space-y-5">
       <motion.div variants={fadeUp} className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div><p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.2em] mb-1">Library</p><h1 className="text-[26px] font-serif font-black text-[#0d0d0d]">{String(t("admin_borrowings.title"))}</h1><p className="text-sm text-[#0d0d0d]/45 mt-1">{String(t("admin_borrowings.subtitle"))}</p></div>
         <div className="flex gap-3 w-full sm:flex-1">

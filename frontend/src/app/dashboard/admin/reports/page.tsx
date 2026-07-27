@@ -39,7 +39,7 @@ export default function AdminReportsPage() {
   })),[headers]);
 
   return (
-    <motion.div variants={stagger} initial="hidden" animate="show" className="p-4 sm:p-6 space-y-5">
+    <motion.div variants={stagger} initial="hidden" animate="show" className="p-2 sm:p-4 lg:p-6 space-y-5">
       <motion.div variants={fadeUp}>
         <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.2em] mb-1">Admin</p>
         <h1 className="text-[26px] font-serif font-black text-[#0d0d0d]">{String(t("admin_reports.title"))}</h1>

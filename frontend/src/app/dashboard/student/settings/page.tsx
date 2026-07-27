@@ -22,7 +22,7 @@ export default function SettingsPage() {
 
   return (
     <motion.div variants={stagger} initial="hidden" animate="show"
-      className="p-4 sm:p-6 space-y-6 pb-16">
+      className="p-2 sm:p-4 lg:p-6 space-y-6 pb-16">
 
       <motion.div variants={fadeUp}>
         <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.2em] mb-1">Account</p>

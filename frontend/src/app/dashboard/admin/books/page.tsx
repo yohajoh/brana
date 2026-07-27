@@ -537,7 +537,7 @@ export default function AdminBooksPage() {
 
   return (
     <>
-      <motion.div variants={stagger} initial="hidden" animate="show" className="p-4 sm:p-6 space-y-5" onClick={()=>setOpenMenu(null)}>
+      <motion.div variants={stagger} initial="hidden" animate="show" className="p-2 sm:p-4 lg:p-6 space-y-5" onClick={()=>setOpenMenu(null)}>
         {/* Header */}
         <motion.div variants={fadeUp} className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="shrink-0">

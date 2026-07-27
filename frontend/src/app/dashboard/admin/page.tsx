@@ -357,7 +357,7 @@ export default function AdminDashboardPage() {
   ];
 
   return (
-    <motion.div variants={stagger} initial="hidden" animate="show" className="p-4 sm:p-6 space-y-8">
+    <motion.div variants={stagger} initial="hidden" animate="show" className="p-2 sm:p-4 lg:p-6 space-y-8">
 
       {/* Header */}
       <motion.div variants={fadeUp}>

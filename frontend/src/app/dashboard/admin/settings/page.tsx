@@ -61,7 +61,7 @@ export default function AdminSettingsPage() {
   ];
 
   return (
-    <motion.div variants={stagger} initial="hidden" animate="show" className="p-4 sm:p-6 min-h-screen flex flex-col items-center">
+    <motion.div variants={stagger} initial="hidden" animate="show" className="p-2 sm:p-4 lg:p-6 min-h-screen flex flex-col items-center">
       <div className="w-full max-w-2xl space-y-6">
 
         <motion.div variants={fadeUp}>
