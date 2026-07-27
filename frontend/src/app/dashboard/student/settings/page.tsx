@@ -1,4 +1,5 @@
 "use client";
+"use client";
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -13,7 +14,7 @@ const fadeUp  = { hidden:{opacity:0,y:16}, show:{opacity:1,y:0,transition:{durat
 const stagger = { hidden:{}, show:{transition:{staggerChildren:0.07}} };
 const panelIn = { hidden:{opacity:0,x:16}, show:{opacity:1,x:0,transition:{duration:0.3,ease:[0.16,1,0.3,1]}} };
 
-export type UserData = {
+type UserData = {
   id:string; name:string; email:string;
   phone:string|null; year:string|null; department:string|null; student_id:string|null; role:string;
 };

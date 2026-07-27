@@ -313,7 +313,10 @@ export default function AdminUsersPage() {
           setSelected(s => s && bulkSelected.has(s.id) ? null : s);
           await refetchUsers();
         } catch(e) {
-          if (success > 0) toast.success(`Deleted ${success} of ${ids.length} users`);
+          if (success > 0) {
+            toast.success(`Deleted ${success} of ${ids.length} users`);
+            await refetchUsers();
+          }
           toast.error(err(e, "Failed to delete some users"));
         } finally { setBulkDeleting(false); }
       },

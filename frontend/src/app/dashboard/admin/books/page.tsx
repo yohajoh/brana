@@ -467,7 +467,11 @@ export default function AdminBooksPage() {
       await refetchBooks();
       await refetchDigital();
     }catch(e){
-      if (success > 0) toast.success(`Deleted ${success} of ${ids.length} books`);
+      if (success > 0) {
+        toast.success(`Deleted ${success} of ${ids.length} books`);
+        await refetchBooks();
+        await refetchDigital();
+      }
       toast.error(err(e,"Failed to delete some books"));
     }
     finally{setBulkDeleting(false);}

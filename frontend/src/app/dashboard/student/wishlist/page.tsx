@@ -57,7 +57,10 @@ export default function WishlistPage() {
       setBulkSelected(new Set());
       await refetchWishlist();
     } catch {
-      if (success > 0) toast.success(`Removed ${success} of ${ids.length} items`);
+      if (success > 0) {
+        toast.success(`Removed ${success} of ${ids.length} items`);
+        await refetchWishlist();
+      }
       toast.error(String(t("student_wishlist.failed_remove")));
     } finally { setBulkRemoving(false); }
   };

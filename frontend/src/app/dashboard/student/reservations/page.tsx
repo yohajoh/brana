@@ -54,7 +54,10 @@ export default function StudentReservationsPage() {
       setBulkSelected(new Set());
       await refetchReservations();
     } catch {
-      if (success > 0) toast.success(`Cancelled ${success} of ${ids.length}`);
+      if (success > 0) {
+        toast.success(`Cancelled ${success} of ${ids.length}`);
+        await refetchReservations();
+      }
       toast.error(String(t("student_reservations.error_cancel")));
     } finally { setBulkCancelling(false); }
   };

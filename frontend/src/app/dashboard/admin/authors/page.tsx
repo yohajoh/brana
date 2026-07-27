@@ -65,7 +65,10 @@ export default function AdminAuthorsPage() {
       setBulkSelected(new Set());
       await refetch();
     }catch(e2){
-      if (success > 0) toast.success(`Deleted ${success} of ${ids.length} authors`);
+      if (success > 0) {
+        toast.success(`Deleted ${success} of ${ids.length} authors`);
+        await refetch();
+      }
       toast.error(err(e2,"Failed to delete some authors"));
     }
     finally{setBulkDeleting(false);}

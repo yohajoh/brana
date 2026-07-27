@@ -73,7 +73,10 @@ export default function AdminCategoriesPage() {
       setBulkSelected(new Set());
       await refetch();
     } catch(e2) {
-      if (success > 0) toast.success(`Deleted ${success} of ${ids.length} categories`);
+      if (success > 0) {
+        toast.success(`Deleted ${success} of ${ids.length} categories`);
+        await refetch();
+      }
       toast.error(err(e2,"Failed to delete some categories"));
     }
     finally { setBulkDeleting(false); }
