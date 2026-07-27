@@ -184,6 +184,8 @@ export default function AdminUsersPage() {
   const [openMenu, setOpenMenu]     = useState<string | null>(null);
   const [confirm, setConfirm]       = useState<ConfirmState>(null);
   const [confirming, setConfirming] = useState(false);
+  const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const { data: usersData, isLoading } = useUsers();
   const { data: insightsData }         = useUserInsights(selected?.id || "");
@@ -227,6 +229,8 @@ export default function AdminUsersPage() {
     try { await confirm.action(); setConfirm(null); }
     finally { setConfirming(false); }
   };
+
+  const toggleBulk = (id: string) => setBulkSelected(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   const actions = (u: User) => {
     const canManage = isSuperAdmin ? !u.is_super_admin && u.id !== me?.id : u.role==="STUDENT";
@@ -281,7 +285,45 @@ export default function AdminUsersPage() {
     return items;
   };
 
+  const deletableIds = new Set(paginated.filter(u => actions(u).some(a => a.key === "delete")).map(u => u.id));
+  const allPageSelected = deletableIds.size > 0 && [...deletableIds].every(id => bulkSelected.has(id));
+
+  const selectAllBulk = (checked: boolean) => setBulkSelected(checked
+    ? new Set(paginated.filter(u => actions(u).some(a => a.key === "delete")).map(u => u.id))
+    : new Set<string>());
+
+  const handleBulkDelete = () => {
+    if (!bulkSelected.size) return;
+    setConfirm({
+      title: `Delete ${bulkSelected.size} user${bulkSelected.size > 1 ? "s" : ""}?`,
+      description: "This will permanently delete the selected users and all their data. This cannot be undone.",
+      confirmLabel: `Delete ${bulkSelected.size} user${bulkSelected.size > 1 ? "s" : ""}`,
+      tone: "danger",
+      action: async () => {
+        setBulkDeleting(true);
+        try {
+          await Promise.all(Array.from(bulkSelected).map(id => deleteUser.mutateAsync(id)));
+          toast.success(`Deleted ${bulkSelected.size} user${bulkSelected.size > 1 ? "s" : ""}`);
+          setBulkSelected(new Set());
+        } finally { setBulkDeleting(false); }
+      },
+    });
+  };
+
   const cols: ColumnDef<User,unknown>[] = [
+    { id:"sel", header:() => (
+        <input type="checkbox" checked={allPageSelected} onChange={e => selectAllBulk(e.target.checked)}
+          className="w-4 h-4 rounded border-[#e8e4dc] accent-[#142b6f]" onClick={e => e.stopPropagation()} />
+      ),
+      cell:({row}) => {
+        const canDel = actions(row.original).some(a => a.key === "delete");
+        return canDel ? (
+          <input type="checkbox" checked={bulkSelected.has(row.original.id)}
+            onChange={() => toggleBulk(row.original.id)}
+            className="w-4 h-4 rounded border-[#e8e4dc] accent-[#142b6f]" onClick={e => e.stopPropagation()} />
+        ) : null;
+      },
+    },
     { id:"name",   header:String(t("admin_users.table.name")),    cell:({row})=><div><p className="text-[13px] font-bold text-[#0d0d0d] truncate">{row.original.name}</p><p className="text-[11px] text-[#0d0d0d]/40 truncate">{row.original.email}</p></div> },
     { id:"id_no",  header:String(t("admin_users.table.id_no")),   cell:({row})=><span className="text-[12px] text-[#0d0d0d]/50">{row.original.student_id||"—"}</span> },
     { id:"year",   header:String(t("admin_users.table.year")),    cell:({row})=><span className="text-[12px] text-[#0d0d0d]/50">{row.original.year||"—"}</span> },
@@ -352,6 +394,26 @@ export default function AdminUsersPage() {
                 {tb==="STUDENTS" ? String(t("admin_users.tabs.students")) : String(t("admin_users.tabs.admins"))}
               </button>
             ))}
+          </motion.div>
+        )}
+
+        {/* Bulk delete bar */}
+        {bulkSelected.size > 0 && (
+          <motion.div variants={fadeUp}
+            className="flex items-center justify-between gap-3 px-4 py-3 bg-red-50 border border-red-100 rounded-xl">
+            <span className="text-[12px] font-bold text-red-700">
+              {bulkSelected.size} user{bulkSelected.size > 1 ? "s" : ""} selected
+            </span>
+            <div className="flex gap-2">
+              <button onClick={() => setBulkSelected(new Set())}
+                className="px-3 py-1.5 rounded-lg text-[11px] font-bold border border-red-200 text-red-500 hover:bg-red-100 transition-colors">
+                Clear
+              </button>
+              <button onClick={handleBulkDelete} disabled={bulkDeleting}
+                className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 transition-colors">
+                Delete {bulkSelected.size}
+              </button>
+            </div>
           </motion.div>
         )}
 

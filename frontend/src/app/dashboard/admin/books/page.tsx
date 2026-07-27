@@ -399,6 +399,8 @@ export default function AdminBooksPage() {
   const [openMenu, setOpenMenu]       = useState<string|null>(null);
   const [showCatModal, setShowCat]    = useState(false);
   const [editCatId, setEditCatId]     = useState<string|null>(null);
+  const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   const [catName, setCatName]         = useState("");
   const [delCat, setDelCat]           = useState<{id:string;name:string}|null>(null);
 
@@ -445,6 +447,22 @@ export default function AdminBooksPage() {
     toast.success(String(t("admin_books.messages.delete_success"))); setDel(null);
   };
 
+  const toggleBulk=(id:string)=>setBulkSelected(p=>{const n=new Set(p);n.has(id)?n.delete(id):n.add(id);return n;});
+  const allPageSelected=paginated.length>0&&paginated.every(b=>bulkSelected.has(b.id));
+  const handleBulkDelete=async()=>{
+    if(!bulkSelected.size) return;
+    setBulkDeleting(true);
+    try{
+      await Promise.all(Array.from(bulkSelected).map(id=>{
+        const b=allBooks.find(bk=>bk.id===id);
+        return b?deleteBook.mutateAsync({id,type:b.type||"physical"}):Promise.resolve();
+      }));
+      toast.success(`Deleted ${bulkSelected.size} book${bulkSelected.size>1?"s":""}`);
+      setBulkSelected(new Set());
+    }catch(e){toast.error(err(e,"Failed to delete"));}
+    finally{setBulkDeleting(false);}
+  };
+
   const handleSaveCat = async (e:React.FormEvent) => {
     e.preventDefault(); if(!catName.trim()) return;
     try {
@@ -462,6 +480,8 @@ export default function AdminBooksPage() {
   ];
 
   const bookCols: ColumnDef<Book,unknown>[] = [
+    { id:"sel", header:()=><input type="checkbox" checked={allPageSelected} onChange={e=>{e.stopPropagation();paginated.forEach(b=>e.target.checked?setBulkSelected(p=>{const n=new Set(p);n.add(b.id);return n;}):setBulkSelected(p=>{const n=new Set(p);n.delete(b.id);return n;}));}} className="w-4 h-4 rounded border-[#e8e4dc] accent-[#142b6f]" onClick={e=>e.stopPropagation()}/>,
+      cell:({row})=><input type="checkbox" checked={bulkSelected.has(row.original.id)} onChange={()=>toggleBulk(row.original.id)} className="w-4 h-4 rounded border-[#e8e4dc] accent-[#142b6f]" onClick={e=>e.stopPropagation()}/>},
     { id:"title",    header:String(t("admin_books.table.title")),    cell:({row})=><div className="min-w-0"><p className="text-[13px] font-bold text-[#0d0d0d] truncate max-w-[180px]">{row.original.title}</p><p className="text-[11px] text-[#0d0d0d]/40">{row.original.author?.name||"—"}</p></div> },
     { id:"category", header:String(t("admin_books.table.category")), cell:({row})=><span className="text-[12px] text-[#0d0d0d]/50">{row.original.category?.name||"—"}</span> },
     { id:"copies",   header:String(t("admin_books.table.copies")),   cell:({row})=><span className="text-[12px] text-[#0d0d0d]/50">{row.original.type==="digital"?"—":row.original.total??0}</span> },
@@ -572,6 +592,15 @@ export default function AdminBooksPage() {
 
         {/* Table */}
         <motion.div variants={fadeUp} className="bg-white rounded-2xl border border-[#e8e4dc] overflow-hidden">
+          {tab!=="categories"&&bulkSelected.size>0&&(
+            <div className="flex items-center justify-between gap-3 px-4 py-3 bg-red-50 border-b border-red-100">
+              <span className="text-[12px] font-bold text-red-700">{bulkSelected.size} book{bulkSelected.size>1?"s":""} selected</span>
+              <div className="flex gap-2">
+                <button onClick={()=>setBulkSelected(new Set())} className="px-3 py-1.5 rounded-lg text-[11px] font-bold border border-red-200 text-red-500 hover:bg-red-100 transition-colors">Clear</button>
+                <button onClick={handleBulkDelete} disabled={bulkDeleting} className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 transition-colors">{bulkDeleting?"Deleting…":`Delete ${bulkSelected.size}`}</button>
+              </div>
+            </div>
+          )}
           {tab==="categories"
             ? <TanStackTable data={paginatedCats} columns={catCols} isLoading={loading} emptyText={String(t("admin_categories.table.no_categories"))} skeletonRows={5}/>
             : <TanStackTable data={paginated}     columns={bookCols} isLoading={loading} emptyText={String(t("admin_books.table.no_books"))}         skeletonRows={5}/>

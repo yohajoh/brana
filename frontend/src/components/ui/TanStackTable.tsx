@@ -243,7 +243,7 @@ export function TanStackTable<TData>({
                       ${meta?.headerClassName ?? ""}
                     `}
                   >
-                    <span className="text-[9.5px] font-black text-[#0d0d0d]/35 uppercase tracking-[0.16em]">
+                    <span className="text-[9.5px] font-black text-[#0d0d0d]/35 uppercase tracking-[0.16em] whitespace-normal break-words">
                       {label}
                     </span>
                   </th>

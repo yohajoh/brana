@@ -22,6 +22,8 @@ export default function AdminAuthorsPage() {
   const [imgFile,setImg]=useState<File|null>(null); const [imgPreview,setPreview]=useState<string|null>(null);
   const [openMenu,setMenu]=useState<string|null>(null);
   const [delAuthor,setDel]=useState<{id:string;name:string}|null>(null);
+  const [bulkSelected,setBulkSelected]=useState<Set<string>>(new Set());
+  const [bulkDeleting,setBulkDeleting]=useState(false);
   const imgRef=useRef<HTMLInputElement>(null);
   const {data,isLoading}=useAuthors(); const create=useCreateAuthor(); const upd=useUpdateAuthor(); const del=useDeleteAuthor();
   const authors:Author[]=data?.authors||[];
@@ -47,7 +49,21 @@ export default function AdminAuthorsPage() {
     try{await del.mutateAsync(delAuthor.id);toast.success(String(t("admin_authors.messages.delete_success")));setDel(null);}
     catch(e2){toast.error(err(e2,String(t("admin_authors.messages.delete_failed"))));}
   };
+  const toggleBulk=(id:string)=>setBulkSelected(p=>{const n=new Set(p);n.has(id)?n.delete(id):n.add(id);return n;});
+  const allPageSelected=paginated.length>0&&paginated.every(a=>bulkSelected.has(a.id));
+  const handleBulkDelete=async()=>{
+    if(!bulkSelected.size) return;
+    setBulkDeleting(true);
+    try{
+      await Promise.all(Array.from(bulkSelected).map(id=>del.mutateAsync(id)));
+      toast.success(`Deleted ${bulkSelected.size} author${bulkSelected.size>1?"s":""}`);
+      setBulkSelected(new Set());
+    }catch(e2){toast.error(err(e2,"Failed to delete"));}
+    finally{setBulkDeleting(false);}
+  };
   const cols:ColumnDef<Author,unknown>[]=[
+    {id:"sel",header:()=><input type="checkbox" checked={allPageSelected} onChange={e=>{e.stopPropagation();paginated.forEach(a=>e.target.checked?setBulkSelected(p=>{const n=new Set(p);n.add(a.id);return n;}):setBulkSelected(p=>{const n=new Set(p);n.delete(a.id);return n;}));}} className="w-4 h-4 rounded border-[#e8e4dc] accent-[#142b6f]" onClick={e=>e.stopPropagation()}/>,
+     cell:({row})=><input type="checkbox" checked={bulkSelected.has(row.original.id)} onChange={()=>toggleBulk(row.original.id)} className="w-4 h-4 rounded border-[#e8e4dc] accent-[#142b6f]" onClick={e=>e.stopPropagation()}/>},
     {id:"img",header:"",cell:({row})=><div className="w-9 h-9 rounded-xl overflow-hidden bg-[#f5f4f0] border border-[#e8e4dc] flex items-center justify-center text-[12px] font-black text-[#0d0d0d]/40">{row.original.image?<Image src={row.original.image} alt={row.original.name} width={36} height={36} className="object-cover w-full h-full" unoptimized/>:row.original.name.charAt(0)}</div>},
     {id:"name",header:String(t("admin_authors.table.name")),cell:({row})=><span className="text-[13px] font-bold text-[#0d0d0d]">{row.original.name}</span>},
     {id:"bio", header:String(t("admin_authors.table.bio")), cell:({row})=><TruncatedCell text={row.original.bio||""} maxLength={50}/>},
@@ -79,7 +95,18 @@ export default function AdminAuthorsPage() {
           <button onClick={openNew} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#0d0d0d] text-white text-[12px] font-bold hover:bg-[#292524] transition-colors shrink-0"><Plus size={15}/>{String(t("admin_authors.add_new"))}</button>
         </div>
       </motion.div>
-      <motion.div variants={fadeUp} className="bg-white rounded-2xl border border-[#e8e4dc] overflow-hidden"><TanStackTable data={paginated} columns={cols} isLoading={isLoading} emptyText={String(t("admin_authors.table.no_authors"))} skeletonRows={5}/></motion.div>
+      <motion.div variants={fadeUp} className="bg-white rounded-2xl border border-[#e8e4dc] overflow-hidden">
+        {bulkSelected.size>0&&(
+          <div className="flex items-center justify-between gap-3 px-4 py-3 bg-red-50 border-b border-red-100">
+            <span className="text-[12px] font-bold text-red-700">{bulkSelected.size} selected</span>
+            <div className="flex gap-2">
+              <button onClick={()=>setBulkSelected(new Set())} className="px-3 py-1.5 rounded-lg text-[11px] font-bold border border-red-200 text-red-500 hover:bg-red-100 transition-colors">Clear</button>
+              <button onClick={handleBulkDelete} disabled={bulkDeleting} className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 transition-colors">{bulkDeleting?"Deleting…":`Delete ${bulkSelected.size}`}</button>
+            </div>
+          </div>
+        )}
+        <TanStackTable data={paginated} columns={cols} isLoading={isLoading} emptyText={String(t("admin_authors.table.no_authors"))} skeletonRows={5}/>
+      </motion.div>
       {!isLoading&&totalPages>1&&(<motion.div variants={fadeUp} className="flex items-center justify-between">
         <button onClick={()=>setPage(p=>Math.max(1,p-1))} disabled={page===1} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-bold text-[#0d0d0d]/50 hover:text-[#0d0d0d] disabled:opacity-30 transition-colors"><ChevronLeft size={14}/>{String(t("common.pagination.previous"))}</button>
         <span className="text-[12px] text-[#0d0d0d]/40 tabular-nums">{page} / {totalPages}</span>

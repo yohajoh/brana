@@ -24,6 +24,8 @@ export default function AdminCategoriesPage() {
   const [name, setName]       = useState("");
   const [delCat, setDelCat]   = useState<{id:string;name:string}|null>(null);
   const [openMenu, setMenu]   = useState<string|null>(null);
+  const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const { data, isLoading } = useCategories();
   const create = useCreateCategory(); const update = useUpdateCategory(); const del = useDeleteCategory();
@@ -55,7 +57,22 @@ export default function AdminCategoriesPage() {
     catch(e2) { toast.error(err(e2,String(t("admin_categories.messages.add_failed")||"Failed"))); }
   };
 
+  const toggleBulk = (id:string) => setBulkSelected(p=>{const n=new Set(p);n.has(id)?n.delete(id):n.add(id);return n;});
+  const allPageSelected = paginated.length>0 && paginated.every(c=>bulkSelected.has(c.id));
+  const handleBulkDelete = async () => {
+    if (!bulkSelected.size) return;
+    setBulkDeleting(true);
+    try {
+      await Promise.all(Array.from(bulkSelected).map(id=>del.mutateAsync(id)));
+      toast.success(`Deleted ${bulkSelected.size} categor${bulkSelected.size>1?"ies":"y"}`);
+      setBulkSelected(new Set());
+    } catch(e2) { toast.error(err(e2,"Failed to delete")); }
+    finally { setBulkDeleting(false); }
+  };
+
   const cols: ColumnDef<Category,unknown>[] = [
+    { id:"sel", header:()=><input type="checkbox" checked={allPageSelected} onChange={e=>{e.stopPropagation();paginated.forEach(c=>e.target.checked?setBulkSelected(p=>{const n=new Set(p);n.add(c.id);return n;}):setBulkSelected(p=>{const n=new Set(p);n.delete(c.id);return n;}));}} className="w-4 h-4 rounded border-[#e8e4dc] accent-[#142b6f]" onClick={e=>e.stopPropagation()}/>,
+      cell:({row})=><input type="checkbox" checked={bulkSelected.has(row.original.id)} onChange={()=>toggleBulk(row.original.id)} className="w-4 h-4 rounded border-[#e8e4dc] accent-[#142b6f]" onClick={e=>e.stopPropagation()}/>},
     { id:"name",     header:String(t("admin_categories.table.category")), cell:({row})=><span className="text-[13px] font-bold text-[#0d0d0d]">{row.original.name}</span> },
     { id:"physical", header:String(t("admin_categories.table.physical")), cell:({row})=><span className="text-[12px] text-[#0d0d0d]/50 tabular-nums">{row.original._count?.books||0}</span> },
     { id:"digital",  header:String(t("admin_categories.table.digital")),  cell:({row})=><span className="text-[12px] text-[#0d0d0d]/50 tabular-nums">{row.original._count?.digital_books||0}</span> },
@@ -100,6 +117,15 @@ export default function AdminCategoriesPage() {
           </div>
         </motion.div>
         <motion.div variants={fadeUp} className="bg-white rounded-2xl border border-[#e8e4dc] overflow-hidden">
+          {bulkSelected.size>0&&(
+            <div className="flex items-center justify-between gap-3 px-4 py-3 bg-red-50 border-b border-red-100">
+              <span className="text-[12px] font-bold text-red-700">{bulkSelected.size} selected</span>
+              <div className="flex gap-2">
+                <button onClick={()=>setBulkSelected(new Set())} className="px-3 py-1.5 rounded-lg text-[11px] font-bold border border-red-200 text-red-500 hover:bg-red-100 transition-colors">Clear</button>
+                <button onClick={handleBulkDelete} disabled={bulkDeleting} className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 transition-colors">{bulkDeleting?"Deleting…":`Delete ${bulkSelected.size}`}</button>
+              </div>
+            </div>
+          )}
           <TanStackTable data={paginated} columns={cols} isLoading={isLoading} emptyText={String(t("admin_categories.table.no_categories"))} skeletonRows={5}/>
         </motion.div>
         {!isLoading && totalPages>1 && (
