@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { useActivityLogs } from "@/lib/hooks/useQueries";
 import { useLanguage } from "@/components/providers/LanguageProvider";
-import { TanStackTable } from "@/components/ui/TanStackTable";
+import { TanStackTable, TruncatedCell } from "@/components/ui/TanStackTable";
 import { ColumnDef } from "@tanstack/react-table";
 
 const fadeUp={hidden:{opacity:0,y:16},show:{opacity:1,y:0,transition:{duration:0.38,ease:[0.16,1,0.3,1]}}};
@@ -22,7 +22,7 @@ export default function AdminActivityLogsPage() {
     {id:"admin",   header:String(t("admin_activity_logs.table.admin")),       cell:({row})=><div><p className="text-[13px] font-bold text-[#0d0d0d] truncate">{row.original.admin?.name||String(t("admin_activity_logs.system"))}</p><p className="text-[11px] text-[#0d0d0d]/40 truncate">{row.original.admin?.email||"internal@system"}</p></div>},
     {id:"action",  header:String(t("admin_activity_logs.table.action")),       cell:({row})=><span className={`inline-flex px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wide ${actionStyle(row.original.action)}`}>{row.original.action}</span>},
     {id:"entity",  header:"Entity",                                             cell:({row})=><span className="inline-flex px-2 py-0.5 rounded-md bg-[#f5f4f0] text-[9px] font-black uppercase text-[#0d0d0d]/50">{row.original.entity_type}</span>},
-    {id:"desc",    header:String(t("admin_activity_logs.table.description")),  cell:({row})=><p className="text-[12px] text-[#0d0d0d]/80 leading-relaxed line-clamp-2 max-w-xs">{row.original.description}</p>},
+    {id:"desc",    header:String(t("admin_activity_logs.table.description")),  cell:({row})=><TruncatedCell text={row.original.description} maxLength={60}/>},
     {id:"time",    header:String(t("admin_activity_logs.table.timestamp")),    cell:({row})=><div><p className="text-[12px] text-[#0d0d0d]/50">{new Date(row.original.created_at).toLocaleDateString()}</p><p className="text-[10px] text-[#0d0d0d]/30">{new Date(row.original.created_at).toLocaleTimeString()}</p></div>},
   ];
 

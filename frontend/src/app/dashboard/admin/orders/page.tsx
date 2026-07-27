@@ -94,14 +94,14 @@ function AdminOrdersContent() {
         </div>
 
         <div className="flex w-full flex-col gap-3 sm:mt-2 sm:w-auto sm:flex-row sm:items-center">
-          <div className="relative w-full sm:w-auto">
+          <div className="relative w-full sm:flex-1">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#142B6F]" />
             <input
               type="text"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search student, year, book, building..."
-              className="w-full rounded-xl border border-[#E1DEE5] bg-white py-2.5 pl-9 pr-4 text-sm text-[#111111] placeholder:text-[#111111]/40 sm:w-72"
+              className="w-full rounded-xl border border-[#E1DEE5] bg-white py-2.5 pl-9 pr-4 text-sm text-[#111111] placeholder:text-[#111111]/40 focus:outline-none focus:border-[#0d0d0d] focus:shadow-[0_0_0_3px_rgba(245,197,24,0.2)] transition-all"
             />
           </div>
           <button

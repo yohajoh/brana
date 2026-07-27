@@ -5,7 +5,7 @@ import { Search, Plus, X, ChevronLeft, ChevronRight, MoreHorizontal } from "luci
 import { toast } from "sonner";
 import { useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory } from "@/lib/hooks/useQueries";
 import { useLanguage } from "@/components/providers/LanguageProvider";
-import { TanStackTable } from "@/components/ui/TanStackTable";
+import { TanStackTable, PortalDropdown } from "@/components/ui/TanStackTable";
 import { ColumnDef } from "@tanstack/react-table";
 
 const fadeUp  = {hidden:{opacity:0,y:16},show:{opacity:1,y:0,transition:{duration:0.38,ease:[0.16,1,0.3,1]}}};
@@ -63,17 +63,19 @@ export default function AdminCategoriesPage() {
       cell:({row})=>{
         const c=row.original;
         return (
-          <div className="relative flex justify-end" onClick={e=>e.stopPropagation()}>
-            <button onClick={()=>setMenu(v=>v===c.id?null:c.id)} className="w-8 h-8 rounded-xl border border-[#e8e4dc] bg-white flex items-center justify-center text-[#0d0d0d]/40 hover:text-[#0d0d0d] transition-colors"><MoreHorizontal size={15}/></button>
-            <AnimatePresence>
-              {openMenu===c.id && (
-                <motion.div initial={{opacity:0,scale:0.95,y:-4}} animate={{opacity:1,scale:1,y:0}} exit={{opacity:0,scale:0.95}} transition={{duration:0.14}}
-                  className="absolute right-0 top-10 z-50 min-w-[140px] bg-white rounded-xl border border-[#e8e4dc] shadow-xl overflow-hidden">
-                  <button type="button" onClick={()=>{setMenu(null);openEdit(c);}} className="flex w-full items-center px-3.5 py-2.5 text-[12.5px] font-semibold text-[#0d0d0d] hover:bg-[#f5f4f0] transition-colors">{String(t("admin_categories.actions.edit"))}</button>
-                  <button type="button" onClick={()=>{setMenu(null);setDelCat({id:c.id,name:c.name});}} className="flex w-full items-center px-3.5 py-2.5 text-[12.5px] font-semibold text-red-600 hover:bg-red-50 transition-colors">{String(t("admin_categories.actions.delete"))}</button>
-                </motion.div>
-              )}
-            </AnimatePresence>
+          <div className="flex justify-end" onClick={e=>e.stopPropagation()}>
+            <PortalDropdown
+              isOpen={openMenu===c.id}
+              onClose={()=>setMenu(null)}
+              trigger={
+                <button onClick={()=>setMenu(v=>v===c.id?null:c.id)} className="w-8 h-8 rounded-xl border border-[#e8e4dc] bg-white flex items-center justify-center text-[#0d0d0d]/40 hover:text-[#0d0d0d] transition-colors"><MoreHorizontal size={15}/></button>
+              }
+            >
+              <div className="min-w-[140px] bg-white rounded-xl border border-[#e8e4dc] shadow-xl overflow-hidden">
+                <button type="button" onClick={()=>{setMenu(null);openEdit(c);}} className="flex w-full items-center px-3.5 py-2.5 text-[12.5px] font-semibold text-[#0d0d0d] hover:bg-[#f5f4f0] transition-colors">{String(t("admin_categories.actions.edit"))}</button>
+                <button type="button" onClick={()=>{setMenu(null);setDelCat({id:c.id,name:c.name});}} className="flex w-full items-center px-3.5 py-2.5 text-[12.5px] font-semibold text-red-600 hover:bg-red-50 transition-colors">{String(t("admin_categories.actions.delete"))}</button>
+              </div>
+            </PortalDropdown>
           </div>
         );
       },
@@ -89,8 +91,8 @@ export default function AdminCategoriesPage() {
             <h1 className="text-[26px] font-serif font-black text-[#0d0d0d]">{String(t("admin_categories.title"))}</h1>
             <p className="text-sm text-[#0d0d0d]/45 mt-1">{String(t("admin_categories.subtitle"))}</p>
           </div>
-          <div className="flex gap-3 w-full sm:w-auto">
-            <div className="relative flex-1 sm:w-52 sm:flex-none">
+          <div className="flex gap-3 w-full sm:flex-1">
+            <div className="relative flex-1">
               <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#0d0d0d]/30"/>
               <input value={search} onChange={e=>{setSearch(e.target.value);setPage(1);}} placeholder={String(t("admin_categories.search_placeholder"))} className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-[#e8e4dc] bg-white placeholder:text-[#0d0d0d]/25 focus:outline-none focus:border-[#0d0d0d] focus:shadow-[0_0_0_3px_rgba(245,197,24,0.2)] transition-all"/>
             </div>

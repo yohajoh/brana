@@ -52,8 +52,8 @@ function BorrowingsContent() {
     <motion.div variants={stagger} initial="hidden" animate="show" className="p-4 sm:p-6 space-y-5">
       <motion.div variants={fadeUp} className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div><p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.2em] mb-1">Library</p><h1 className="text-[26px] font-serif font-black text-[#0d0d0d]">{String(t("admin_borrowings.title"))}</h1><p className="text-sm text-[#0d0d0d]/45 mt-1">{String(t("admin_borrowings.subtitle"))}</p></div>
-        <div className="flex gap-3 w-full sm:w-auto">
-          <div className="relative flex-1 sm:w-52 sm:flex-none"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#0d0d0d]/30"/><input value={search} onChange={e=>{setSearch(e.target.value);setPage(1);}} placeholder={String(t("admin_borrowings.search_placeholder"))} className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-[#e8e4dc] bg-white placeholder:text-[#0d0d0d]/25 focus:outline-none focus:border-[#0d0d0d] focus:shadow-[0_0_0_3px_rgba(245,197,24,0.2)] transition-all"/></div>
+        <div className="flex gap-3 w-full sm:flex-1">
+          <div className="relative flex-1"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#0d0d0d]/30"/><input value={search} onChange={e=>{setSearch(e.target.value);setPage(1);}} placeholder={String(t("admin_borrowings.search_placeholder"))} className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-[#e8e4dc] bg-white placeholder:text-[#0d0d0d]/25 focus:outline-none focus:border-[#0d0d0d] focus:shadow-[0_0_0_3px_rgba(245,197,24,0.2)] transition-all"/></div>
           <button onClick={()=>refetch()} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[#e8e4dc] bg-white text-[12px] font-bold text-[#0d0d0d] hover:bg-[#f5f4f0] transition-colors shrink-0"><RefreshCcw size={14}/>{String(t("common.refresh")||"Refresh")}</button>
         </div>
       </motion.div>

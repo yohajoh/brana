@@ -180,7 +180,7 @@ export const DashboardSidebar = ({ variant = "default" }: DashboardSidebarProps)
         )}
 
         {/* ── Nav items ─────────────────────────────── */}
-        <nav className={`flex-1 overflow-y-auto space-y-0.5 pb-2 ${collapsed ? "px-2" : "px-3"}`}>
+        <nav className={`flex-1 min-h-0 overflow-y-auto space-y-0.5 pb-2 ${collapsed ? "px-2" : "px-3"}`}>
           {navItems.map((item) => {
             const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
             const { Icon } = item;
@@ -234,9 +234,10 @@ export const DashboardSidebar = ({ variant = "default" }: DashboardSidebarProps)
         </nav>
 
         {/* ── Bottom: logout only ───────── */}
-        <div className={`shrink-0 mt-2 pt-3 pb-5 space-y-0.5 ${collapsed ? "px-2" : "px-3"}`}
-          style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-
+        <div
+          className={`shrink-0 mt-auto pt-3 pb-5 space-y-0.5 ${collapsed ? "px-2" : "px-3"}`}
+          style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}
+        >
           {/* Logout */}
           <button
             onClick={handleLogout}

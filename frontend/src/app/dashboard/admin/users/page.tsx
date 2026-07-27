@@ -11,7 +11,7 @@ import {
 } from "@/lib/hooks/useQueries";
 import { usePersona } from "@/components/providers/PersonaProvider";
 import { useLanguage } from "@/components/providers/LanguageProvider";
-import { TanStackTable } from "@/components/ui/TanStackTable";
+import { TanStackTable, PortalDropdown } from "@/components/ui/TanStackTable";
 import { ColumnDef } from "@tanstack/react-table";
 
 const fadeUp  = { hidden:{opacity:0,y:16}, show:{opacity:1,y:0,transition:{duration:0.38,ease:[0.16,1,0.3,1]}} };
@@ -292,26 +292,29 @@ export default function AdminUsersPage() {
       cell:({row})=>{
         const u = row.original; const acts = actions(u);
         return (
-          <div className="relative flex justify-end" onClick={e=>e.stopPropagation()}>
-            <button type="button" disabled={acts.length===0}
-              onClick={()=>setOpenMenu(c=>c===u.id?null:u.id)}
-              className="w-8 h-8 rounded-xl border border-[#e8e4dc] bg-white flex items-center justify-center text-[#0d0d0d]/40 hover:text-[#0d0d0d] disabled:opacity-30 transition-colors">
-              <MoreHorizontal size={15}/>
-            </button>
-            <AnimatePresence>
-              {openMenu===u.id && acts.length>0 && (
-                <motion.div initial={{opacity:0,scale:0.95,y:-4}} animate={{opacity:1,scale:1,y:0}} exit={{opacity:0,scale:0.95,y:-4}}
-                  transition={{duration:0.15,ease:[0.16,1,0.3,1]}}
-                  className="absolute right-0 top-10 z-50 min-w-[168px] bg-white rounded-xl border border-[#e8e4dc] shadow-[0_12px_36px_rgba(0,0,0,0.14)] overflow-hidden">
+          <div className="flex justify-end" onClick={e=>e.stopPropagation()}>
+            <PortalDropdown
+              isOpen={openMenu===u.id}
+              onClose={()=>setOpenMenu(null)}
+              trigger={
+                <button type="button" disabled={acts.length===0}
+                  onClick={()=>setOpenMenu(c=>c===u.id?null:u.id)}
+                  className="w-8 h-8 rounded-xl border border-[#e8e4dc] bg-white flex items-center justify-center text-[#0d0d0d]/40 hover:text-[#0d0d0d] disabled:opacity-30 transition-colors">
+                  <MoreHorizontal size={15}/>
+                </button>
+              }
+            >
+              {acts.length>0 && (
+                <div className="min-w-[168px] bg-white rounded-xl border border-[#e8e4dc] shadow-[0_12px_36px_rgba(0,0,0,0.14)] overflow-hidden">
                   {acts.map(a=>(
                     <button key={a.key} type="button" disabled={a.disabled} onClick={a.onClick}
                       className={`flex w-full items-center px-3.5 py-2.5 text-left text-[12.5px] font-semibold transition-colors disabled:opacity-35 ${a.tone==="danger"?"text-red-600 hover:bg-red-50":a.tone==="amber"?"text-amber-700 hover:bg-amber-50":"text-[#0d0d0d] hover:bg-[#f5f4f0]"}`}>
                       {a.label}
                     </button>
                   ))}
-                </motion.div>
+                </div>
               )}
-            </AnimatePresence>
+            </PortalDropdown>
           </div>
         );
       },
@@ -326,12 +329,12 @@ export default function AdminUsersPage() {
 
         {/* Header */}
         <motion.div variants={fadeUp} className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
+          <div className="shrink-0">
             <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.2em] mb-1">Admin</p>
             <h1 className="text-[26px] font-serif font-black text-[#0d0d0d]">{String(t("admin_users.title"))}</h1>
             <p className="text-sm text-[#0d0d0d]/45 mt-1">{isSuperAdmin ? String(t("admin_users.subtitle_super")) : String(t("admin_users.subtitle_admin"))}</p>
           </div>
-          <div className="relative w-full sm:w-56">
+          <div className="relative w-full sm:flex-1 sm:max-w-md">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#0d0d0d]/30" />
             <input type="text" value={search}
               onChange={e=>{setSearch(e.target.value);setPage(1);}}

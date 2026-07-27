@@ -4,16 +4,26 @@ import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
+import {
   useStatsOverview,
   useStatsTargets,
   useUpdateTargets,
 } from "@/lib/hooks/useQueries";
 import { useLanguage } from "@/components/providers/LanguageProvider";
+import { TrendingUp, Target } from "lucide-react";
 
 /* ── animation variants ─────────────────────────────────── */
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
-  show:   { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] } },
 };
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
 
@@ -30,7 +40,7 @@ type Overview = {
 };
 
 /* ── normalisation helpers ───────────────────────────────── */
-const toN  = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
+const toN   = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
 const clamp = (v: unknown) => Math.max(0, Math.min(100, toN(v)));
 const obj   = (v: unknown): Record<string, unknown> => (v && typeof v === "object" ? v as Record<string, unknown> : {});
 
@@ -78,29 +88,179 @@ const defaultOverview: Overview = {
 };
 
 /* ── stat card ───────────────────────────────────────────── */
-function StatCard({ label, value, sub, accent = false, loading = false }: { label: string; value: string | number; sub?: string; accent?: boolean; loading?: boolean }) {
+function StatCard({
+  label, value, sub, colorIdx = 1, loading = false,
+}: {
+  label: string; value: string | number; sub?: string;
+  colorIdx?: number; loading?: boolean;
+}) {
+  const palettes = [
+    { bg: "bg-[#142b6f]", val: "text-white", lab: "text-white/50", sub: "text-white/40", border: "" },
+    { bg: "bg-white", val: "text-[#0d0d0d]", lab: "text-[#0d0d0d]/40", sub: "text-[#0d0d0d]/30", border: "border border-[#e8e4dc]" },
+    { bg: "bg-white", val: "text-[#0d0d0d]", lab: "text-[#0d0d0d]/40", sub: "text-[#0d0d0d]/30", border: "border border-[#e8e4dc]" },
+    { bg: "bg-[#fef2f2]", val: "text-red-700", lab: "text-red-400/80", sub: "text-red-300", border: "border border-red-100" },
+    { bg: "bg-white", val: "text-[#0d0d0d]", lab: "text-[#0d0d0d]/40", sub: "text-[#0d0d0d]/30", border: "border border-[#e8e4dc]" },
+    { bg: "bg-[#f5f4f0]", val: "text-[#0d0d0d]", lab: "text-[#0d0d0d]/40", sub: "text-[#0d0d0d]/30", border: "border border-[#e8e4dc]" },
+  ];
+  const c = palettes[colorIdx] ?? palettes[1];
   return (
-    <motion.div variants={fadeUp}
-      className={`rounded-2xl border p-5 ${accent ? "bg-[#0d0d0d] border-[#0d0d0d]" : "bg-white border-[#e8e4dc]"}`}>
+    <motion.div variants={fadeUp} className={`rounded-2xl p-5 flex flex-col gap-2 ${c.bg} ${c.border}`}>
       {loading ? (
         <div className="animate-pulse space-y-2">
-          <div className={`h-7 w-12 rounded ${accent ? "bg-white/10" : "bg-[#f0eeea]"}`} />
-          <div className={`h-3 w-24 rounded ${accent ? "bg-white/10" : "bg-[#f0eeea]"}`} />
+          <div className="h-8 w-14 rounded-lg bg-current opacity-10" />
+          <div className="h-2.5 w-24 rounded-full bg-current opacity-10" />
         </div>
       ) : (
         <>
-          <p className={`text-[28px] font-serif font-black leading-none ${accent ? "text-[#f5c518]" : "text-[#0d0d0d]"}`}>{value}</p>
-          <p className={`text-[9px] font-black uppercase tracking-[0.16em] mt-2 ${accent ? "text-white/45" : "text-[#0d0d0d]/40"}`}>{label}</p>
-          {sub && <p className={`text-[11px] mt-0.5 ${accent ? "text-white/30" : "text-[#0d0d0d]/30"}`}>{sub}</p>}
+          <p className={`text-[30px] font-serif font-black leading-none tabular-nums ${c.val}`}>{value}</p>
+          <p className={`text-[9px] font-black uppercase tracking-[0.16em] ${c.lab}`}>{label}</p>
+          {sub && <p className={`text-[11px] ${c.sub}`}>{sub}</p>}
         </>
       )}
     </motion.div>
   );
 }
 
+/* ── custom tooltip for recharts ─────────────────────────── */
+function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) {
+  if (!active || !payload?.length) return null;
+  const date = label ? new Date(label) : null;
+  const formatted = date
+    ? date.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+    : label;
+  return (
+    <div className="bg-[#0d0d0d] rounded-xl px-4 py-3 shadow-xl">
+      <p className="text-[11px] text-white/50 mb-0.5">{formatted}</p>
+      <p className="text-[16px] font-black text-[#f5c518]">{payload[0].value}</p>
+      <p className="text-[10px] text-white/40">rentals</p>
+    </div>
+  );
+}
+
+/* ── wave area chart ─────────────────────────────────────── */
+function RentalsChart({ points, loading }: { points: WeeklyPoint[]; loading: boolean }) {
+  const { t } = useLanguage();
+
+  const data = useMemo(() => {
+    if (points.length === 0) {
+      // show 8 empty weeks so the chart area is visible
+      return Array.from({ length: 8 }, (_, i) => ({
+        week_start: new Date(Date.now() - (7 - i) * 7 * 24 * 3600 * 1000).toISOString(),
+        count: 0,
+      }));
+    }
+    return points;
+  }, [points]);
+
+  const maxVal = Math.max(...data.map((d) => d.count), 1);
+
+  return (
+    <div className="space-y-4">
+      {/* Section header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.18em]">
+            {String(t("dashboard.rentals_per_week"))}
+          </p>
+          <p className="text-[18px] font-serif font-black text-[#0d0d0d] mt-0.5">
+            Rental Activity
+          </p>
+        </div>
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-[#f5c518]/10 rounded-full">
+          <TrendingUp size={13} className="text-[#92700c]" strokeWidth={2.5} />
+          <span className="text-[11px] font-black text-[#92700c]">Weekly</span>
+        </div>
+      </div>
+
+      {/* Chart card */}
+      <div className="bg-white rounded-2xl border border-[#e8e4dc] p-5 pt-4">
+        {loading ? (
+          <div className="h-[220px] bg-[#f5f4f0] rounded-xl animate-pulse" />
+        ) : (
+          <>
+            <ResponsiveContainer width="100%" height={220}>
+              <AreaChart data={data} margin={{ top: 8, right: 4, left: -24, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="rentalGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#f5c518" stopOpacity={0.28} />
+                    <stop offset="60%" stopColor="#f5c518" stopOpacity={0.08} />
+                    <stop offset="100%" stopColor="#f5c518" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#e8a800" />
+                    <stop offset="50%" stopColor="#f5c518" />
+                    <stop offset="100%" stopColor="#e8a800" />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="#e8e4dc"
+                  strokeWidth={0.8}
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey="week_start"
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fontSize: 10, fill: "rgba(13,13,13,0.3)", fontWeight: 700 }}
+                  tickFormatter={(v) =>
+                    v
+                      ? new Date(v).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+                      : ""
+                  }
+                  interval="preserveStartEnd"
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fontSize: 10, fill: "rgba(13,13,13,0.3)", fontWeight: 700 }}
+                  allowDecimals={false}
+                  domain={[0, Math.ceil(maxVal * 1.2)]}
+                />
+                <Tooltip content={<CustomTooltip />} cursor={{ stroke: "rgba(245,197,24,0.3)", strokeWidth: 1 }} />
+                <Area
+                  type="linear"
+                  dataKey="count"
+                  stroke="url(#lineGrad)"
+                  strokeWidth={2.5}
+                  fill="url(#rentalGrad)"
+                  dot={{ r: 3.5, fill: "#f5c518", stroke: "white", strokeWidth: 2 }}
+                  activeDot={{
+                    r: 6,
+                    fill: "#f5c518",
+                    stroke: "white",
+                    strokeWidth: 2.5,
+                  }}
+                  animationDuration={1200}
+                  animationEasing="ease-out"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+
+            {/* Bottom summary row */}
+            <div className="mt-4 grid grid-cols-3 gap-3 pt-4 border-t border-[#e8e4dc]">
+              {[
+                { label: "Total", value: data.reduce((s, d) => s + d.count, 0) },
+                { label: "Peak Week", value: Math.max(...data.map((d) => d.count)) },
+                { label: "Avg / Week", value: data.length ? Math.round(data.reduce((s, d) => s + d.count, 0) / data.length) : 0 },
+              ].map((s) => (
+                <div key={s.label} className="text-center">
+                  <p className="text-[18px] font-serif font-black text-[#0d0d0d]">{s.value}</p>
+                  <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-wider mt-0.5">{s.label}</p>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ── goal progress row ───────────────────────────────────── */
 function GoalRow({ label, item }: { label: string; item: GoalProgress }) {
   const pct = clamp(item.progress);
+  const color = pct >= 80 ? "bg-emerald-500" : pct >= 50 ? "bg-[#f5c518]" : "bg-red-400";
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
@@ -111,80 +271,11 @@ function GoalRow({ label, item }: { label: string; item: GoalProgress }) {
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${pct}%` }}
-          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
-          className="h-full rounded-full bg-[#f5c518]"
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
+          className={`h-full rounded-full ${color}`}
         />
       </div>
       <p className="text-[10px] text-[#0d0d0d]/35">{pct.toFixed(0)}% of target</p>
-    </div>
-  );
-}
-
-/* ── sparkline chart ─────────────────────────────────────── */
-function Sparkline({ points }: { points: WeeklyPoint[] }) {
-  const { t } = useLanguage();
-  const W = 600; const H = 180; const PAD = 20;
-  const safe = points.length > 0 ? points : [{ week_start: "", count: 0 }];
-  const max  = Math.max(...safe.map(p => p.count), 1);
-
-  const pts = safe.map((p, i) => ({
-    x: PAD + (i * (W - PAD * 2)) / Math.max(1, safe.length - 1),
-    y: H - PAD - (p.count / max) * (H - PAD * 2),
-    label: p.week_start, count: p.count,
-  }));
-
-  const path = pts.map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`).join(" ");
-
-  // Filled area path
-  const area = `${path} L${pts[pts.length-1].x},${H-PAD} L${pts[0].x},${H-PAD} Z`;
-
-  return (
-    <div className="space-y-3">
-      <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.18em]">
-        {String(t("dashboard.rentals_per_week"))}
-      </p>
-      <div className="bg-white rounded-2xl border border-[#e8e4dc] p-5 overflow-hidden">
-        <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 140 }}>
-          {/* Grid lines */}
-          {[0,1,2,3,4].map(i => (
-            <line key={i}
-              x1={PAD} y1={PAD + i * (H - PAD*2) / 4}
-              x2={W - PAD} y2={PAD + i * (H - PAD*2) / 4}
-              stroke="#e8e4dc" strokeWidth="1"
-            />
-          ))}
-          {/* Fill */}
-          <path d={area} fill="rgba(245,197,24,0.08)" />
-          {/* Line */}
-          <motion.path
-            d={path}
-            fill="none"
-            stroke="#f5c518"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            initial={{ pathLength: 0 }}
-            animate={{ pathLength: 1 }}
-            transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-          />
-          {/* Dots */}
-          {pts.map((p, i) => (
-            <circle key={i} cx={p.x} cy={p.y} r="4" fill="#f5c518" stroke="white" strokeWidth="2" />
-          ))}
-        </svg>
-        {safe.length > 1 && (
-          <div className="flex justify-between mt-2">
-            {pts.map((p, i) => (
-              <div key={i} className="text-center">
-                <p className="text-[10px] font-black text-[#0d0d0d]">{p.count}</p>
-                <p className="text-[8px] text-[#0d0d0d]/30 mt-0.5 truncate max-w-[60px]">
-                  {p.label ? new Date(p.label).toLocaleDateString("en-US", { month:"short", day:"numeric" }) : ""}
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   );
 }
@@ -215,10 +306,10 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     if (!target) return;
     const t2 = setTimeout(() => setForm({
-      target_rentals:       String(target.target_rentals        ?? 0),
-      target_active_readers:String(target.target_active_readers ?? 0),
+      target_rentals:        String(target.target_rentals        ?? 0),
+      target_active_readers: String(target.target_active_readers ?? 0),
       target_on_time_returns:String(target.target_on_time_returns ?? 0),
-      target_new_books:     String(target.target_new_books      ?? 0),
+      target_new_books:      String(target.target_new_books      ?? 0),
     }), 0);
     return () => clearTimeout(t2);
   }, [target]);
@@ -236,7 +327,16 @@ export default function AdminDashboardPage() {
     } catch { toast.error("Failed to save targets"); }
   };
 
-  const IC = "w-full px-3 py-2.5 rounded-xl border border-[#e8e4dc] bg-[#f5f4f0] text-sm text-[#0d0d0d] focus:outline-none focus:border-[#0d0d0d] focus:bg-white focus:shadow-[0_0_0_3px_rgba(245,197,24,0.2)] transition-all";
+  const IC = "w-full px-3 py-2.5 rounded-xl border border-[#e8e4dc] bg-[#f5f4f0] text-sm text-[#0d0d0d] focus:outline-none focus:border-[#0d0d0d] focus:bg-white focus:shadow-[0_0_0_3px_rgba(245,197,24,0.2)] transition-all [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none";
+
+  const stats = [
+    { label: String(t("dashboard.stats.students")),       value: overview.users.total,              sub: `+${overview.users.newThisMonth} this month`, colorIdx: 0 },
+    { label: String(t("dashboard.stats.books")),          value: overview.books.total,              sub: `${overview.books.available} available`,      colorIdx: 1 },
+    { label: String(t("dashboard.stats.active_rentals")), value: overview.rentals.active,           sub: undefined,                                    colorIdx: 2 },
+    { label: String(t("dashboard.stats.overdue")),        value: overview.rentals.overdue,          sub: undefined,                                    colorIdx: overview.rentals.overdue > 0 ? 3 : 1 },
+    { label: String(t("dashboard.stats.reservations")),   value: overview.rentals.reservations,     sub: undefined,                                    colorIdx: 4 },
+    { label: String(t("dashboard.stats.revenue")),        value: `${overview.revenue.thisMonth} ETB`, sub: undefined,                                  colorIdx: 5 },
+  ];
 
   return (
     <motion.div variants={stagger} initial="hidden" animate="show" className="p-4 sm:p-6 space-y-8">
@@ -250,27 +350,27 @@ export default function AdminDashboardPage() {
 
       {/* Stats grid */}
       <motion.div variants={stagger} className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
-        <StatCard label={String(t("dashboard.stats.students"))}     value={overview.users.total}         sub={`+${overview.users.newThisMonth} this month`} loading={isLoading} />
-        <StatCard label={String(t("dashboard.stats.books"))}        value={overview.books.total}         sub={`${overview.books.available} available`}       loading={isLoading} />
-        <StatCard label={String(t("dashboard.stats.active_rentals"))} value={overview.rentals.active}    loading={isLoading} />
-        <StatCard label={String(t("dashboard.stats.overdue"))}      value={overview.rentals.overdue}     accent={overview.rentals.overdue > 0} loading={isLoading} />
-        <StatCard label={String(t("dashboard.stats.reservations"))} value={overview.rentals.reservations} loading={isLoading} />
-        <StatCard label={String(t("dashboard.stats.revenue"))}      value={`${overview.revenue.thisMonth} ETB`} loading={isLoading} />
+        {stats.map((s) => (
+          <StatCard key={s.label} label={s.label} value={s.value} sub={s.sub} colorIdx={s.colorIdx} loading={isLoading} />
+        ))}
       </motion.div>
 
       {/* Chart + goals */}
       <motion.div variants={stagger} className="grid grid-cols-1 xl:grid-cols-3 gap-5">
 
-        {/* Sparkline */}
+        {/* Wave area chart */}
         <motion.div variants={fadeUp} className="xl:col-span-2">
-          <Sparkline points={overview.trends.rentalsPerWeek} />
+          <RentalsChart points={overview.trends.rentalsPerWeek} loading={isLoading} />
         </motion.div>
 
         {/* Goal progress */}
         <motion.div variants={fadeUp} className="bg-white rounded-2xl border border-[#e8e4dc] p-5 space-y-4">
-          <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.18em]">
-            {String(t("dashboard.goal_progress"))}
-          </p>
+          <div className="flex items-center gap-2">
+            <Target size={14} className="text-[#0d0d0d]/30" strokeWidth={2} />
+            <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.18em]">
+              {String(t("dashboard.goal_progress"))}
+            </p>
+          </div>
           <GoalRow label={String(t("dashboard.targets.rentals"))}        item={overview.monthlyTargets.progress.rentals} />
           <GoalRow label={String(t("dashboard.targets.active_readers"))} item={overview.monthlyTargets.progress.activeReaders} />
           <GoalRow label={String(t("dashboard.targets.on_time_returns"))} item={overview.monthlyTargets.progress.onTimeReturns} />
@@ -281,9 +381,12 @@ export default function AdminDashboardPage() {
       {/* Set targets */}
       <motion.div variants={fadeUp}>
         <form onSubmit={saveTargets} className="bg-white rounded-2xl border border-[#e8e4dc] p-5 sm:p-6 space-y-5">
-          <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.18em]">
-            {String(t("dashboard.targets.title"))}
-          </p>
+          <div className="flex items-center gap-2">
+            <Target size={14} className="text-[#0d0d0d]/30" strokeWidth={2} />
+            <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.18em]">
+              {String(t("dashboard.targets.title"))}
+            </p>
+          </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {([
               ["target_rentals",         t("dashboard.targets.rentals")],

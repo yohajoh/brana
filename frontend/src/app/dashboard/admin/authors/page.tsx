@@ -6,7 +6,7 @@ import Image from "next/image";
 import { toast } from "sonner";
 import { useAuthors, useCreateAuthor, useUpdateAuthor, useDeleteAuthor, type Author } from "@/lib/hooks/useQueries";
 import { useLanguage } from "@/components/providers/LanguageProvider";
-import { TanStackTable } from "@/components/ui/TanStackTable";
+import { TanStackTable, PortalDropdown, TruncatedCell } from "@/components/ui/TanStackTable";
 import { ColumnDef } from "@tanstack/react-table";
 
 const fadeUp={hidden:{opacity:0,y:16},show:{opacity:1,y:0,transition:{duration:0.38,ease:[0.16,1,0.3,1]}}};
@@ -50,25 +50,32 @@ export default function AdminAuthorsPage() {
   const cols:ColumnDef<Author,unknown>[]=[
     {id:"img",header:"",cell:({row})=><div className="w-9 h-9 rounded-xl overflow-hidden bg-[#f5f4f0] border border-[#e8e4dc] flex items-center justify-center text-[12px] font-black text-[#0d0d0d]/40">{row.original.image?<Image src={row.original.image} alt={row.original.name} width={36} height={36} className="object-cover w-full h-full" unoptimized/>:row.original.name.charAt(0)}</div>},
     {id:"name",header:String(t("admin_authors.table.name")),cell:({row})=><span className="text-[13px] font-bold text-[#0d0d0d]">{row.original.name}</span>},
-    {id:"bio", header:String(t("admin_authors.table.bio")), cell:({row})=><p className="text-[12px] text-[#0d0d0d]/45 line-clamp-1">{row.original.bio||"—"}</p>},
+    {id:"bio", header:String(t("admin_authors.table.bio")), cell:({row})=><TruncatedCell text={row.original.bio||""} maxLength={50}/>},
     {id:"books",header:String(t("admin_authors.table.books")),cell:({row})=><span className="text-[12px] text-[#0d0d0d]/50 tabular-nums">{(row.original._count?.books||0)+(row.original._count?.digital_books||0)}</span>},
     {id:"status",header:String(t("admin_authors.table.status")),cell:()=><span className="inline-flex px-2.5 py-1 rounded-lg text-[10px] font-black uppercase bg-emerald-50 text-emerald-700">{String(t("admin_authors.status.active"))}</span>},
     {id:"actions",header:"",cell:({row})=>{const a=row.original;return(
-      <div className="relative flex justify-end" onClick={e=>e.stopPropagation()}>
-        <button onClick={()=>setMenu(v=>v===a.id?null:a.id)} className="w-8 h-8 rounded-xl border border-[#e8e4dc] bg-white flex items-center justify-center text-[#0d0d0d]/40 hover:text-[#0d0d0d] transition-colors"><MoreHorizontal size={15}/></button>
-        <AnimatePresence>{openMenu===a.id&&(<motion.div initial={{opacity:0,scale:0.95,y:-4}} animate={{opacity:1,scale:1,y:0}} exit={{opacity:0,scale:0.95}} transition={{duration:0.14}} className="absolute right-0 top-10 z-50 min-w-[148px] bg-white rounded-xl border border-[#e8e4dc] shadow-xl overflow-hidden">
-          <button type="button" onClick={()=>{setMenu(null);openEdit(a);}} className="flex w-full items-center px-3.5 py-2.5 text-[12.5px] font-semibold text-[#0d0d0d] hover:bg-[#f5f4f0] transition-colors">Edit</button>
-          <button type="button" onClick={()=>{setMenu(null);setDel({id:a.id,name:a.name});}} className="flex w-full items-center px-3.5 py-2.5 text-[12.5px] font-semibold text-red-600 hover:bg-red-50 transition-colors">{String(t("admin_books.actions.delete"))}</button>
-        </motion.div>)}</AnimatePresence>
+      <div className="flex justify-end" onClick={e=>e.stopPropagation()}>
+        <PortalDropdown
+          isOpen={openMenu===a.id}
+          onClose={()=>setMenu(null)}
+          trigger={
+            <button onClick={()=>setMenu(v=>v===a.id?null:a.id)} className="w-8 h-8 rounded-xl border border-[#e8e4dc] bg-white flex items-center justify-center text-[#0d0d0d]/40 hover:text-[#0d0d0d] transition-colors"><MoreHorizontal size={15}/></button>
+          }
+        >
+          <div className="min-w-[148px] bg-white rounded-xl border border-[#e8e4dc] shadow-xl overflow-hidden">
+            <button type="button" onClick={()=>{setMenu(null);openEdit(a);}} className="flex w-full items-center px-3.5 py-2.5 text-[12.5px] font-semibold text-[#0d0d0d] hover:bg-[#f5f4f0] transition-colors">Edit</button>
+            <button type="button" onClick={()=>{setMenu(null);setDel({id:a.id,name:a.name});}} className="flex w-full items-center px-3.5 py-2.5 text-[12.5px] font-semibold text-red-600 hover:bg-red-50 transition-colors">{String(t("admin_books.actions.delete"))}</button>
+          </div>
+        </PortalDropdown>
       </div>
     );}},
   ];
   return (<>
     <motion.div variants={stagger} initial="hidden" animate="show" className="p-4 sm:p-6 space-y-5" onClick={()=>setMenu(null)}>
       <motion.div variants={fadeUp} className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div><p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.2em] mb-1">Library</p><h1 className="text-[26px] font-serif font-black text-[#0d0d0d]">{String(t("admin_authors.title"))}</h1><p className="text-sm text-[#0d0d0d]/45 mt-1">{String(t("admin_authors.subtitle"))}</p></div>
-        <div className="flex gap-3 w-full sm:w-auto">
-          <div className="relative flex-1 sm:w-52 sm:flex-none"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#0d0d0d]/30"/><input value={search} onChange={e=>{setSearch(e.target.value);setPage(1);}} placeholder={String(t("admin_authors.search_placeholder"))} className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-[#e8e4dc] bg-white placeholder:text-[#0d0d0d]/25 focus:outline-none focus:border-[#0d0d0d] focus:shadow-[0_0_0_3px_rgba(245,197,24,0.2)] transition-all"/></div>
+        <div className="shrink-0"><p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.2em] mb-1">Library</p><h1 className="text-[26px] font-serif font-black text-[#0d0d0d]">{String(t("admin_authors.title"))}</h1><p className="text-sm text-[#0d0d0d]/45 mt-1">{String(t("admin_authors.subtitle"))}</p></div>
+        <div className="flex gap-3 w-full sm:flex-1">
+          <div className="relative flex-1"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#0d0d0d]/30"/><input value={search} onChange={e=>{setSearch(e.target.value);setPage(1);}} placeholder={String(t("admin_authors.search_placeholder"))} className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-[#e8e4dc] bg-white placeholder:text-[#0d0d0d]/25 focus:outline-none focus:border-[#0d0d0d] focus:shadow-[0_0_0_3px_rgba(245,197,24,0.2)] transition-all"/></div>
           <button onClick={openNew} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#0d0d0d] text-white text-[12px] font-bold hover:bg-[#292524] transition-colors shrink-0"><Plus size={15}/>{String(t("admin_authors.add_new"))}</button>
         </div>
       </motion.div>

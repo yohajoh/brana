@@ -11,7 +11,7 @@ import {
   useCreateAuthor, useBookCopies, useConditionHistory, useUpdateCondition,
 } from "@/lib/hooks/useQueries";
 import { useLanguage } from "@/components/providers/LanguageProvider";
-import { TanStackTable } from "@/components/ui/TanStackTable";
+import { TanStackTable, PortalDropdown, TruncatedCell } from "@/components/ui/TanStackTable";
 import { ColumnDef } from "@tanstack/react-table";
 import Image from "next/image";
 
@@ -462,7 +462,7 @@ export default function AdminBooksPage() {
   ];
 
   const bookCols: ColumnDef<Book,unknown>[] = [
-    { id:"title",    header:String(t("admin_books.table.title")),    cell:({row})=><div><p className="text-[13px] font-bold text-[#0d0d0d] truncate">{row.original.title}</p><p className="text-[11px] text-[#0d0d0d]/40">{row.original.author?.name||"—"}</p></div> },
+    { id:"title",    header:String(t("admin_books.table.title")),    cell:({row})=><div className="min-w-0"><p className="text-[13px] font-bold text-[#0d0d0d] truncate max-w-[180px]">{row.original.title}</p><p className="text-[11px] text-[#0d0d0d]/40">{row.original.author?.name||"—"}</p></div> },
     { id:"category", header:String(t("admin_books.table.category")), cell:({row})=><span className="text-[12px] text-[#0d0d0d]/50">{row.original.category?.name||"—"}</span> },
     { id:"copies",   header:String(t("admin_books.table.copies")),   cell:({row})=><span className="text-[12px] text-[#0d0d0d]/50">{row.original.type==="digital"?"—":row.original.total??0}</span> },
     { id:"status",   header:String(t("admin_books.table.status")),
@@ -478,32 +478,34 @@ export default function AdminBooksPage() {
       cell:({row})=>{
         const b=row.original;
         return (
-          <div className="relative flex justify-end" onClick={e=>e.stopPropagation()}>
-            <button type="button" onClick={()=>setOpenMenu(c=>c===b.id?null:b.id)}
-              className="w-8 h-8 rounded-xl border border-[#e8e4dc] bg-white flex items-center justify-center text-[#0d0d0d]/40 hover:text-[#0d0d0d] transition-colors">
-              <MoreHorizontal size={15}/>
-            </button>
-            <AnimatePresence>
-              {openMenu===b.id && (
-                <motion.div initial={{opacity:0,scale:0.95,y:-4}} animate={{opacity:1,scale:1,y:0}} exit={{opacity:0,scale:0.95}}
-                  transition={{duration:0.14}} className="absolute right-0 top-10 z-50 min-w-[148px] bg-white rounded-xl border border-[#e8e4dc] shadow-xl overflow-hidden">
-                  <button type="button" onClick={()=>{setOpenMenu(null);setEditing(b);setShowBook(true);}}
+          <div className="flex justify-end" onClick={e=>e.stopPropagation()}>
+            <PortalDropdown
+              isOpen={openMenu===b.id}
+              onClose={()=>setOpenMenu(null)}
+              trigger={
+                <button type="button" onClick={()=>setOpenMenu(c=>c===b.id?null:b.id)}
+                  className="w-8 h-8 rounded-xl border border-[#e8e4dc] bg-white flex items-center justify-center text-[#0d0d0d]/40 hover:text-[#0d0d0d] transition-colors">
+                  <MoreHorizontal size={15}/>
+                </button>
+              }
+            >
+              <div className="min-w-[148px] bg-white rounded-xl border border-[#e8e4dc] shadow-xl overflow-hidden">
+                <button type="button" onClick={()=>{setOpenMenu(null);setEditing(b);setShowBook(true);}}
+                  className="flex w-full items-center px-3.5 py-2.5 text-[12.5px] font-semibold text-[#0d0d0d] hover:bg-[#f5f4f0] transition-colors">
+                  {String(t("admin_books.actions.edit"))}
+                </button>
+                {b.type==="physical" && (
+                  <button type="button" onClick={()=>{setOpenMenu(null);setCondBook({id:b.id,title:b.title});}}
                     className="flex w-full items-center px-3.5 py-2.5 text-[12.5px] font-semibold text-[#0d0d0d] hover:bg-[#f5f4f0] transition-colors">
-                    {String(t("admin_books.actions.edit"))}
+                    {String(t("admin_books.actions.condition"))}
                   </button>
-                  {b.type==="physical" && (
-                    <button type="button" onClick={()=>{setOpenMenu(null);setCondBook({id:b.id,title:b.title});}}
-                      className="flex w-full items-center px-3.5 py-2.5 text-[12.5px] font-semibold text-[#0d0d0d] hover:bg-[#f5f4f0] transition-colors">
-                      {String(t("admin_books.actions.condition"))}
-                    </button>
-                  )}
-                  <button type="button" onClick={()=>{setOpenMenu(null);setDel({id:b.id,type:b.type||"physical",title:b.title});}}
-                    className="flex w-full items-center px-3.5 py-2.5 text-[12.5px] font-semibold text-red-600 hover:bg-red-50 transition-colors">
-                    {String(t("admin_books.actions.delete"))}
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                )}
+                <button type="button" onClick={()=>{setOpenMenu(null);setDel({id:b.id,type:b.type||"physical",title:b.title});}}
+                  className="flex w-full items-center px-3.5 py-2.5 text-[12.5px] font-semibold text-red-600 hover:bg-red-50 transition-colors">
+                  {String(t("admin_books.actions.delete"))}
+                </button>
+              </div>
+            </PortalDropdown>
           </div>
         );
       },
@@ -538,14 +540,14 @@ export default function AdminBooksPage() {
       <motion.div variants={stagger} initial="hidden" animate="show" className="p-4 sm:p-6 space-y-5" onClick={()=>setOpenMenu(null)}>
         {/* Header */}
         <motion.div variants={fadeUp} className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
+          <div className="shrink-0">
             <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.2em] mb-1">Library</p>
             <h1 className="text-[26px] font-serif font-black text-[#0d0d0d]">{String(t("admin_books.title"))}</h1>
             <p className="text-sm text-[#0d0d0d]/45 mt-1">{String(t("admin_books.subtitle"))}</p>
           </div>
-          <div className="flex gap-3 w-full sm:w-auto">
+          <div className="flex gap-3 w-full sm:w-auto flex-1">
             {tab!=="categories" && (
-              <div className="relative flex-1 sm:w-52 sm:flex-none">
+              <div className="relative flex-1">
                 <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#0d0d0d]/30"/>
                 <input value={search} onChange={e=>{setSearch(e.target.value);setPage(1);}} placeholder={String(t("admin_books.search_placeholder"))}
                   className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-[#e8e4dc] bg-white placeholder:text-[#0d0d0d]/25 focus:outline-none focus:border-[#0d0d0d] focus:shadow-[0_0_0_3px_rgba(245,197,24,0.2)] transition-all"/>

@@ -5,7 +5,7 @@ import { RefreshCcw, MoreHorizontal, X } from "lucide-react";
 import { toast } from "sonner";
 import { useReservations, useExpireReservations, useMoveReservationToTop, useIssueReservation, useReservationHighDemand, type HighDemandReservationBook } from "@/lib/hooks/useQueries";
 import { useLanguage } from "@/components/providers/LanguageProvider";
-import { TanStackTable } from "@/components/ui/TanStackTable";
+import { TanStackTable, PortalDropdown } from "@/components/ui/TanStackTable";
 import { ColumnDef } from "@tanstack/react-table";
 
 const fadeUp={hidden:{opacity:0,y:16},show:{opacity:1,y:0,transition:{duration:0.38,ease:[0.16,1,0.3,1]}}};
@@ -54,12 +54,19 @@ export default function AdminReservationsPage() {
     {id:"debt",header:String(t("admin_reservations.table.debt")),cell:({row})=>{const d=Number(row.original.user_debt_total||0);return<span className={`text-[12px] ${d>0?"font-bold text-red-600":"text-[#0d0d0d]/40"}`}>{d>0?`${d.toFixed(2)} ETB`:String(t("admin_reservations.table.clear"))}</span>;}},
     {id:"expires",header:String(t("admin_reservations.table.expires")),cell:({row})=><span className="text-[12px] text-[#0d0d0d]/40">{row.original.expires_at?new Date(row.original.expires_at).toLocaleDateString():"—"}</span>},
     {id:"action",header:"",cell:({row})=>{const item=row.original;return(
-      <div className="relative flex justify-end" onClick={e=>e.stopPropagation()}>
-        <button onClick={()=>setMenu(v=>v===item.id?null:item.id)} className="w-8 h-8 rounded-xl border border-[#e8e4dc] bg-white flex items-center justify-center text-[#0d0d0d]/40 hover:text-[#0d0d0d] transition-colors"><MoreHorizontal size={15}/></button>
-        <AnimatePresence>{openMenu===item.id&&(<motion.div initial={{opacity:0,scale:0.95,y:-4}} animate={{opacity:1,scale:1,y:0}} exit={{opacity:0,scale:0.95}} transition={{duration:0.14}} className="absolute right-0 top-10 z-50 min-w-[160px] bg-white rounded-xl border border-[#e8e4dc] shadow-xl overflow-hidden">
-          <button disabled={item.status!=="QUEUED"||moveTop.isPending} onClick={()=>handleMoveTop(item.id)} className="flex w-full items-center px-3.5 py-2.5 text-[12.5px] font-semibold text-[#0d0d0d] hover:bg-[#f5f4f0] disabled:opacity-30 transition-colors">{String(t("admin_reservations.actions.move_to_top"))}</button>
-          <button disabled={issue.isPending||!["QUEUED","NOTIFIED"].includes(item.status)||(item.status==="QUEUED"&&Number(item.queue_position||0)!==1)||Number(item.user_debt_total||0)>0} onClick={()=>{setMenu(null);setIssueItem(item);setCopyCode("");}} className="flex w-full items-center px-3.5 py-2.5 text-[12.5px] font-semibold text-[#0d0d0d] hover:bg-[#f5f4f0] disabled:opacity-30 transition-colors">{String(t("admin_reservations.actions.issue_book"))}</button>
-        </motion.div>)}</AnimatePresence>
+      <div className="flex justify-end" onClick={e=>e.stopPropagation()}>
+        <PortalDropdown
+          isOpen={openMenu===item.id}
+          onClose={()=>setMenu(null)}
+          trigger={
+            <button onClick={()=>setMenu(v=>v===item.id?null:item.id)} className="w-8 h-8 rounded-xl border border-[#e8e4dc] bg-white flex items-center justify-center text-[#0d0d0d]/40 hover:text-[#0d0d0d] transition-colors"><MoreHorizontal size={15}/></button>
+          }
+        >
+          <div className="min-w-[160px] bg-white rounded-xl border border-[#e8e4dc] shadow-xl overflow-hidden">
+            <button disabled={item.status!=="QUEUED"||moveTop.isPending} onClick={()=>handleMoveTop(item.id)} className="flex w-full items-center px-3.5 py-2.5 text-[12.5px] font-semibold text-[#0d0d0d] hover:bg-[#f5f4f0] disabled:opacity-30 transition-colors">{String(t("admin_reservations.actions.move_to_top"))}</button>
+            <button disabled={issue.isPending||!["QUEUED","NOTIFIED"].includes(item.status)||(item.status==="QUEUED"&&Number(item.queue_position||0)!==1)||Number(item.user_debt_total||0)>0} onClick={()=>{setMenu(null);setIssueItem(item);setCopyCode("");}} className="flex w-full items-center px-3.5 py-2.5 text-[12.5px] font-semibold text-[#0d0d0d] hover:bg-[#f5f4f0] disabled:opacity-30 transition-colors">{String(t("admin_reservations.actions.issue_book"))}</button>
+          </div>
+        </PortalDropdown>
       </div>
     );}},
   ];
