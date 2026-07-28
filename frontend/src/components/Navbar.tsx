@@ -163,7 +163,7 @@ export const Navbar = () => {
               <div className="flex flex-col leading-none">
                 <span className={`text-lg font-serif font-black tracking-tight transition-colors duration-400 ${
                   scrolled ? "text-[#0d0d0d]" : "text-white"
-                }`}>ብራና</span>
+                }`}>Brana</span>
                 <span className={`text-[9px] font-bold tracking-[0.15em] uppercase transition-colors duration-400 ${
                   scrolled ? "text-[#6b7280]" : "text-white/55"
                 }`}>Library</span>
