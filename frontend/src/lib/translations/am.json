@@ -672,6 +672,7 @@
   "student_payments": {
     "title": "የቅጣት ክፍያዎች",
     "subtitle": "በመጠባበቅ ላይ ያሉ ቅጣቶችን እና የክፍያ ታሪክን ይከልሱ።",
+    "total_paid": "ጠቅላላ የተከፈለ",
     "verifying": "የ {ref} ክፍያ እየተረጋገጠ ነው...",
     "success_verify": "ክፍያ በተሳካ ሁኔታ ተረጋግጧል።",
     "pending_verify": "ክፍያ አሁንም ማረጋገጫ በመጠባበቅ ላይ ነው።",

@@ -672,6 +672,7 @@
   "student_payments": {
     "title": "Kafaltii Adabbii",
     "subtitle": "Adabbiiwwan madaallii irra jiranii fi seenaa kafaltii madaallii irra deebi'anii ilaalaa.",
+    "total_paid": "Kafaltii Waliigalaa",
     "verifying": "Kafaltii {ref} mirkaneessaa jira...",
     "success_verify": "Kafaltiin milkiin mirkaneeffameera.",
     "pending_verify": "Kafaltiin ammayyuu mirkaneessa eegaa jira.",

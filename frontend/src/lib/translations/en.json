@@ -673,6 +673,7 @@
   "student_payments": {
     "title": "Fine Payments",
     "subtitle": "Review pending fines and payment history.",
+    "total_paid": "Total Paid",
     "verifying": "Verifying payment {ref}...",
     "success_verify": "Payment verified successfully.",
     "pending_verify": "Payment is still pending confirmation.",

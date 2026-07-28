@@ -87,7 +87,7 @@ export const DashboardSidebar = ({ variant = "default" }: DashboardSidebarProps)
         background: "linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent)",
       }} />
 
-      <div className="relative z-10 flex flex-col h-full">
+      <div className="relative z-10 flex flex-col h-full overflow-hidden">
 
         {/* ── Header ─────────────────────────────────────────────── */}
         {collapsed ? (
@@ -235,8 +235,11 @@ export const DashboardSidebar = ({ variant = "default" }: DashboardSidebarProps)
 
         {/* ── Bottom: logout only ───────── */}
         <div
-          className={`shrink-0 mt-auto pt-3 pb-5 space-y-0.5 ${collapsed ? "px-2" : "px-3"}`}
-          style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}
+          className={`shrink-0 mt-auto pt-3 space-y-0.5 ${collapsed ? "px-2" : "px-3"}`}
+          style={{
+            borderTop: "1px solid rgba(255,255,255,0.08)",
+            paddingBottom: "max(20px, env(safe-area-inset-bottom, 20px))",
+          }}
         >
           {/* Logout */}
           <button
@@ -291,7 +294,7 @@ export const DashboardSidebar = ({ variant = "default" }: DashboardSidebarProps)
             key="mobile-sidebar"
             initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }}
             transition={{ type: "spring", stiffness: 400, damping: 38 }}
-            className="lg:hidden fixed left-0 top-0 h-screen w-[270px] z-[2147483646] flex flex-col"
+            className="lg:hidden fixed left-0 top-0 h-[100dvh] w-[270px] z-[2147483646] flex flex-col overflow-hidden"
           >
             {renderSidebar(false)}
           </motion.aside>

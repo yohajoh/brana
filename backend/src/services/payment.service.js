@@ -97,7 +97,7 @@ const initializeChapaPayment = async ({ amount, email, firstName, lastName, txRe
     process.env.CHAPA_WEBHOOK_URL || `${process.env.BACKEND_URL || "http://localhost:5000"}/api/payments/webhook`;
   const returnUrl = buildChapaReturnUrl(txRef);
   const safeTitle = sanitizeChapaText(title, "Brana Payment").slice(0, 16);
-  const safeDescription = sanitizeChapaText(description, `Payment for rental ${rentalId}`);
+  const safeDescription = sanitizeChapaText(description, `Payment for rental ${rentalId}`).slice(0, 50);
 
   const payload = {
     amount: Number(amount).toFixed(2),
