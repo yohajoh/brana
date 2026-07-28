@@ -11,6 +11,7 @@ import { TanStackTable } from "@/components/ui/TanStackTable";
 type Payment = {
   id: string; amount: number; method: "CHAPA" | "CASH";
   status: "PENDING" | "SUCCESS" | "FAILED"; paid_at: string;
+  context?: "BORROW" | "FINE" | null;
   rental: { id: string; status: string; fine?: number | null; physical_book: { title: string } };
 };
 type RentalFine  = { id: string; fine: number | null; physical_book: { title: string } };
@@ -92,8 +93,9 @@ function PaymentsContent() {
 
   const retry = async (p: Payment) => {
     try {
-      // Determine context from rental status — BORROWED = borrow payment, PENDING = fine payment
-      const context = p.rental.status === "BORROWED" ? "BORROW" : "FINE";
+      // Use the payment's own context field — BORROW or FINE
+      // Fall back to rental.status check if context is missing (older records)
+      const context = p.context === "BORROW" || p.rental.status === "BORROWED" ? "BORROW" : "FINE";
       const res = await api.post<{ data: { chapaUrl?: string; message?: string } }>(
         `/payments/rental/${p.rental.id}/initiate`,
         { method: "CHAPA", context }
