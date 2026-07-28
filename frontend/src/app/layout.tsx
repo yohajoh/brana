@@ -19,9 +19,6 @@ const playfair = Playfair_Display({
 export const metadata: Metadata = {
   title: "Brana Library — ASTU Campus Book Rental",
   description: "Brana is a digital book rental platform for ASTU students. Search, reserve, and borrow physical and digital books online. Manage your rentals, fines, and reading history from one place.",
-  verification: {
-    google: "1EvsUdoGFI1pgNS",
-  },
   openGraph: {
     title: "Brana Library — ASTU Campus Book Rental",
     description: "Digital and physical book rental system for ASTU students. Borrow books online, get dorm delivery, and manage your library account.",
