@@ -81,17 +81,26 @@ function PaymentsContent() {
 
   const payFine = async (rentalId: string) => {
     try {
-      const res = await api.post<{ data: { chapaUrl: string } }>(`/payments/rental/${rentalId}/initiate`, { method: "CHAPA" });
+      const res = await api.post<{ data: { chapaUrl?: string; message?: string } }>(
+        `/payments/rental/${rentalId}/initiate`,
+        { method: "CHAPA", context: "FINE" }
+      );
       if (res?.data?.chapaUrl) window.location.href = res.data.chapaUrl;
-    } catch { setVerifyMsg(String(t("common.error_occurred"))); }
+      else if (res?.data?.message) setVerifyMsg(res.data.message);
+    } catch (e) { setVerifyMsg(e instanceof Error ? e.message : String(t("common.error_occurred"))); }
   };
 
   const retry = async (p: Payment) => {
     try {
-      const isBorrow = p.rental.status === "BORROWED" && Number(p.rental.fine || 0) <= 0;
-      const res = await api.post<{ data: { chapaUrl: string } }>(`/payments/rental/${p.rental.id}/initiate`, { method: "CHAPA", context: isBorrow ? "BORROW" : "FINE" });
+      // Determine context from rental status — BORROWED = borrow payment, PENDING = fine payment
+      const context = p.rental.status === "BORROWED" ? "BORROW" : "FINE";
+      const res = await api.post<{ data: { chapaUrl?: string; message?: string } }>(
+        `/payments/rental/${p.rental.id}/initiate`,
+        { method: "CHAPA", context }
+      );
       if (res?.data?.chapaUrl) window.location.href = res.data.chapaUrl;
-    } catch { setVerifyMsg(String(t("common.error_occurred"))); }
+      else if (res?.data?.message) setVerifyMsg(res.data.message);
+    } catch (e) { setVerifyMsg(e instanceof Error ? e.message : String(t("common.error_occurred"))); }
   };
 
   const totalPaid   = payments.filter(p => p.status === "SUCCESS").reduce((s, p) => s + Number(p.amount), 0);
