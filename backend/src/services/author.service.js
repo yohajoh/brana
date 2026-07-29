@@ -12,7 +12,7 @@
 import { prisma } from '../prisma.js';
 import { AppError } from '../middlewares/error.middleware.js';
 import { paginationMeta } from '../utils/apiFeatures.js';
-import { uploadImageToCloudinary } from '../utils/cloudinary.js';
+import { uploadImageToCloudinary, deleteImageFromCloudinary } from '../utils/cloudinary.js';
 
 const ACTIVE_BOOK_COUNT_SELECT = {
   books: { where: { deleted_at: null } },
@@ -166,5 +166,14 @@ export const deleteAuthor = async (id) => {
     );
   }
 
-  return prisma.author.delete({ where: { id } });
+  await prisma.author.delete({ where: { id } });
+
+  // Clean up Cloudinary image (non-blocking)
+  if (author.image) {
+    setImmediate(() => {
+      deleteImageFromCloudinary(author.image).catch((err) =>
+        console.warn('[AuthorService] Cloudinary cleanup failed:', err?.message)
+      );
+    });
+  }
 };

@@ -141,7 +141,7 @@ model Rental {
   user_id       String    @db.Uuid
   actor_user_id String?   @db.Uuid
   student_profile_id String? @db.Uuid
-  book_id       String    @db.Uuid
+  book_id       String?   @db.Uuid
   loan_date     DateTime  @default(now())
   due_date      DateTime
   return_date   DateTime?
@@ -149,8 +149,8 @@ model Rental {
   fine          Decimal?
   copy_id       String?   @db.Uuid
   payment       Payment?
-  physical_book Book      @relation(fields: [book_id], references: [id])
-  copy          BookCopy? @relation(fields: [copy_id], references: [id])
+  physical_book Book?     @relation(fields: [book_id], references: [id], onDelete: SetNull)
+  copy          BookCopy? @relation(fields: [copy_id], references: [id], onDelete: SetNull)
   user          User      @relation("RentalStudentOwner", fields: [user_id], references: [id])
   actor_user    User?     @relation("RentalActor", fields: [actor_user_id], references: [id])
   student_profile StudentProfile? @relation("RentalStudentProfile", fields: [student_profile_id], references: [id])
@@ -203,8 +203,8 @@ model Book {
   topics           String[]         @default([])
   author           Author           @relation(fields: [author_id], references: [id])
   category         Category         @relation(fields: [category_id], references: [id])
-  copies_detail    BookCopy[]
-  images           BookImage[]
+  copies_detail    BookCopy[]       @relation
+  images           BookImage[]      @relation
   inventory_alerts InventoryAlert[]
   rentals          Rental[]
   reservations     Reservation[]
@@ -255,8 +255,8 @@ model BookImage {
   sort_order       Int
   physical_book_id String?      @db.Uuid
   digital_book_id  String?      @db.Uuid
-  digital_book     DigitalBook? @relation(fields: [digital_book_id], references: [id])
-  physical_book    Book?        @relation(fields: [physical_book_id], references: [id])
+  digital_book     DigitalBook? @relation(fields: [digital_book_id], references: [id], onDelete: Cascade)
+  physical_book    Book?        @relation(fields: [physical_book_id], references: [id], onDelete: Cascade)
 
   @@index([physical_book_id, sort_order])
   @@index([digital_book_id, sort_order])
@@ -271,8 +271,8 @@ model Review {
   rating           Int
   comment          String?
   created_at       DateTime     @default(now())
-  digital_book     DigitalBook? @relation(fields: [digital_book_id], references: [id])
-  physical_book    Book?        @relation(fields: [physical_book_id], references: [id])
+  digital_book     DigitalBook? @relation(fields: [digital_book_id], references: [id], onDelete: Cascade)
+  physical_book    Book?        @relation(fields: [physical_book_id], references: [id], onDelete: Cascade)
   user             User         @relation(fields: [user_id], references: [id])
 
   @@unique([user_id, physical_book_id])
@@ -289,7 +289,7 @@ model DigitalReadProgress {
   last_read_at    DateTime    @default(now())
   read_count      Int         @default(1)
   user            User        @relation(fields: [user_id], references: [id])
-  digital_book    DigitalBook @relation(fields: [digital_book_id], references: [id])
+  digital_book    DigitalBook @relation(fields: [digital_book_id], references: [id], onDelete: Cascade)
 
   @@unique([user_id, digital_book_id])
   @@index([digital_book_id, last_read_at])
@@ -302,8 +302,8 @@ model Wishlist {
   digital_book_id  String?      @db.Uuid
   book_type        BookType
   created_at       DateTime     @default(now())
-  digital_book     DigitalBook? @relation(fields: [digital_book_id], references: [id])
-  physical_book    Book?        @relation(fields: [physical_book_id], references: [id])
+  digital_book     DigitalBook? @relation(fields: [digital_book_id], references: [id], onDelete: Cascade)
+  physical_book    Book?        @relation(fields: [physical_book_id], references: [id], onDelete: Cascade)
   user             User         @relation(fields: [user_id], references: [id])
 
   @@unique([user_id, physical_book_id])
@@ -324,7 +324,7 @@ model Reservation {
   expires_at     DateTime?
   fulfilled_at   DateTime?
   cancelled_at   DateTime?
-  book           Book              @relation(fields: [book_id], references: [id])
+  book           Book              @relation(fields: [book_id], references: [id], onDelete: Cascade)
   user           User              @relation("ReservationStudentOwner", fields: [user_id], references: [id])
   actor_user     User?             @relation("ReservationActor", fields: [actor_user_id], references: [id])
   student_profile StudentProfile?  @relation("ReservationStudentProfile", fields: [student_profile_id], references: [id])
@@ -348,7 +348,7 @@ model BookCopy {
   notes                 String?
   deleted_at            DateTime?
   condition_history     BookConditionHistory[]
-  book                  Book                   @relation(fields: [book_id], references: [id])
+  book                  Book                   @relation(fields: [book_id], references: [id], onDelete: Cascade)
   rentals               Rental[]
 
   @@index([book_id, condition])
@@ -363,7 +363,7 @@ model BookConditionHistory {
   notes              String?
   updated_by_user_id String?       @db.Uuid
   created_at         DateTime      @default(now())
-  copy               BookCopy      @relation(fields: [copy_id], references: [id])
+  copy               BookCopy      @relation(fields: [copy_id], references: [id], onDelete: Cascade)
   updated_by_user    User?         @relation(fields: [updated_by_user_id], references: [id])
 
   @@index([copy_id, created_at])
@@ -395,7 +395,7 @@ model InventoryAlert {
   created_at          DateTime           @default(now())
   resolved_at         DateTime?
   resolved_by_user_id String?            @db.Uuid
-  book                Book               @relation(fields: [book_id], references: [id])
+  book                Book               @relation(fields: [book_id], references: [id], onDelete: Cascade)
   resolved_by_user    User?              @relation("InventoryAlertResolvedBy", fields: [resolved_by_user_id], references: [id])
 
   @@index([book_id, is_resolved])
