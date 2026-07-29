@@ -106,3 +106,66 @@ export const uploadMultipleToCloudinary = async (files, opts = {}) => {
   const uploads = files.map((file) => uploadImageToCloudinary(file, opts));
   return Promise.all(uploads);
 };
+
+/**
+ * Extract Cloudinary public_id from a secure_url.
+ * e.g. https://res.cloudinary.com/demo/image/upload/v123/brana/authors/abc.jpg
+ *   => brana/authors/abc
+ */
+export const extractPublicId = (url) => {
+  if (!url || !url.includes('cloudinary.com')) return null;
+  try {
+    const parts = url.split('/upload/');
+    if (parts.length < 2) return null;
+    // Remove version prefix (v1234567890/) if present
+    const withoutVersion = parts[1].replace(/^v\d+\//, '');
+    // Remove file extension
+    return withoutVersion.replace(/\.[^/.]+$/, '');
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Delete a single image from Cloudinary by its URL.
+ * Silently ignores errors (non-critical cleanup).
+ */
+export const deleteImageFromCloudinary = async (imageUrl) => {
+  if (!imageUrl || !imageUrl.includes('cloudinary.com')) return;
+
+  const cfg = getCloudinaryConfig();
+  if (!cfg) return;
+
+  const publicId = extractPublicId(imageUrl);
+  if (!publicId) return;
+
+  const { cloudName, apiKey, apiSecret } = cfg;
+  const timestamp = Math.floor(Date.now() / 1000);
+
+  const signature = signUploadParams({ public_id: publicId, timestamp }, apiSecret);
+
+  try {
+    const form = new FormData();
+    form.append('public_id', publicId);
+    form.append('api_key', apiKey);
+    form.append('timestamp', String(timestamp));
+    form.append('signature', signature);
+
+    await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/destroy`, {
+      method: 'POST',
+      body: form,
+    });
+  } catch {
+    // Non-critical — log but don't throw
+    console.warn(`[Cloudinary] Failed to delete image: ${publicId}`);
+  }
+};
+
+/**
+ * Delete multiple images from Cloudinary. Runs in parallel, ignores errors.
+ */
+export const deleteImagesFromCloudinary = async (imageUrls = []) => {
+  const validUrls = imageUrls.filter((url) => url && url.includes('cloudinary.com'));
+  if (validUrls.length === 0) return;
+  await Promise.allSettled(validUrls.map((url) => deleteImageFromCloudinary(url)));
+};

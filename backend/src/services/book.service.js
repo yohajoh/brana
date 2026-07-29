@@ -13,7 +13,7 @@ import { prisma } from "../prisma.js";
 import { AppError } from "../middlewares/error.middleware.js";
 import { paginationMeta } from "../utils/apiFeatures.js";
 import { syncLowStockAlertForBook } from "./inventoryAlert.service.js";
-import { uploadImageToCloudinary } from "../utils/cloudinary.js";
+import { uploadImageToCloudinary, deleteImagesFromCloudinary } from "../utils/cloudinary.js";
 import { sendEmail } from "./mail.service.js";
 import { getCalendarClient } from "../utils/googleCalendar.js";
 
@@ -958,11 +958,14 @@ export const updateBook = async (id, data, imageFile = null, galleryFiles = []) 
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Soft-delete a book.
+ * Hard-delete a book and clean up Cloudinary images.
  * Cannot delete if there are active rentals.
  */
 export const deleteBook = async (id) => {
-  const book = await prisma.book.findFirst({ where: { id, deleted_at: null } });
+  const book = await prisma.book.findFirst({
+    where: { id },
+    include: { images: { select: { image_url: true } } },
+  });
   if (!book) throw new AppError("Book not found", 404);
 
   const activeRentals = await prisma.rental.count({
@@ -972,16 +975,23 @@ export const deleteBook = async (id) => {
     throw new AppError(`Cannot delete: ${activeRentals} active rental(s) exist for this book`, 409);
   }
 
-  const result = await prisma.book.update({
-    where: { id },
-    data: { deleted_at: new Date() },
+  // Collect all image URLs for Cloudinary cleanup
+  const imageUrls = [
+    book.cover_image_url,
+    ...book.images.map((img) => img.image_url),
+  ].filter(Boolean);
+
+  // Hard delete — cascade handles related records (bookCopies, bookImages, wishlists, etc.)
+  await prisma.book.delete({ where: { id } });
+
+  // Clean up Cloudinary images after successful DB delete (non-blocking)
+  setImmediate(() => {
+    deleteImagesFromCloudinary(imageUrls).catch((err) =>
+      console.warn("[BookService] Cloudinary cleanup failed:", err?.message)
+    );
   });
-  await prisma.bookCopy.updateMany({
-    where: { book_id: id, deleted_at: null },
-    data: { deleted_at: new Date(), is_available: false },
-  });
-  await syncLowStockAlertForBook(id);
-  return result;
+
+  await syncLowStockAlertForBook(id).catch(() => {});
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

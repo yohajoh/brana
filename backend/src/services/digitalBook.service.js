@@ -12,7 +12,7 @@
 import { prisma } from "../prisma.js";
 import { AppError } from "../middlewares/error.middleware.js";
 import { paginationMeta } from "../utils/apiFeatures.js";
-import { uploadImageToCloudinary } from "../utils/cloudinary.js";
+import { uploadImageToCloudinary, deleteImagesFromCloudinary } from "../utils/cloudinary.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS
@@ -721,11 +721,26 @@ export const updateDigitalBook = async (id, data, pdfFile = null, imageFile = nu
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const deleteDigitalBook = async (id) => {
-  const book = await prisma.digitalBook.findFirst({ where: { id, deleted_at: null } });
-  if (!book) throw new AppError("Digital book not found", 404);
-  return prisma.digitalBook.update({
+  const book = await prisma.digitalBook.findFirst({
     where: { id },
-    data: { deleted_at: new Date() },
+    include: { images: { select: { image_url: true } } },
+  });
+  if (!book) throw new AppError("Digital book not found", 404);
+
+  // Collect all Cloudinary image URLs
+  const imageUrls = [
+    book.cover_image_url,
+    ...book.images.map((img) => img.image_url),
+  ].filter(Boolean);
+
+  // Hard delete from DB
+  await prisma.digitalBook.delete({ where: { id } });
+
+  // Clean up Cloudinary images (non-blocking)
+  setImmediate(() => {
+    deleteImagesFromCloudinary(imageUrls).catch((err) =>
+      console.warn("[DigitalBookService] Cloudinary cleanup failed:", err?.message)
+    );
   });
 };
 
