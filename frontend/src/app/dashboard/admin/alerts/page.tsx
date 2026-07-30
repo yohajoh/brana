@@ -141,7 +141,15 @@ function AlertsContent() {
   const [aBulkDel,  setABulkDel]  = useState(false);
   const [aDelId,    setADelId]    = useState<string|null>(null);
   const allAlertsSelected = alerts.length > 0 && alerts.every(a => aSelected.has(a.id));
-  const toggleAlert = (id:string) => setASelected(p => { const n=new Set(p); n.has(id)?n.delete(id):n.add(id); return n; });
+  const toggleAlert = (id:string) => setASelected(p => {
+    const n=new Set(p);
+    if (n.has(id)) {
+      n.delete(id);
+    } else {
+      n.add(id);
+    }
+    return n;
+  });
   const toggleAllAlerts = () => setASelected(allAlertsSelected ? new Set() : new Set(alerts.map(a=>a.id)));
 
   /* notif selection */
@@ -149,7 +157,15 @@ function AlertsContent() {
   const [nBulkDel,  setNBulkDel]  = useState(false);
   const [nDelId,    setNDelId]    = useState<string|null>(null);
   const allNotifsSelected = notifList.length > 0 && notifList.every(n => nSelected.has(n.id));
-  const toggleNotif = (id:string) => setNSelected(p => { const n=new Set(p); n.has(id)?n.delete(id):n.add(id); return n; });
+  const toggleNotif = (id:string) => setNSelected(p => {
+    const n=new Set(p);
+    if (n.has(id)) {
+      n.delete(id);
+    } else {
+      n.add(id);
+    }
+    return n;
+  });
   const toggleAllNotifs = () => setNSelected(allNotifsSelected ? new Set() : new Set(notifList.map(n=>n.id)));
 
   /* overlay */

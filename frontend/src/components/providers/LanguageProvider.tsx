@@ -37,7 +37,9 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   useEffect(() => {
     const saved = localStorage.getItem("language");
     if (isLanguage(saved)) {
-      setLanguageState(saved);
+      setTimeout(() => {
+        setLanguageState(saved);
+      }, 0);
     }
   }, []);
 

@@ -40,7 +40,7 @@ export default function StudentReservationsPage() {
   const [bulkCancelling, setBulkCancelling] = useState(false);
   const cancellable = rows.filter(r => ["QUEUED","NOTIFIED"].includes(r.status));
   const allSelected = cancellable.length > 0 && cancellable.every(r => bulkSelected.has(r.id));
-  const toggleBulk = (id: string) => setBulkSelected(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggleBulk = (id: string) => setBulkSelected(p => { const n = new Set(p); if (n.has(id)) { n.delete(id); } else { n.add(id); } return n; });
   const toggleAll = () => setBulkSelected(allSelected ? new Set() : new Set(cancellable.map(r => r.id)));
 
   const handleBulkCancel = async () => {

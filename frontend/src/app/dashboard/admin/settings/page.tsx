@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { useSystemConfig, useUpdateSystemConfig } from "@/lib/hooks/useQueries";
-import { useLanguage } from "@/components/providers/LanguageProvider";
 
 const fadeUp={hidden:{opacity:0,y:16},show:{opacity:1,y:0,transition:{duration:0.38,ease:[0.16,1,0.3,1]}}};
 const stagger={hidden:{},show:{transition:{staggerChildren:0.08}}};
@@ -22,7 +21,6 @@ function Field({ label, hint, value, onChange }: { label:string; hint?:string; v
 }
 
 export default function AdminSettingsPage() {
-  const { t }=useLanguage();
   const {data,isLoading}=useSystemConfig(); const update=useUpdateSystemConfig();
   const cfg=data?.data?.config as Config|undefined;
   const [form,setForm]=useState({max_loan_days:"14",daily_fine:"2",max_books_per_user:"3",reservation_window_hr:"24",low_stock_threshold:"2",never_returned_days:"60",enable_notifications:true});

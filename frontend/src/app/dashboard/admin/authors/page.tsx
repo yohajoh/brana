@@ -86,7 +86,7 @@ export default function AdminAuthorsPage() {
     try{await del.mutateAsync(delAuthor.id);toast.success(String(t("admin_authors.messages.delete_success")));setDel(null);}
     catch(e2){toast.error(err(e2,String(t("admin_authors.messages.delete_failed"))));}
   };
-  const toggleBulk=(id:string)=>setBulkSelected(p=>{const n=new Set(p);n.has(id)?n.delete(id):n.add(id);return n;});
+  const toggleBulk=(id:string)=>setBulkSelected(p=>{const n=new Set(p);if(n.has(id)){n.delete(id);}else{n.add(id);}return n;});
   const allPageSelected=paginated.length>0&&paginated.every(a=>bulkSelected.has(a.id));
   const handleBulkDelete=async()=>{
     if(!bulkSelected.size) return;

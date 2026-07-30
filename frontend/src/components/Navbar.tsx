@@ -29,6 +29,12 @@ export const Navbar = () => {
   const [isLangOpen, setIsLangOpen]     = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [scrolled, setScrolled]         = useState(false);
+  const [prevPathname, setPrevPathname] = useState(pathname);
+
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
+    setIsMobileOpen(false);
+  }
   const langRef    = useRef<HTMLDivElement>(null);
   const mobileRef  = useRef<HTMLDivElement>(null);
   const hamburgerRef = useRef<HTMLButtonElement>(null);
@@ -61,8 +67,7 @@ export const Navbar = () => {
     return () => document.removeEventListener("mousedown", h);
   }, []);
 
-  /* Close mobile menu on route change */
-  useEffect(() => { setIsMobileOpen(false); }, [pathname]);
+  /* Close mobile menu on route change is handled during rendering */
 
   const isActive = (path: string) =>
     path === "/" ? pathname === "/" : pathname.startsWith(path);

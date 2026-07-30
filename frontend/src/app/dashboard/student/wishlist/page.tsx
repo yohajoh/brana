@@ -39,7 +39,7 @@ export default function WishlistPage() {
   const totalPages = data?.meta?.totalPages || 1;
   const available  = wishlist.filter(i => i.bookAvailable && !i.bookDeleted).length;
 
-  const toggleBulk = (id: string) => setBulkSelected(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggleBulk = (id: string) => setBulkSelected(p => { const n = new Set(p); if (n.has(id)) { n.delete(id); } else { n.add(id); } return n; });
   const allSelected = wishlist.length > 0 && wishlist.every(i => bulkSelected.has(i.id));
   const toggleAll = () => setBulkSelected(allSelected ? new Set() : new Set(wishlist.map(i => i.id)));
 

@@ -134,7 +134,7 @@ function NotificationsContent() {
   const allSelected = list.length > 0 && list.every(n => bulkSelected.has(n.id));
 
   const toggleSelect = (id: string) =>
-    setBulkSelected(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
+    setBulkSelected(p => { const n = new Set(p); if (n.has(id)) { n.delete(id); } else { n.add(id); } return n; });
 
   const toggleAll = () =>
     setBulkSelected(allSelected ? new Set() : new Set(list.map(n => n.id)));

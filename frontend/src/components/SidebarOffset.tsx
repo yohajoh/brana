@@ -9,12 +9,19 @@ export function SidebarOffset({ children }: { children: React.ReactNode }) {
   const [isLg, setIsLg]        = useState(false);
 
   useEffect(() => {
-    setMounted(true);
     const mq      = window.matchMedia("(min-width: 1024px)");
-    setIsLg(mq.matches);
     const handler = (e: MediaQueryListEvent) => setIsLg(e.matches);
     mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
+
+    const rafId = requestAnimationFrame(() => {
+      setMounted(true);
+      setIsLg(mq.matches);
+    });
+
+    return () => {
+      mq.removeEventListener("change", handler);
+      cancelAnimationFrame(rafId);
+    };
   }, []);
 
   const ml = mounted && isLg ? (isCollapsed ? 64 : 256) : 0;

@@ -11,7 +11,7 @@ import {
   useCreateAuthor, useBookCopies, useConditionHistory, useUpdateCondition,
 } from "@/lib/hooks/useQueries";
 import { useLanguage } from "@/components/providers/LanguageProvider";
-import { TanStackTable, PortalDropdown, TruncatedCell } from "@/components/ui/TanStackTable";
+import { TanStackTable, PortalDropdown } from "@/components/ui/TanStackTable";
 import { ColumnDef } from "@tanstack/react-table";
 import Image from "next/image";
 
@@ -169,7 +169,6 @@ function BookModal({ onClose, authors, categories, editingBook, onSubmit, submit
     description:"", publication_year:"", loan_duration_days:"", rental_price:"10",
     tags:"", topics:"", pdf_access:"RESTRICTED" as "FREE"|"PAID"|"RESTRICTED" });
   // Pre-uploaded Cloudinary URLs
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [coverUrl, setCoverUrl] = useState<string>(editingBook?.cover_image_url||"");
   const [galleryUrls, setGalleryUrls] = useState<string[]>(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -533,7 +532,7 @@ export default function AdminBooksPage() {
 
   const { data: booksData,    isLoading: bl, refetch: refetchBooks }   = useBooks("limit=200");
   const { data: digitalData,  isLoading: dl, refetch: refetchDigital } = useDigitalBooks("limit=200");
-  const { data: catsData,     isLoading: cl, refetch: refetchCats }    = useCategories("limit=200");
+  const { data: catsData,     isLoading: cl }    = useCategories("limit=200");
   const { data: authorsData }                 = useAuthors("limit=200");
 
   const createBook = useCreateBook(); const updateBook = useUpdateBook(); const deleteBook = useDeleteBook();
@@ -574,7 +573,7 @@ export default function AdminBooksPage() {
     toast.success(String(t("admin_books.messages.delete_success"))); setDel(null);
   };
 
-  const toggleBulk=(id:string)=>setBulkSelected(p=>{const n=new Set(p);n.has(id)?n.delete(id):n.add(id);return n;});
+  const toggleBulk=(id:string)=>setBulkSelected(p=>{const n=new Set(p);if(n.has(id)){n.delete(id);}else{n.add(id);}return n;});
   const allPageSelected=paginated.length>0&&paginated.every(b=>bulkSelected.has(b.id));
   const handleBulkDelete=async()=>{
     if(!bulkSelected.size) return;

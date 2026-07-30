@@ -130,15 +130,6 @@ app.use("/api/public/stats", publicStatsRoutes);
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
-
-// const registrationRoutes = require("./routes/registration");
-import registrationRoutes from "./routes/registration.js";
-// const invoiceRoutes = require("./routes/invoice");
-import invoiceRoutes from "./routes/invoice.js";
-
-app.use(registrationRoutes);
-app.use(invoiceRoutes);
-
 app.all("/{*splat}", (req, res, next) => {
   next(new AppError(`Cannot find ${req.method} ${req.originalUrl} on this server`, 404));
 });

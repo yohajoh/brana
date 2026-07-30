@@ -46,15 +46,9 @@ const googleClientId = process.env.GOOGLE_CLIENT_ID || process.env.CLIENT_ID;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET || process.env.CLIENT_SECRET;
 const callbackUrl = process.env.CALLBACK_URL;
 
-console.log("📋 Loading passport configuration...");
-console.log(
-  "Google Client ID:",
-  googleClientId ? "configured" : "NOT configured",
-);
-console.log("Callback URL:", callbackUrl);
+
 
 if (googleClientId && googleClientSecret && callbackUrl) {
-  console.log("✅ Google OAuth strategy being configured...");
   passport.use(
     new GoogleStrategy(
       {
@@ -68,10 +62,6 @@ if (googleClientId && googleClientSecret && callbackUrl) {
       },
       async (accessToken, refreshToken, profile, done) => {
         try {
-          console.log(
-            "🔐 Google OAuth callback received for:",
-            profile.emails?.[0]?.value,
-          );
           const email = profile.emails?.[0]?.value;
           if (!email) {
             return done(new Error("No email provided by Google"), null);
@@ -83,7 +73,6 @@ if (googleClientId && googleClientSecret && callbackUrl) {
           );
 
           if (user) {
-            console.log("📝 Existing Google user found:", user.email);
             if (user.is_blocked) {
               return done(
                 new Error("Your account is blocked. Please contact admin."),
@@ -126,11 +115,8 @@ if (googleClientId && googleClientSecret && callbackUrl) {
       },
     ),
   );
-  console.log("✅ Google OAuth strategy configured successfully");
 } else {
-  console.warn(
-    "⚠️ Google OAuth not configured. Set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and CALLBACK_URL environment variables.",
-  );
+  // Google OAuth not configured — strategy skipped
 }
 
 passport.serializeUser((user, done) => {

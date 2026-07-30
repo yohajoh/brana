@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Bell, ChevronRight, AlertCircle, BookOpen, Clock, Info, CheckCheck } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useAllNotifications, useNotifications, useMarkAsRead, type Notification } from "@/lib/hooks/useNotifications";
+import { useNotifications, useMarkAsRead, type Notification } from "@/lib/hooks/useNotifications";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 
 /* ── type config ─────────────────────────────────────────── */

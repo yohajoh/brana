@@ -31,7 +31,7 @@ export default function AdminReservationsPage() {
   const highDemand=(hdData?.data?.books||[]) as HighDemandReservationBook[];
   const err=(e:unknown,fb:string)=>e instanceof Error&&e.message?e.message:fb;
 
-  const toggle=(id:string)=>setSelected(p=>{const n=new Set(p);n.has(id)?n.delete(id):n.add(id);return n;});
+  const toggle=(id:string)=>setSelected(p=>{const n=new Set(p);if(n.has(id)){n.delete(id);}else{n.add(id);}return n;});
   const selectAll=(c:boolean)=>setSelected(c?new Set(reservations.map(r=>r.id)):new Set());
 
   const handleCancel=async()=>{

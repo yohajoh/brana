@@ -18,7 +18,7 @@ export const getAuthCookieOptions = () => {
     secure = String(process.env.COOKIE_SECURE).toLowerCase() === "true";
   }
 
-  let sameSite = normalizeSameSite(process.env.COOKIE_SAMESITE, secure ? "none" : "lax");
+  const sameSite = normalizeSameSite(process.env.COOKIE_SAMESITE, secure ? "none" : "lax");
   if (sameSite === "none" && !secure) {
     secure = true;
   }

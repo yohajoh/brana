@@ -39,7 +39,7 @@ const toDayKey = (date = new Date()) => date.toISOString().slice(0, 10);
 export const sendUpcomingReturnReminders = async (io) => {
   const config = await getConfig();
   if (!config) {
-    console.log('No system config found, skipping upcoming return reminders');
+    console.warn('[AutoReminder] No system config found, skipping upcoming return reminders');
     return { remindersSent: 0 };
   }
 
@@ -104,7 +104,7 @@ export const sendUpcomingReturnReminders = async (io) => {
 export const sendOverdueRemindersAutomated = async (io) => {
   const config = await getConfig();
   if (!config) {
-    console.log('No system config found, skipping overdue reminders');
+    console.warn('[AutoReminder] No system config found, skipping overdue reminders');
     return { remindersSent: 0 };
   }
 

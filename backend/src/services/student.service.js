@@ -234,7 +234,7 @@ export const getStudentRecommendations = async (userId, limit = 8) => {
   };
 };
 
-export const getStudentPopularity = async (limit = 8) => {
+export const getStudentPopularity = async (_limit = 8) => {
   const [mostRented, topRated] = await Promise.all([
     prisma.rental.groupBy({
       by: ["book_id"],

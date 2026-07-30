@@ -31,8 +31,6 @@ interface UserInsights {
 }
 type ConfirmState = { title:string; description:string; confirmLabel:string; tone:"danger"|"amber"|"primary"; action:()=>Promise<void> } | null;
 
-/* ── shared reusable pieces ────────────────────────────────── */
-const IC = "w-full px-4 py-3 rounded-xl border border-[#e8e4dc] bg-[#f5f4f0] text-sm text-[#0d0d0d] focus:outline-none focus:border-[#0d0d0d] focus:bg-white focus:shadow-[0_0_0_3px_rgba(245,197,24,0.2)] transition-all";
 
 function Badge({ user }: { user: User }) {
   const { t } = useLanguage();
@@ -230,7 +228,7 @@ export default function AdminUsersPage() {
     finally { setConfirming(false); }
   };
 
-  const toggleBulk = (id: string) => setBulkSelected(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggleBulk = (id: string) => setBulkSelected(p => { const n = new Set(p); if (n.has(id)) { n.delete(id); } else { n.add(id); } return n; });
 
   const actions = (u: User) => {
     const canManage = isSuperAdmin ? !u.is_super_admin && u.id !== me?.id : u.role==="STUDENT";

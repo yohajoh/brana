@@ -19,7 +19,7 @@ export default function AdminOverduePage() {
   const rows:OR[]=(od?.rentals||[]) as unknown as OR[];
   const ranking:ORank[]=((rd as unknown as {ranking?:ORank[]})?.ranking||[]) as ORank[];
   const maxDays=Math.max(1,...ranking.map(r=>r.totalDaysOverdue));
-  const toggle=(id:string)=>setSel(p=>{const n=new Set(p);n.has(id)?n.delete(id):n.add(id);return n;});
+  const toggle=(id:string)=>setSel(p=>{const n=new Set(p);if(n.has(id)){n.delete(id);}else{n.add(id);}return n;});
   const selectAll=(c:boolean)=>setSel(c?new Set(rows.map(r=>r.id)):new Set());
   const handleSend=async()=>{
     try{await send.mutateAsync({rentalIds:Array.from(sel)});toast.success(String(t("admin_overdue.messages.reminders_success")));setSel(new Set());}

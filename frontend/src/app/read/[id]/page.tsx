@@ -1,8 +1,8 @@
 "use client";
-"use client";
 
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import { API_BASE_URL } from "@/lib/api";
 
 /* PDF.js is loaded from CDN via a script tag injected below.
@@ -149,26 +149,26 @@ export default function ReadPage() {
       {/* ── Top bar ───────────────────────────────────────────── */}
       <header className="h-12 bg-[#111] flex items-center gap-3 px-4 shrink-0 border-b border-white/10">
         {/* Back */}
-        <a href="/dashboard/student/digital"
+        <Link href="/dashboard/student/digital"
           className="flex items-center gap-1.5 text-white/50 hover:text-white transition-colors">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M19 12H5M5 12l7 7M5 12l7-7"/>
           </svg>
           <span className="text-[12px] font-semibold hidden sm:inline">Back</span>
-        </a>
+        </Link>
 
         <div className="h-4 w-px bg-white/10 mx-1" />
 
         {/* Logo */}
-        <a href="/" className="flex items-center gap-1.5 group shrink-0">
+        <Link href="/" className="flex items-center gap-1.5 group shrink-0">
           <div className="relative w-5 h-5">
             <div className="absolute inset-0 rounded-md bg-white/10 border border-white/15" />
             <div className="absolute top-0 right-0 w-1.5 h-1.5 bg-[#f5c518] rounded-tr-md rounded-bl-sm" />
             <span className="absolute inset-0 flex items-center justify-center text-white font-serif font-black text-[9px] z-10 select-none">ብ</span>
           </div>
           <span className="text-[12px] font-serif font-black text-white/60 group-hover:text-white transition-colors">Brana</span>
-        </a>
+        </Link>
 
         {/* Spacer */}
         <div className="flex-1" />
@@ -238,10 +238,10 @@ export default function ReadPage() {
         {status === "error" && (
           <div className="flex flex-col items-center gap-4 text-white/50 mt-20 text-center">
             <p className="text-sm">{errorMsg}</p>
-            <a href="/dashboard/student/digital"
+            <Link href="/dashboard/student/digital"
               className="px-5 py-2 rounded-full bg-white/10 text-white text-xs font-bold hover:bg-white/20 transition-colors">
               Back to library
-            </a>
+            </Link>
           </div>
         )}
 

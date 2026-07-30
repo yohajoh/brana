@@ -57,7 +57,7 @@ export default function AdminCategoriesPage() {
     catch(e2) { toast.error(err(e2,String(t("admin_categories.messages.add_failed")||"Failed"))); }
   };
 
-  const toggleBulk = (id:string) => setBulkSelected(p=>{const n=new Set(p);n.has(id)?n.delete(id):n.add(id);return n;});
+  const toggleBulk = (id:string) => setBulkSelected(p=>{const n=new Set(p);if(n.has(id)){n.delete(id);}else{n.add(id);}return n;});
   const allPageSelected = paginated.length>0 && paginated.every(c=>bulkSelected.has(c.id));
   const handleBulkDelete = async () => {
     if (!bulkSelected.size) return;
