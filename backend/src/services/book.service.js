@@ -703,6 +703,48 @@ export const createBook = async (data, imageFile = null, galleryFiles = []) => {
     });
   }
 
+  // Pre-uploaded cover URL arrived as a body string (no file). Persist it as a
+  // BookImage row so the gallery view has it, but only when the file-upload
+  // pipeline did not already handle it.
+  if (!coverFromUpload && data.cover_image_url && data.cover_image_url !== DEFAULT_COVER_IMAGE) {
+    const alreadyExists = await prisma.bookImage.findFirst({
+      where: { physical_book_id: created.id, book_type: 'PHYSICAL' },
+      select: { id: true },
+    });
+    if (!alreadyExists) {
+      await prisma.bookImage.create({
+        data: {
+          book_id: created.id,
+          book_type: 'PHYSICAL',
+          image_url: data.cover_image_url,
+          sort_order: 1,
+          physical_book_id: created.id,
+        },
+      });
+    }
+  }
+
+  // Pre-uploaded gallery URLs sent as plain strings in the request body.
+  const bodyGalleryUrls = parseList(data.gallery_urls);
+  if (bodyGalleryUrls.length > 0) {
+    const lastImage = await prisma.bookImage.findFirst({
+      where: { physical_book_id: created.id, book_type: 'PHYSICAL' },
+      orderBy: { sort_order: 'desc' },
+      select: { sort_order: true },
+    });
+    let nextOrder = (lastImage?.sort_order ?? 0) + 1;
+    await prisma.bookImage.createMany({
+      data: bodyGalleryUrls.map((url) => ({
+        book_id: created.id,
+        book_type: 'PHYSICAL',
+        image_url: url,
+        sort_order: nextOrder++,
+        physical_book_id: created.id,
+      })),
+      skipDuplicates: true,
+    });
+  }
+
   runAsyncTask("sync-low-stock-after-create", async () => {
     await syncLowStockAlertForBook(created.id);
   });
@@ -946,6 +988,27 @@ export const updateBook = async (id, data, imageFile = null, galleryFiles = []) 
         sort_order: (lastImage?.sort_order ?? 0) + idx + 1,
         physical_book_id: id,
       })),
+    });
+  }
+
+  // Pre-uploaded gallery URLs sent as plain strings in the request body.
+  const bodyGalleryUrls = parseList(data.gallery_urls);
+  if (bodyGalleryUrls.length > 0) {
+    const lastImage = await prisma.bookImage.findFirst({
+      where: { physical_book_id: id, book_type: 'PHYSICAL' },
+      orderBy: { sort_order: 'desc' },
+      select: { sort_order: true },
+    });
+    let nextOrder = (lastImage?.sort_order ?? 0) + 1;
+    await prisma.bookImage.createMany({
+      data: bodyGalleryUrls.map((url) => ({
+        book_id: id,
+        book_type: 'PHYSICAL',
+        image_url: url,
+        sort_order: nextOrder++,
+        physical_book_id: id,
+      })),
+      skipDuplicates: true,
     });
   }
 

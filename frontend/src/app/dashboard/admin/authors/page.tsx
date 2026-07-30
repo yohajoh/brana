@@ -19,7 +19,10 @@ export default function AdminAuthorsPage() {
   const [search,setSearch]=useState(""); const [page,setPage]=useState(1);
   const [showModal,setModal]=useState(false); const [editId,setEditId]=useState<string|null>(null);
   const [form,setForm]=useState({name:"",bio:""});
-  const [imgFile,setImg]=useState<File|null>(null); const [imgPreview,setPreview]=useState<string|null>(null);
+  const [imgPreview,setPreview]=useState<string|null>(null);
+  const [uploadedImgUrl,setUploadedImgUrl]=useState<string|null>(null);
+  const [imgUploading,setImgUploading]=useState(false);
+  const [imgPct,setImgPct]=useState(0);
   const [openMenu,setMenu]=useState<string|null>(null);
   const [delAuthor,setDel]=useState<{id:string;name:string}|null>(null);
   const [bulkSelected,setBulkSelected]=useState<Set<string>>(new Set());
@@ -32,12 +35,46 @@ export default function AdminAuthorsPage() {
   const filtered=authors.filter(a=>a.name.toLowerCase().includes(search.toLowerCase())||(a.bio?.toLowerCase().includes(search.toLowerCase())??false));
   const totalPages=Math.max(1,Math.ceil(filtered.length/ITEMS));
   const paginated=filtered.slice((page-1)*ITEMS,page*ITEMS);
-  const openEdit=(a:Author)=>{setEditId(a.id);setForm({name:a.name||"",bio:a.bio||""});setImg(null);setPreview(a.image||null);setModal(true);};
-  const openNew=()=>{setEditId(null);setForm({name:"",bio:""});setImg(null);setPreview(null);setModal(true);};
-  const close=()=>{setModal(false);setEditId(null);setForm({name:"",bio:""});setImg(null);setPreview(null);};
-  const handleFile=(e:React.ChangeEvent<HTMLInputElement>)=>{const f=e.target.files?.[0];if(f){setImg(f);setPreview(URL.createObjectURL(f));}};
+  const openEdit=(a:Author)=>{setEditId(a.id);setForm({name:a.name||"",bio:a.bio||""});setUploadedImgUrl(a.image||null);setPreview(a.image||null);setModal(true);};
+  const openNew=()=>{setEditId(null);setForm({name:"",bio:""});setUploadedImgUrl(null);setPreview(null);setModal(true);};
+  const close=()=>{setModal(false);setEditId(null);setForm({name:"",bio:""});setUploadedImgUrl(null);setPreview(null);};
+  const handleFile=(e:React.ChangeEvent<HTMLInputElement>)=>{
+    const file=e.target.files?.[0]; if(!file) return;
+    setPreview(URL.createObjectURL(file));
+    setImgUploading(true); setImgPct(0);
+    const folder = "brana/authors";
+    const fd = new FormData(); fd.append("files", file);
+    const xhr = new XMLHttpRequest();
+    xhr.upload.addEventListener("progress",(ev)=>{ if(ev.lengthComputable) setImgPct(Math.round(ev.loaded/ev.total*100)); });
+    xhr.addEventListener("load",()=>{
+      if(xhr.status>=200&&xhr.status<300){
+        try{
+          const res=JSON.parse(xhr.responseText);
+          const url:string=res?.data?.urls?.[0]||"";
+          if(url){ setUploadedImgUrl(url); setPreview(url); setImgPct(100); }
+          else{ setPreview(null); toast.error("No URL returned"); }
+        }catch{ setPreview(null); toast.error("Invalid response"); }
+      } else {
+        let msg="Upload failed";
+        try{ msg=JSON.parse(xhr.responseText)?.message||msg; }catch{/**/}
+        setPreview(null); toast.error(msg);
+      }
+      setImgUploading(false);
+      if(imgRef.current) imgRef.current.value="";
+    });
+    xhr.addEventListener("error",()=>{ setPreview(null); toast.error("Network error"); setImgUploading(false); });
+    const base = process.env.NEXT_PUBLIC_API_URL||"http://localhost:5000/api";
+    xhr.open("POST",`${base}/media/upload?folder=${encodeURIComponent(folder)}`);
+    xhr.withCredentials=true; xhr.send(fd);
+  };
   const handleSubmit=async(e:React.FormEvent)=>{
-    e.preventDefault(); const fd=new FormData(); fd.append("name",form.name); fd.append("bio",form.bio); if(imgFile) fd.append("image",imgFile);
+    e.preventDefault();
+    if(imgUploading) return;
+    const fd=new FormData();
+    fd.append("name",form.name);
+    fd.append("bio",form.bio);
+    // Send the pre-uploaded Cloudinary URL as a plain string — no file re-upload
+    if(uploadedImgUrl) fd.append("image",uploadedImgUrl);
     try {
       if(editId){await upd.mutateAsync({id:editId,formData:fd});toast.success(String(t("admin_authors.messages.update_success")));}
       else{await create.mutateAsync(fd);toast.success(String(t("admin_authors.messages.add_success")));}
@@ -128,18 +165,46 @@ export default function AdminAuthorsPage() {
     <AnimatePresence>
       {showModal&&(<motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="fixed inset-0 z-[2147483647] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4" onClick={e=>{if(e.target===e.currentTarget)close();}}>
         <motion.div initial={{opacity:0,y:40}} animate={{opacity:1,y:0}} exit={{opacity:0,y:40}} transition={{duration:0.28,ease:[0.16,1,0.3,1]}} className="bg-white w-full sm:rounded-2xl sm:max-w-md max-h-[92dvh] flex flex-col overflow-hidden shadow-2xl" onClick={e=>e.stopPropagation()}>
-          <div className="flex items-center justify-between px-5 py-4 border-b border-[#e8e4dc] shrink-0"><h2 className="text-[16px] font-serif font-black text-[#0d0d0d]">{editId?String(t("admin_authors.modal.edit_title")):String(t("admin_authors.modal.add_title"))}</h2><button onClick={close} className="w-8 h-8 rounded-xl bg-[#f5f4f0] flex items-center justify-center text-[#0d0d0d]/40 hover:text-[#0d0d0d] transition-colors"><X size={15}/></button></div>
+          <div className="flex items-center justify-between px-5 py-4 border-b border-[#e8e4dc] shrink-0">
+            <h2 className="text-[16px] font-serif font-black text-[#0d0d0d]">{editId?String(t("admin_authors.modal.edit_title")):String(t("admin_authors.modal.add_title"))}</h2>
+            <button onClick={close} disabled={imgUploading} className="w-8 h-8 rounded-xl bg-[#f5f4f0] flex items-center justify-center text-[#0d0d0d]/40 hover:text-[#0d0d0d] disabled:opacity-40 transition-colors"><X size={15}/></button>
+          </div>
           <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-5 py-5 space-y-4">
             <div className="space-y-1.5"><label className="text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-wider">{String(t("admin_authors.modal.labels.name"))} *</label><input required value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))} placeholder={String(t("admin_authors.modal.placeholders.name"))} className={IC}/></div>
             <div className="space-y-1.5"><label className="text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-wider">{String(t("admin_authors.modal.labels.bio"))} *</label><textarea required rows={4} value={form.bio} onChange={e=>setForm(p=>({...p,bio:e.target.value}))} placeholder={String(t("admin_authors.modal.placeholders.bio"))} className={`${IC} resize-none`}/></div>
-            <div className="space-y-1.5"><label className="text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-wider">{String(t("admin_authors.modal.labels.image"))}</label>
-              <button type="button" onClick={()=>imgRef.current?.click()} className="w-full h-28 rounded-xl border-2 border-dashed border-[#e8e4dc] overflow-hidden relative flex items-center justify-center gap-2 text-sm text-[#0d0d0d]/40 hover:border-[#0d0d0d]/30 transition-colors">
-                {imgPreview?<Image src={imgPreview} alt="preview" fill className="object-cover" unoptimized/>:<><Upload size={16}/>{String(t("admin_authors.modal.drop_image"))}</>}
-              </button>
-              <input ref={imgRef} type="file" accept="image/*" className="hidden" onChange={handleFile}/>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-wider">{String(t("admin_authors.modal.labels.image"))}</label>
+              <div onClick={()=>{ if(!imgUploading) imgRef.current?.click(); }}
+                className={`relative w-full h-32 rounded-xl border-2 border-dashed overflow-hidden cursor-pointer flex items-center justify-center gap-2 text-sm transition-colors
+                  ${imgUploading?"border-[#f5c518] bg-amber-50":uploadedImgUrl?"border-emerald-400":"border-[#e8e4dc] hover:border-[#0d0d0d]/30 text-[#0d0d0d]/40 hover:text-[#0d0d0d]/70"}`}>
+                {imgPreview ? (
+                  <>
+                    <Image src={imgPreview} alt="preview" fill className="object-cover" unoptimized/>
+                    {imgUploading && (
+                      <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center gap-2 px-5">
+                        <div className="w-full bg-white/30 rounded-full h-1.5"><div className="bg-[#f5c518] h-1.5 rounded-full transition-all" style={{width:`${imgPct}%`}}/></div>
+                        <span className="text-white text-[12px] font-bold">{imgPct}%</span>
+                      </div>
+                    )}
+                    {!imgUploading && (
+                      <div className="absolute inset-0 bg-black/0 hover:bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-all">
+                        <span className="text-white text-[12px] font-bold bg-black/60 px-3 py-1.5 rounded-lg"><Upload size={12} className="inline mr-1"/>Replace</span>
+                      </div>
+                    )}
+                  </>
+                ) : imgUploading ? (
+                  <div className="w-full px-6 space-y-2">
+                    <div className="w-full bg-[#e8e4dc] rounded-full h-1.5"><div className="bg-[#f5c518] h-1.5 rounded-full transition-all" style={{width:`${imgPct}%`}}/></div>
+                    <p className="text-center text-[12px] font-bold text-[#0d0d0d]/60">Uploading… {imgPct}%</p>
+                  </div>
+                ) : (
+                  <><Upload size={16}/>{String(t("admin_authors.modal.drop_image"))}</>
+                )}
+              </div>
+              <input ref={imgRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFile}/>
             </div>
-            <button type="submit" disabled={create.isPending||upd.isPending} className="w-full py-3 rounded-xl bg-[#0d0d0d] text-white text-[13px] font-bold disabled:opacity-50 hover:bg-[#292524] transition-colors">
-              {create.isPending||upd.isPending?"Saving…":editId?String(t("admin_authors.modal.submit_update")):String(t("admin_authors.modal.submit_add"))}
+            <button type="submit" disabled={create.isPending||upd.isPending||imgUploading} className="w-full py-3 rounded-xl bg-[#0d0d0d] text-white text-[13px] font-bold disabled:opacity-50 hover:bg-[#292524] transition-colors">
+              {imgUploading?`Uploading image… ${imgPct}%`:create.isPending||upd.isPending?"Saving…":editId?String(t("admin_authors.modal.submit_update")):String(t("admin_authors.modal.submit_add"))}
             </button>
           </form>
         </motion.div>

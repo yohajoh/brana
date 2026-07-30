@@ -614,6 +614,27 @@ export const createDigitalBook = async (data, pdfFile = null, imageFile = null, 
     });
   }
 
+  // Pre-uploaded gallery URLs sent as plain strings in the request body.
+  const bodyGalleryUrls = parseList(data.gallery_urls);
+  if (bodyGalleryUrls.length > 0) {
+    const lastImage = await prisma.bookImage.findFirst({
+      where: { digital_book_id: created.id, book_type: 'DIGITAL' },
+      orderBy: { sort_order: 'desc' },
+      select: { sort_order: true },
+    });
+    let nextOrder = (lastImage?.sort_order ?? 0) + 1;
+    await prisma.bookImage.createMany({
+      data: bodyGalleryUrls.map((url) => ({
+        book_id: created.id,
+        book_type: 'DIGITAL',
+        image_url: url,
+        sort_order: nextOrder++,
+        digital_book_id: created.id,
+      })),
+      skipDuplicates: true,
+    });
+  }
+
   return created;
 };
 
@@ -710,6 +731,27 @@ export const updateDigitalBook = async (id, data, pdfFile = null, imageFile = nu
         sort_order: (lastImage?.sort_order ?? 0) + idx + 1,
         digital_book_id: id,
       })),
+    });
+  }
+
+  // Pre-uploaded gallery URLs sent as plain strings in the request body.
+  const bodyGalleryUrls = parseList(data.gallery_urls);
+  if (bodyGalleryUrls.length > 0) {
+    const lastImage = await prisma.bookImage.findFirst({
+      where: { digital_book_id: id, book_type: 'DIGITAL' },
+      orderBy: { sort_order: 'desc' },
+      select: { sort_order: true },
+    });
+    let nextOrder = (lastImage?.sort_order ?? 0) + 1;
+    await prisma.bookImage.createMany({
+      data: bodyGalleryUrls.map((url) => ({
+        book_id: id,
+        book_type: 'DIGITAL',
+        image_url: url,
+        sort_order: nextOrder++,
+        digital_book_id: id,
+      })),
+      skipDuplicates: true,
     });
   }
 

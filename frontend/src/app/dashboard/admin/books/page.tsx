@@ -26,6 +26,7 @@ interface Book {
   id:string; title:string; author_id?:string; category_id?:string;
   author?:{id:string;name:string}; category?:{id:string;name:string};
   copies?:number; total?:number; available?:number;
+  cover_image_url?:string; images?:Array<{image_url:string}|string>;
   description?:string; publication_year?:number; loan_duration_days?:number|null;
   rental_price?:number; pages?:number; tags?:string[]; topics?:string[];
   pdf_access?:"FREE"|"PAID"|"RESTRICTED"; type?:"physical"|"digital";
@@ -122,6 +123,42 @@ function SearchDropdown({ label, placeholder, options, selectedId, onSelect, onC
   );
 }
 
+/* ── XHR upload helper (real byte-level progress) ──────── */
+async function uploadViaXHR(
+  files: File[],
+  folder: string,
+  onProgress: (pct: number) => void,
+): Promise<string[]> {
+  return new Promise((resolve, reject) => {
+    const fd = new FormData();
+    files.forEach((f) => fd.append("files", f));
+    const xhr = new XMLHttpRequest();
+    xhr.upload.addEventListener("progress", (e) => {
+      if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+    });
+    xhr.addEventListener("load", () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const res = JSON.parse(xhr.responseText);
+          const urls: string[] = res?.data?.urls ?? [];
+          if (!urls.length) { reject(new Error("No URLs returned")); return; }
+          onProgress(100);
+          resolve(urls);
+        } catch { reject(new Error("Invalid server response")); }
+      } else {
+        let msg = "Upload failed";
+        try { msg = JSON.parse(xhr.responseText)?.message || msg; } catch { /* */ }
+        reject(new Error(msg));
+      }
+    });
+    xhr.addEventListener("error", () => reject(new Error("Network error")));
+    const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+    xhr.open("POST", `${base}/media/upload?folder=${encodeURIComponent(folder)}`);
+    xhr.withCredentials = true;
+    xhr.send(fd);
+  });
+}
+
 /* ── Add/Edit Book Modal ────────────────────────────────── */
 function BookModal({ onClose, authors, categories, editingBook, onSubmit, submitting }:
   { onClose:()=>void; authors:Author[]; categories:Category[]; editingBook:Book|null;
@@ -131,12 +168,24 @@ function BookModal({ onClose, authors, categories, editingBook, onSubmit, submit
   const [form, setForm] = useState({ title:"", author_id:"", category_id:"", copies:"", pages:"",
     description:"", publication_year:"", loan_duration_days:"", rental_price:"10",
     tags:"", topics:"", pdf_access:"RESTRICTED" as "FREE"|"PAID"|"RESTRICTED" });
-  const [imageFile, setImageFile]   = useState<File|null>(null);
-  const [galleryFiles, setGallery]  = useState<File[]>([]);
-  const [pdfFile, setPdfFile]       = useState<File|null>(null);
+  // Pre-uploaded Cloudinary URLs
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [coverUrl, setCoverUrl] = useState<string>(editingBook?.cover_image_url||"");
+  const [galleryUrls, setGalleryUrls] = useState<string[]>(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    editingBook?.images ? (editingBook.images as any[]).map((i)=>i.image_url||i) : []
+  );
+  // Upload progress
+  const [coverUploading,   setCoverUploading]   = useState(false);
+  const [coverPct,         setCoverPct]         = useState(0);
+  const [galleryUploading, setGalleryUploading] = useState(false);
+  const [galleryPct,       setGalleryPct]       = useState(0);
+  // PDF still sent as raw file (stored in DB as bytes)
+  const [pdfFile, setPdfFile] = useState<File|null>(null);
   const imgRef = useRef<HTMLInputElement>(null);
   const galRef = useRef<HTMLInputElement>(null);
   const pdfRef = useRef<HTMLInputElement>(null);
+  const isUploading = coverUploading || galleryUploading;
   const createAuthor   = useCreateAuthor();
   const createCategory = useCreateCategory();
 
@@ -160,20 +209,45 @@ function BookModal({ onClose, authors, categories, editingBook, onSubmit, submit
 
   const f = (k:string) => (v:string) => setForm(p=>({...p,[k]:v}));
 
+  const handleCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]; if (!file) return;
+    setCoverUrl(URL.createObjectURL(file));
+    setCoverUploading(true); setCoverPct(0);
+    try {
+      const folder = type==="digital" ? "brana/digital-books/covers" : "brana/physical-books/covers";
+      const [url] = await uploadViaXHR([file], folder, setCoverPct);
+      setCoverUrl(url);
+    } catch (err) {
+      setCoverUrl(""); toast.error(err instanceof Error ? err.message : "Cover upload failed");
+    } finally { setCoverUploading(false); if (imgRef.current) imgRef.current.value = ""; }
+  };
+
+  const handleGalleryChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files||[]); if (!files.length) return;
+    setGalleryUploading(true); setGalleryPct(0);
+    try {
+      const folder = type==="digital" ? "brana/digital-books/gallery" : "brana/physical-books/gallery";
+      const urls = await uploadViaXHR(files, folder, setGalleryPct);
+      setGalleryUrls(prev=>[...prev,...urls]);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Gallery upload failed");
+    } finally { setGalleryUploading(false); if (galRef.current) galRef.current.value = ""; }
+  };
+
   const handleSubmit = async (e:React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault(); if (isUploading) return;
     const fd = new FormData();
     Object.entries(form).forEach(([k,v])=>{ if(v!=="") fd.append(k,String(v)); });
-    if (imageFile)  fd.append("image", imageFile);
-    if (pdfFile)    fd.append("pdf", pdfFile);
-    galleryFiles.forEach(f=>fd.append("images",f));
+    if (coverUrl && !coverUrl.startsWith("blob:")) fd.append("cover_image_url", coverUrl);
+    galleryUrls.forEach(url=>{ if(!url.startsWith("blob:")) fd.append("gallery_urls", url); });
+    if (pdfFile) fd.append("pdf", pdfFile);
     await onSubmit(type, fd);
   };
 
   return (
     <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
       className="fixed inset-0 z-[2147483647] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4"
-      onClick={e=>{ if(e.target===e.currentTarget) onClose(); }}>
+      onClick={e=>{ if(e.target===e.currentTarget && !isUploading) onClose(); }}>
       <motion.div initial={{opacity:0,y:40}} animate={{opacity:1,y:0}} exit={{opacity:0,y:40}}
         transition={{duration:0.3,ease:[0.16,1,0.3,1]}}
         className="bg-white w-full sm:rounded-2xl sm:max-w-2xl max-h-[92dvh] flex flex-col overflow-hidden shadow-2xl"
@@ -183,7 +257,7 @@ function BookModal({ onClose, authors, categories, editingBook, onSubmit, submit
           <h2 className="text-[16px] font-serif font-black text-[#0d0d0d]">
             {editingBook ? String(t("admin_books.modal.edit_title")) : String(t("admin_books.modal.add_title"))}
           </h2>
-          <button onClick={onClose} className="w-8 h-8 rounded-xl bg-[#f5f4f0] flex items-center justify-center text-[#0d0d0d]/40 hover:text-[#0d0d0d] transition-colors">
+          <button onClick={onClose} disabled={isUploading} className="w-8 h-8 rounded-xl bg-[#f5f4f0] flex items-center justify-center text-[#0d0d0d]/40 hover:text-[#0d0d0d] disabled:opacity-40 transition-colors">
             <X size={15}/>
           </button>
         </div>
@@ -191,8 +265,8 @@ function BookModal({ onClose, authors, categories, editingBook, onSubmit, submit
         {!editingBook && (
           <div className="flex gap-1 p-3 border-b border-[#e8e4dc] shrink-0">
             {(["physical","digital"] as const).map(tp=>(
-              <button key={tp} type="button" onClick={()=>setType(tp)}
-                className={`flex-1 py-2.5 rounded-xl text-[12px] font-bold transition-all ${type===tp?"bg-[#0d0d0d] text-white":"text-[#0d0d0d]/50 hover:text-[#0d0d0d]"}`}>
+              <button key={tp} type="button" onClick={()=>{ if(!isUploading) setType(tp); }} disabled={isUploading}
+                className={`flex-1 py-2.5 rounded-xl text-[12px] font-bold transition-all disabled:opacity-50 ${type===tp?"bg-[#0d0d0d] text-white":"text-[#0d0d0d]/50 hover:text-[#0d0d0d]"}`}>
                 {tp==="physical"?"Physical":"Digital"}
               </button>
             ))}
@@ -242,43 +316,96 @@ function BookModal({ onClose, authors, categories, editingBook, onSubmit, submit
           {/* Cover image */}
           <div className="space-y-1.5">
             <label className="text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-wider">{String(t("admin_books.modal.labels.cover_image"))}</label>
-            <button type="button" onClick={()=>imgRef.current?.click()}
-              className="w-full h-24 rounded-xl border-2 border-dashed border-[#e8e4dc] flex items-center justify-center gap-2 text-sm text-[#0d0d0d]/40 hover:border-[#0d0d0d]/30 hover:text-[#0d0d0d]/70 transition-colors">
-              <Upload size={16}/>{imageFile ? imageFile.name : String(t("admin_books.modal.drop_image"))}
-            </button>
-            <input ref={imgRef} type="file" accept="image/*" className="hidden" onChange={e=>setImageFile(e.target.files?.[0]||null)}/>
+            <div onClick={()=>{ if(!coverUploading) imgRef.current?.click(); }}
+              className={`relative w-full rounded-xl border-2 border-dashed overflow-hidden cursor-pointer transition-colors
+                ${coverUploading?"border-[#f5c518] bg-amber-50":coverUrl&&!coverUrl.startsWith("blob:")?"border-emerald-400":"border-[#e8e4dc] hover:border-[#0d0d0d]/30"}
+                ${coverUrl?"h-44":"h-24 flex items-center justify-center gap-2 text-sm text-[#0d0d0d]/40 hover:text-[#0d0d0d]/70"}`}>
+              {coverUrl ? (
+                <>
+                  <Image src={coverUrl} alt="Cover" fill className="object-cover" unoptimized/>
+                  {coverUploading && (
+                    <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center gap-2 p-4">
+                      <div className="w-full bg-white/30 rounded-full h-1.5"><div className="bg-[#f5c518] h-1.5 rounded-full transition-all" style={{width:`${coverPct}%`}}/></div>
+                      <span className="text-white text-[12px] font-bold">{coverPct}%</span>
+                    </div>
+                  )}
+                  {!coverUploading && (
+                    <div className="absolute inset-0 bg-black/0 hover:bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-all">
+                      <span className="text-white text-[12px] font-bold bg-black/60 px-3 py-1.5 rounded-lg"><Upload size={12} className="inline mr-1"/>Replace</span>
+                    </div>
+                  )}
+                </>
+              ) : coverUploading ? (
+                <div className="w-full px-6 space-y-2">
+                  <div className="w-full bg-[#e8e4dc] rounded-full h-1.5"><div className="bg-[#f5c518] h-1.5 rounded-full transition-all" style={{width:`${coverPct}%`}}/></div>
+                  <p className="text-center text-[12px] font-bold text-[#0d0d0d]/60">Uploading… {coverPct}%</p>
+                </div>
+              ) : (
+                <><Upload size={16}/>{String(t("admin_books.modal.drop_image"))}</>
+              )}
+            </div>
+            <input ref={imgRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleCoverChange}/>
           </div>
           {type==="digital" && (
             <div className="space-y-1.5">
               <label className="text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-wider">{String(t("admin_books.modal.labels.pdf_file"))}</label>
-              <button type="button" onClick={()=>pdfRef.current?.click()}
-                className="w-full h-24 rounded-xl border-2 border-dashed border-[#e8e4dc] flex items-center justify-center gap-2 text-sm text-[#0d0d0d]/40 hover:border-[#0d0d0d]/30 hover:text-[#0d0d0d]/70 transition-colors">
+              <button type="button" onClick={()=>pdfRef.current?.click()} disabled={isUploading}
+                className="w-full h-24 rounded-xl border-2 border-dashed border-[#e8e4dc] flex items-center justify-center gap-2 text-sm text-[#0d0d0d]/40 hover:border-[#0d0d0d]/30 hover:text-[#0d0d0d]/70 disabled:opacity-50 transition-colors">
                 <Upload size={16}/>{pdfFile ? pdfFile.name : String(t("admin_books.modal.drop_pdf"))}
               </button>
               <input ref={pdfRef} type="file" accept="application/pdf" className="hidden" onChange={e=>setPdfFile(e.target.files?.[0]||null)}/>
             </div>
           )}
-          {type==="physical" && (
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-wider">{String(t("admin_books.modal.labels.book_gallery"))}</label>
-              <button type="button" onClick={()=>galRef.current?.click()}
-                className="w-full h-16 rounded-xl border-2 border-dashed border-[#e8e4dc] flex items-center justify-center gap-2 text-sm text-[#0d0d0d]/40 hover:border-[#0d0d0d]/30 transition-colors">
-                <Upload size={16}/>{galleryFiles.length>0?`${galleryFiles.length} file(s)`:String(t("admin_books.modal.drop_gallery"))}
+          {/* Gallery */}
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-wider">{String(t("admin_books.modal.labels.book_gallery"))}</label>
+            <div className="rounded-xl border border-[#e8e4dc] bg-[#f5f4f0] p-3 space-y-3">
+              {galleryUrls.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {galleryUrls.map((url, idx) => (
+                    <div key={idx} className="relative w-16 h-16 rounded-lg overflow-hidden border border-[#e8e4dc] group bg-white shrink-0">
+                      <Image src={url} alt={`Gallery ${idx+1}`} fill className="object-cover" unoptimized/>
+                      <button type="button" onClick={()=>setGalleryUrls(p=>p.filter((_,i)=>i!==idx))} disabled={galleryUploading}
+                        className="absolute inset-0 bg-black/0 group-hover:bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all disabled:hidden">
+                        <X size={14} className="text-white"/>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {galleryUploading && (
+                <div className="space-y-1">
+                  <div className="w-full bg-[#e8e4dc] rounded-full h-1.5"><div className="bg-[#0d0d0d] h-1.5 rounded-full transition-all" style={{width:`${galleryPct}%`}}/></div>
+                  <p className="text-[11px] font-bold text-[#0d0d0d]/50">Uploading gallery… {galleryPct}%</p>
+                </div>
+              )}
+              <button type="button" onClick={()=>{ if(!galleryUploading) galRef.current?.click(); }} disabled={galleryUploading}
+                className="w-full h-12 rounded-xl border-2 border-dashed border-[#e8e4dc] flex items-center justify-center gap-2 text-sm text-[#0d0d0d]/40 hover:border-[#0d0d0d]/30 hover:text-[#0d0d0d]/60 disabled:opacity-50 bg-white transition-colors">
+                <Upload size={15}/>
+                {galleryUploading ? `Uploading… ${galleryPct}%` : galleryUrls.length > 0 ? "Add more images" : String(t("admin_books.modal.drop_gallery"))}
               </button>
-              <input ref={galRef} type="file" accept="image/*" multiple className="hidden" onChange={e=>setGallery(Array.from(e.target.files||[]))}/>
+              <input ref={galRef} type="file" accept="image/jpeg,image/png,image/webp" multiple className="hidden" onChange={handleGalleryChange}/>
             </div>
-          )}
+          </div>
         </form>
         {/* Footer */}
-        <div className="px-5 py-4 border-t border-[#e8e4dc] shrink-0 flex justify-end gap-3">
-          <button type="button" onClick={onClose} className="px-5 py-2.5 rounded-xl border border-[#e8e4dc] text-sm font-bold text-[#0d0d0d]/60 hover:text-[#0d0d0d] transition-colors">
-            Cancel
-          </button>
-          <button type="submit" form="book-form" disabled={submitting}
-            className="px-5 py-2.5 rounded-xl bg-[#0d0d0d] text-white text-sm font-bold disabled:opacity-50 hover:bg-[#292524] transition-colors">
-            {submitting ? (editingBook?String(t("admin_books.modal.submitting_update")):String(t("admin_books.modal.submitting_add")))
-              : (editingBook?String(t("admin_books.modal.submit_update")):String(t("admin_books.modal.submit_add")))}
-          </button>
+        <div className="px-5 py-4 border-t border-[#e8e4dc] shrink-0 flex items-center justify-between gap-3">
+          <span className="text-[11px] text-[#0d0d0d]/40 truncate">
+            {coverUploading ? `Uploading cover… ${coverPct}%` : galleryUploading ? `Uploading gallery… ${galleryPct}%`
+              : coverUrl&&!coverUrl.startsWith("blob:") ? "✓ Cover ready" : ""}
+          </span>
+          <div className="flex gap-3 shrink-0">
+            <button type="button" onClick={onClose} disabled={isUploading}
+              className="px-5 py-2.5 rounded-xl border border-[#e8e4dc] text-sm font-bold text-[#0d0d0d]/60 hover:text-[#0d0d0d] disabled:opacity-40 transition-colors">
+              Cancel
+            </button>
+            <button type="submit" form="book-form" disabled={submitting||isUploading}
+              className="px-5 py-2.5 rounded-xl bg-[#0d0d0d] text-white text-sm font-bold disabled:opacity-50 hover:bg-[#292524] transition-colors">
+              {isUploading ? (coverUploading?`Cover ${coverPct}%…`:`Gallery ${galleryPct}%…`)
+                : submitting ? (editingBook?String(t("admin_books.modal.submitting_update")):String(t("admin_books.modal.submitting_add")))
+                : (editingBook?String(t("admin_books.modal.submit_update")):String(t("admin_books.modal.submit_add")))}
+            </button>
+          </div>
         </div>
       </motion.div>
     </motion.div>

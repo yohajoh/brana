@@ -8,6 +8,7 @@ import passport from "passport";
 import "./config/passport.js";
 
 import authRoutes from "./routes/auth.routes.js";
+import mediaRoutes from "./routes/media.routes.js";
 import bookRoutes from "./routes/book.routes.js";
 import digitalBookRoutes from "./routes/digitalBook.routes.js";
 import authorRoutes from "./routes/author.routes.js";
@@ -108,6 +109,7 @@ app.use(express.urlencoded({ extended: false, limit: "50kb", parameterLimit: 100
 app.use(cookieParser());
 
 app.use("/api/auth", authRoutes);
+app.use("/api/media", mediaRoutes);
 app.use("/api/books", bookRoutes);
 app.use("/api/digital-books", digitalBookRoutes);
 app.use("/api/authors", authorRoutes);

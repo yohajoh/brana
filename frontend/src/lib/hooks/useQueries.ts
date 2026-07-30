@@ -362,8 +362,9 @@ export function useCreateBook() {
 
       const title = String(data.get("title") || "Creating...");
       const tempId = `temp-${Date.now()}`;
-      const imageFile = data.get("image");
-      const imageUrl = imageFile instanceof File ? URL.createObjectURL(imageFile) : undefined;
+      // cover_image_url is now a pre-uploaded Cloudinary URL string, not a File
+      const coverImageUrl = String(data.get("cover_image_url") || "");
+      const imageUrl = coverImageUrl || undefined;
 
       if (type === "physical") {
         queryClient.setQueriesData<BooksResponse>({ queryKey: ["books"] }, (old) => {
@@ -609,8 +610,8 @@ export function useCreateAuthor() {
 
       const name = String(formData.get("name") || "Creating...");
       const bio = String(formData.get("bio") || "");
-      const imageFile = formData.get("image");
-      const image = imageFile instanceof File ? URL.createObjectURL(imageFile) : undefined;
+      // image is now a pre-uploaded Cloudinary URL string, not a File
+      const image = String(formData.get("image") || "") || undefined;
 
       queryClient.setQueriesData<AuthorsResponse>({ queryKey: ["authors"] }, (old) => {
         if (!old) return old;
