@@ -416,95 +416,130 @@ const buildExcel = async (type, rows) => {
 
 // ─── PDF ──────────────────────────────────────────────────────────────────────
 
+// System Unicode fonts – support Latin + Ethiopic (Amharic / Tigrinya) script
+const FONT_REGULAR  = '/usr/share/fonts/google-droid-sans-fonts/DroidSans.ttf';
+const FONT_BOLD     = '/usr/share/fonts/google-droid-sans-fonts/DroidSans-Bold.ttf';
+const FONT_ETH_REG  = '/usr/share/fonts/google-droid-sans-fonts/DroidSansEthiopic-Regular.ttf';
+const FONT_ETH_BOLD = '/usr/share/fonts/google-droid-sans-fonts/DroidSansEthiopic-Bold.ttf';
+
+/** Returns true if the string contains any Ethiopic Unicode codepoints. */
+const hasEthiopic = (s) =>
+  /[\u1200-\u137F\u1380-\u139F\u2D80-\u2DDF\uAB01-\uAB2F]/.test(String(s ?? ''));
+
 const buildPdf = (type, rows) =>
   new Promise((resolve, reject) => {
     const meta = REPORT_META[type] || { label: `${type} Report`, color: '1E3A5F' };
     const hexColor = `#${meta.color}`;
 
     const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 30, bufferPages: true });
+
+    // Register Unicode-capable fonts
+    doc.registerFont('Reg',     FONT_REGULAR);
+    doc.registerFont('Bold',    FONT_BOLD);
+    doc.registerFont('EthReg',  FONT_ETH_REG);
+    doc.registerFont('EthBold', FONT_ETH_BOLD);
+
     const chunks = [];
     doc.on('data', (c) => chunks.push(c));
     doc.on('end', () => resolve(Buffer.concat(chunks)));
     doc.on('error', reject);
 
     if (!rows.length) {
-      doc.fontSize(14).text('No data available.', 50, 50);
+      doc.font('Reg').fontSize(14).text('No data available.', 50, 50);
       doc.end();
       return;
     }
 
-    const headers = Object.keys(rows[0]);
+    const allHeaders = Object.keys(rows[0]);
     const pageW = doc.page.width - 60;
+    const FONT_SIZE = 7;
+    const ROW_H = 16;
+    const MIN_COL_W = 50;
+    const COLS_PER_BAND = Math.max(1, Math.floor(pageW / MIN_COL_W));
+    const bands = [];
+    for (let i = 0; i < allHeaders.length; i += COLS_PER_BAND) {
+      bands.push(allHeaders.slice(i, i + COLS_PER_BAND));
+    }
 
-    // ── Header banner ──
-    doc.rect(30, 20, pageW, 50).fill(hexColor);
-    doc.fillColor('#FFFFFF').fontSize(16).font('Helvetica-Bold')
-      .text(`BRANA LIBRARY — ${meta.label.toUpperCase()}`, 42, 30, { width: pageW - 20 });
-    doc.fontSize(8).font('Helvetica')
-      .text(`Generated: ${new Date().toUTCString()}  |  Records: ${rows.length.toLocaleString()}`, 42, 52, { width: pageW - 20 });
-    doc.fillColor('#000000');
+    const pickFont = (text, bold) =>
+      hasEthiopic(text) ? (bold ? 'EthBold' : 'EthReg') : (bold ? 'Bold' : 'Reg');
 
-    // ── Column layout ──
-    const MAX_COLS = Math.min(headers.length, 12);
-    const visibleHeaders = headers.slice(0, MAX_COLS);
-    const colW = pageW / MAX_COLS;
-    const startY = 82;
-    const rowH = 18;
+    const drawBanner = (bandIdx, totalBands) => {
+      doc.rect(30, 20, pageW, 46).fill(hexColor);
+      const title = `BRANA LIBRARY — ${meta.label.toUpperCase()}`;
+      doc.font(pickFont(title, true)).fillColor('#FFFFFF').fontSize(13)
+        .text(title, 42, 26, { width: pageW - 20, lineBreak: false });
+      const bandNote = totalBands > 1 ? `  ·  Column Group ${bandIdx + 1} of ${totalBands}` : '';
+      doc.font('Reg').fontSize(7)
+        .text(
+          `Generated: ${new Date().toUTCString()}  |  Records: ${rows.length.toLocaleString()}${bandNote}`,
+          42, 46, { width: pageW - 20, lineBreak: false },
+        );
+    };
 
-    const drawRow = (y, values, isBold, bg) => {
-      if (bg) {
-        doc.rect(30, y, pageW, rowH).fill(bg);
-      }
-      doc.fillColor(isBold ? '#FFFFFF' : '#1A202C')
-        .font(isBold ? 'Helvetica-Bold' : 'Helvetica')
-        .fontSize(7);
-      visibleHeaders.forEach((h, i) => {
-        const text = fmt(values[i]).slice(0, 22);
-        doc.text(text, 32 + i * colW, y + 4, { width: colW - 4, lineBreak: false });
+    const drawColHeaders = (bandHeaders, y) => {
+      const colW = pageW / bandHeaders.length;
+      doc.rect(30, y, pageW, ROW_H).fill(hexColor);
+      bandHeaders.forEach((h, i) => {
+        const label = h.replace(/_/g, ' ').toUpperCase();
+        doc.font(pickFont(label, true)).fillColor('#FFFFFF').fontSize(FONT_SIZE)
+          .text(label, 32 + i * colW, y + 4, { width: colW - 4, lineBreak: false });
       });
-      if (!isBold) {
-        doc.moveTo(30, y + rowH).lineTo(30 + pageW, y + rowH)
-          .strokeColor('#E2E8F0').lineWidth(0.3).stroke();
-      }
     };
 
-    // Header row
-    doc.rect(30, startY, pageW, rowH).fill(hexColor);
-    drawRow(startY, visibleHeaders.map((h) => h.replace(/_/g, ' ').toUpperCase()), true, null);
-
-    let y = startY + rowH;
-    let rowCount = 0;
-
-    const addPage = () => {
-      doc.addPage({ size: 'A4', layout: 'landscape', margin: 30 });
-      // Repeat header banner small
-      doc.rect(30, 20, pageW, 26).fill(hexColor);
-      doc.fillColor('#FFFFFF').fontSize(9).font('Helvetica-Bold')
-        .text(`${meta.label.toUpperCase()} — continued`, 40, 28);
-      doc.rect(30, 50, pageW, rowH).fill(hexColor);
-      drawRow(50, visibleHeaders.map((h) => h.replace(/_/g, ' ').toUpperCase()), true, null);
-      y = 50 + rowH;
+    const drawDataRow = (bandHeaders, row, y, rowIdx) => {
+      const colW = pageW / bandHeaders.length;
+      const bg = rowIdx % 2 === 0 ? '#FFFFFF' : '#F7FAFC';
+      doc.rect(30, y, pageW, ROW_H).fill(bg);
+      bandHeaders.forEach((h, i) => {
+        const raw = fmt(row[h]);
+        doc.font(pickFont(raw, false)).fillColor('#1A202C').fontSize(FONT_SIZE)
+          .text(raw.slice(0, 32), 32 + i * colW, y + 4, { width: colW - 4, lineBreak: false });
+      });
+      doc.moveTo(30, y + ROW_H).lineTo(30 + pageW, y + ROW_H)
+        .strokeColor('#E2E8F0').lineWidth(0.3).stroke();
     };
 
-    rows.forEach((row, idx) => {
-      if (y + rowH > doc.page.height - 40) addPage();
-      const bg = idx % 2 === 0 ? '#FFFFFF' : '#F7FAFC';
-      drawRow(y, visibleHeaders.map((h) => row[h]), false, bg);
-      y += rowH;
-      rowCount++;
+    const DATA_START = 76;
+
+    bands.forEach((bandHeaders, bandIdx) => {
+      if (bandIdx > 0) doc.addPage({ size: 'A4', layout: 'landscape', margin: 30 });
+
+      drawBanner(bandIdx, bands.length);
+      drawColHeaders(bandHeaders, DATA_START);
+
+      let y = DATA_START + ROW_H;
+
+      rows.forEach((row, rowIdx) => {
+        if (y + ROW_H > doc.page.height - 34) {
+          doc.addPage({ size: 'A4', layout: 'landscape', margin: 30 });
+          doc.rect(30, 20, pageW, 22).fill(hexColor);
+          doc.font('Bold').fillColor('#FFFFFF').fontSize(8)
+            .text(
+              `${meta.label.toUpperCase()}${bands.length > 1 ? ` — Group ${bandIdx + 1}/${bands.length}` : ''} (continued)`,
+              38, 26, { width: pageW - 20, lineBreak: false },
+            );
+          drawColHeaders(bandHeaders, 46);
+          y = 46 + ROW_H;
+        }
+        drawDataRow(bandHeaders, row, y, rowIdx);
+        y += ROW_H;
+      });
     });
 
-    // Page numbers
     const range = doc.bufferedPageRange();
     for (let i = 0; i < range.count; i++) {
       doc.switchToPage(range.start + i);
-      doc.fillColor('#888888').fontSize(7).font('Helvetica')
-        .text(`Page ${i + 1} of ${range.count}  |  Brana Library Management System  |  Confidential`,
-          30, doc.page.height - 25, { width: pageW, align: 'center' });
+      doc.font('Reg').fillColor('#9CA3AF').fontSize(6.5)
+        .text(
+          `Page ${i + 1} of ${range.count}  ·  Brana Library Management System  ·  Confidential`,
+          30, doc.page.height - 22, { width: pageW, align: 'center', lineBreak: false },
+        );
     }
 
     doc.end();
   });
+
 
 // ─── MAIN BUILDER ─────────────────────────────────────────────────────────────
 
