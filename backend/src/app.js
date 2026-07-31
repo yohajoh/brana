@@ -99,7 +99,10 @@ app.use(
     threshold: 1024,
     level: resolvedCompressionLevel,
     filter: (req, res) => {
-      if (req.headers["x-no-compression"]) return false;
+      // Never compress binary file downloads — it corrupts PDF/Excel buffers
+      if (req.headers["x-no-compression"] || res.locals.noCompress) return false;
+      const disposition = res.getHeader("Content-Disposition");
+      if (typeof disposition === "string" && disposition.startsWith("attachment")) return false;
       return compression.filter(req, res);
     },
   }),

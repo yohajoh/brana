@@ -89,9 +89,14 @@ export const exportReport = async (req, res) => {
 
   if (format !== 'json') {
     const extension = report.extension || format;
+    const body = report.body;
+    // Signal compression middleware to skip — binary buffers must not be gzip-encoded
+    res.locals.noCompress = true;
     res.setHeader('Content-Type', report.contentType);
-    res.setHeader('Content-Disposition', `attachment; filename=${type}-report.${extension}`);
-    return res.status(200).send(report.body);
+    res.setHeader('Content-Disposition', `attachment; filename="brana-${type}-report.${extension}"`);
+    res.setHeader('Cache-Control', 'no-store');
+    if (Buffer.isBuffer(body)) res.setHeader('Content-Length', body.length);
+    return res.status(200).end(body);
   }
 
   return res.status(200).json({ status: 'success', data: report.body });
