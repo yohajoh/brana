@@ -5,7 +5,15 @@ import PDFDocument from 'pdfkit';
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 
 const fmt = (v) => (v === null || v === undefined ? '' : String(v));
-const fmtDate = (d) => (d ? new Date(d).toISOString().replace('T', ' ').slice(0, 19) + ' UTC' : '');
+const fmtDate = (d) => {
+  if (!d) return '';
+  const date = new Date(d);
+  return date.toLocaleString('en-US', {
+    year: 'numeric', month: 'short', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: true, timeZone: 'UTC', timeZoneName: 'short',
+  });
+};
 const fmtDecimal = (v) => (v != null ? Number(v).toFixed(2) : '0.00');
 
 // ─── DATA FETCHERS ────────────────────────────────────────────────────────────
@@ -413,7 +421,7 @@ const buildPdf = (type, rows) =>
     const meta = REPORT_META[type] || { label: `${type} Report`, color: '1E3A5F' };
     const hexColor = `#${meta.color}`;
 
-    const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 30 });
+    const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 30, bufferPages: true });
     const chunks = [];
     doc.on('data', (c) => chunks.push(c));
     doc.on('end', () => resolve(Buffer.concat(chunks)));
@@ -505,10 +513,17 @@ export const buildReport = async (type, format = 'json') => {
 
   if (format === 'json') return { contentType: 'application/json', body: { rows } };
 
+  // For file exports, return a clear error payload when there is no data
+  // instead of generating an empty/blank file.
+  if (rows.length === 0) {
+    const label = type.charAt(0).toUpperCase() + type.slice(1);
+    throw new Error(`No ${label} data found. Nothing to export.`);
+  }
+
   if (format === 'csv') {
     return {
       contentType: 'text/csv; charset=utf-8',
-      body: '\uFEFF' + buildCsv(rows), // BOM for Excel UTF-8
+      body: '\uFEFF' + buildCsv(rows), // UTF-8 BOM so Excel opens correctly
       extension: 'csv',
     };
   }
