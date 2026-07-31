@@ -437,7 +437,7 @@ const buildPdf = (type, rows) =>
     const meta = REPORT_META[type] || { label: `${type} Report`, color: '1E3A5F' };
     const hexColor = `#${meta.color}`;
 
-    const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 30, bufferPages: true });
+    const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margins: { top: 0, bottom: 0, left: 0, right: 0 }, bufferPages: true });
 
     // Register Unicode-capable fonts
     doc.registerFont('Reg',     FONT_REGULAR);
@@ -493,23 +493,38 @@ const buildPdf = (type, rows) =>
       });
     };
 
-    const drawDataRow = (bandHeaders, row, y, rowIdx) => {
+    const getRowHeight = (bandHeaders, row) => {
+      const colW = pageW / bandHeaders.length;
+      let maxH = ROW_H;
+      bandHeaders.forEach((h) => {
+        const raw = fmt(row[h]);
+        doc.font(pickFont(raw, false)).fontSize(FONT_SIZE);
+        const textH = doc.heightOfString(raw, { width: colW - 6 });
+        const cellH = textH + 8; // padding (4pt top, 4pt bottom)
+        if (cellH > maxH) {
+          maxH = cellH;
+        }
+      });
+      return maxH;
+    };
+
+    const drawDataRow = (bandHeaders, row, y, rowH, rowIdx) => {
       const colW = pageW / bandHeaders.length;
       const bg = rowIdx % 2 === 0 ? '#FFFFFF' : '#F7FAFC';
-      doc.rect(30, y, pageW, ROW_H).fill(bg);
+      doc.rect(30, y, pageW, rowH).fill(bg);
       bandHeaders.forEach((h, i) => {
         const raw = fmt(row[h]);
         doc.font(pickFont(raw, false)).fillColor('#1A202C').fontSize(FONT_SIZE)
-          .text(raw.slice(0, 32), 32 + i * colW, y + 4, { width: colW - 4, lineBreak: false });
+          .text(raw, 33 + i * colW, y + 4, { width: colW - 6, align: 'left' });
       });
-      doc.moveTo(30, y + ROW_H).lineTo(30 + pageW, y + ROW_H)
+      doc.moveTo(30, y + rowH).lineTo(30 + pageW, y + rowH)
         .strokeColor('#E2E8F0').lineWidth(0.3).stroke();
     };
 
     const DATA_START = 76;
 
     bands.forEach((bandHeaders, bandIdx) => {
-      if (bandIdx > 0) doc.addPage({ size: 'A4', layout: 'landscape', margin: 30 });
+      if (bandIdx > 0) doc.addPage();
 
       drawBanner(bandIdx, bands.length);
       drawColHeaders(bandHeaders, DATA_START);
@@ -517,8 +532,9 @@ const buildPdf = (type, rows) =>
       let y = DATA_START + ROW_H;
 
       rows.forEach((row, rowIdx) => {
-        if (y + ROW_H > doc.page.height - 34) {
-          doc.addPage({ size: 'A4', layout: 'landscape', margin: 30 });
+        const rowH = getRowHeight(bandHeaders, row);
+        if (y + rowH > doc.page.height - 30) {
+          doc.addPage();
           doc.rect(30, 20, pageW, 22).fill(hexColor);
           doc.font('Bold').fillColor('#FFFFFF').fontSize(8)
             .text(
@@ -528,8 +544,8 @@ const buildPdf = (type, rows) =>
           drawColHeaders(bandHeaders, 46);
           y = 46 + ROW_H;
         }
-        drawDataRow(bandHeaders, row, y, rowIdx);
-        y += ROW_H;
+        drawDataRow(bandHeaders, row, y, rowH, rowIdx);
+        y += rowH;
       });
     });
 
