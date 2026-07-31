@@ -136,10 +136,10 @@ export const DashboardSidebar = ({ variant = "default" }: DashboardSidebarProps)
                   backdropFilter: "blur(8px)",
                 }} />
                 <div className="absolute top-0 right-0 w-2 h-2 bg-[#f5c518] rounded-tr-[10px] rounded-bl-md" />
-                <span className="absolute inset-0 flex items-center justify-center text-white font-serif font-black text-[13px] leading-none z-10 select-none">ብ</span>
+                <span className="absolute inset-0 flex items-center justify-center text-white font-serif font-black text-[13px] leading-none z-10 select-none">B</span>
               </div>
               <div className="leading-none">
-                <p className="text-[13px] font-serif font-black text-white tracking-tight group-hover:text-white/75 transition-colors">ብራና</p>
+                <p className="text-[13px] font-serif font-black text-white tracking-tight group-hover:text-white/75 transition-colors">Brana</p>
                 <p className="text-[7.5px] font-bold text-white/30 tracking-[0.2em] uppercase">Library</p>
               </div>
             </Link>
