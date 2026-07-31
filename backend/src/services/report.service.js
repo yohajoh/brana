@@ -1,6 +1,12 @@
 import { prisma } from '../prisma.js';
 import ExcelJS from 'exceljs';
 import PDFDocument from 'pdfkit';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 
@@ -417,10 +423,10 @@ const buildExcel = async (type, rows) => {
 // ─── PDF ──────────────────────────────────────────────────────────────────────
 
 // System Unicode fonts – support Latin + Ethiopic (Amharic / Tigrinya) script
-const FONT_REGULAR  = '/usr/share/fonts/google-droid-sans-fonts/DroidSans.ttf';
-const FONT_BOLD     = '/usr/share/fonts/google-droid-sans-fonts/DroidSans-Bold.ttf';
-const FONT_ETH_REG  = '/usr/share/fonts/google-droid-sans-fonts/DroidSansEthiopic-Regular.ttf';
-const FONT_ETH_BOLD = '/usr/share/fonts/google-droid-sans-fonts/DroidSansEthiopic-Bold.ttf';
+const FONT_REGULAR  = join(__dirname, '../assets/fonts/DroidSans.ttf');
+const FONT_BOLD     = join(__dirname, '../assets/fonts/DroidSans-Bold.ttf');
+const FONT_ETH_REG  = join(__dirname, '../assets/fonts/DroidSansEthiopic-Regular.ttf');
+const FONT_ETH_BOLD = join(__dirname, '../assets/fonts/DroidSansEthiopic-Bold.ttf');
 
 /** Returns true if the string contains any Ethiopic Unicode codepoints. */
 const hasEthiopic = (s) =>
