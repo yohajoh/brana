@@ -989,3 +989,47 @@ export const transferSuperAdminRole = async (targetUserId, actorUserId) => {
 
   return { id: target.id, role: "SUPER_ADMIN", is_super_admin: true };
 };
+
+export const getGoogleCalendarStatus = async (userId) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      google_calendar_email: true,
+      google_calendar_connected_at: true,
+      google_refresh_token: true,
+    },
+  });
+
+  if (!user) {
+    throw new AppError("User not found", 404);
+  }
+
+  return {
+    connected: Boolean(user.google_refresh_token),
+    email: user.google_calendar_email || null,
+    connected_at: user.google_calendar_connected_at || null,
+  };
+};
+
+export const connectGoogleCalendar = async (userId, refreshToken, calendarEmail) => {
+  return prisma.user.update({
+    where: { id: userId },
+    data: {
+      google_refresh_token: refreshToken,
+      google_calendar_email: calendarEmail,
+      google_calendar_connected_at: new Date(),
+    },
+  });
+};
+
+export const disconnectGoogleCalendar = async (userId) => {
+  return prisma.user.update({
+    where: { id: userId },
+    data: {
+      google_refresh_token: null,
+      google_calendar_email: null,
+      google_calendar_connected_at: null,
+    },
+  });
+};
+

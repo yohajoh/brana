@@ -59,3 +59,13 @@ export const upsertCurrentMonthTarget = async (req, res) => {
   clearStatsCache();
   res.json({ status: 'success', data });
 };
+
+export const getPublicStats = async (req, res, next) => {
+  try {
+    const data = await getCached('public', () => statsService.getPublicStats(), 60_000);
+    res.json({ status: 'success', data });
+  } catch (error) {
+    next(error);
+  }
+};
+

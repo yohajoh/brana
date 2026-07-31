@@ -1,10 +1,11 @@
-import { prisma } from '../prisma.js';
 /**
  * Author Controller
  */
 
+import { prisma } from '../prisma.js';
 import * as authorService from '../services/author.service.js';
 import { logAdminActivity } from '../services/adminActivity.service.js';
+
 
 export const getAuthors = async (req, res) => {
   const result = await authorService.getAuthors(req.query);

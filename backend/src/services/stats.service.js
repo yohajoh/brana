@@ -634,3 +634,29 @@ export const upsertCurrentMonthTarget = async (adminId, payload) => {
 
   return { monthStart, target };
 };
+
+export const getPublicStats = async () => {
+  const [
+    totalPhysicalBooks,
+    totalDigitalBooks,
+    totalCategories,
+    totalUsers,
+    totalRentals,
+  ] = await Promise.all([
+    prisma.book.count({ where: { deleted_at: null } }),
+    prisma.digitalBook.count({ where: { deleted_at: null } }),
+    prisma.category.count(),
+    prisma.user.count({ where: { is_confirmed: true, is_blocked: false } }),
+    prisma.rental.count(),
+  ]);
+
+  return {
+    totalBooks: totalPhysicalBooks + totalDigitalBooks,
+    totalPhysicalBooks,
+    totalDigitalBooks,
+    totalCategories,
+    totalStudents: totalUsers,
+    totalRentals,
+  };
+};
+

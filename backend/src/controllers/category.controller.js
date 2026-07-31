@@ -1,10 +1,11 @@
-import { prisma } from '../prisma.js';
 /**
  * Category Controller
  */
 
+import { prisma } from '../prisma.js';
 import * as categoryService from '../services/category.service.js';
 import { logAdminActivity } from '../services/adminActivity.service.js';
+
 
 export const getCategories = async (req, res) => {
   const result = await categoryService.getCategories(req.query);
