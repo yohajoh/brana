@@ -38,11 +38,32 @@ export const Navbar = () => {
   const langRef    = useRef<HTMLDivElement>(null);
   const mobileRef  = useRef<HTMLDivElement>(null);
   const hamburgerRef = useRef<HTMLButtonElement>(null);
-  const { toggleMobileSidebar } = useDashboardShell();
+  const { toggleMobileSidebar, isCollapsed } = useDashboardShell();
+
+  const [mounted, setMounted] = useState(false);
+  const [isLg, setIsLg]       = useState(false);
+
+  useEffect(() => {
+    const mq      = window.matchMedia("(min-width: 1024px)");
+    const handler = (e: MediaQueryListEvent) => setIsLg(e.matches);
+    mq.addEventListener("change", handler);
+
+    const rafId = requestAnimationFrame(() => {
+      setMounted(true);
+      setIsLg(mq.matches);
+    });
+
+    return () => {
+      mq.removeEventListener("change", handler);
+      cancelAnimationFrame(rafId);
+    };
+  }, []);
 
   const isStudentDashboard = pathname.startsWith("/dashboard/student");
   const isAdminDashboard   = pathname.startsWith("/dashboard/admin");
   const isDashboard        = pathname.startsWith("/dashboard/");
+
+  const navLeft = mounted && isLg ? (isCollapsed ? 64 : 256) : 0;
 
   /* Track scroll — 60px threshold */
   useEffect(() => {
@@ -89,7 +110,14 @@ export const Navbar = () => {
   ══════════════════════════════════════════════════════════ */
   if (isDashboard) {
     return (
-      <header className="fixed top-0 left-0 right-0 lg:left-64 z-[70] border-b border-[#e2e0e7]/50 bg-white/85 backdrop-blur-2xl">
+      <header
+        className="fixed top-0 right-0 z-[70] border-b border-[#e2e0e7]/50 bg-white/85 backdrop-blur-2xl"
+        style={{
+          left: navLeft,
+          transition: mounted ? "left 0.35s cubic-bezier(0.16,1,0.3,1)" : "none",
+        }}
+      >
+
         <div className="flex items-center justify-between px-4 lg:px-6 h-14">
           <button type="button" onClick={toggleMobileSidebar}
             className="lg:hidden grid place-items-center w-8 h-8 rounded-lg border border-[#e2e0e7] text-[#374151] hover:border-[#0d0d0d] hover:text-[#0d0d0d] transition-all"
