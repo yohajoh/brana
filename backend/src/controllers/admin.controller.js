@@ -88,7 +88,7 @@ export const exportReport = async (req, res) => {
   });
 
   if (format !== 'json') {
-    const extension = report.extension || (format === 'excel' ? 'xls' : format);
+    const extension = report.extension || format;
     res.setHeader('Content-Type', report.contentType);
     res.setHeader('Content-Disposition', `attachment; filename=${type}-report.${extension}`);
     return res.status(200).send(report.body);
