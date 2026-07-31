@@ -38,20 +38,21 @@ const statusStyle = (s: string) => {
 export const DetailedHistoryTable = ({ rentals, loading }: Props) => {
   const { t } = useLanguage();
 
-  const rows = rentals.map(r => ({
-    id:           r.id,
-    bookId:       r.physical_book.id,
-    title:        r.physical_book.title,
-    borrowed:     fmt(r.loan_date),
-    returned:     r.return_date ? fmt(r.return_date) : "—",
-    days:         r.return_date
+  const rows = (rentals || []).map(r => ({
+    id:           r?.id,
+    bookId:       r?.physical_book?.id || (r as any)?.book?.id || "",
+    title:        r?.physical_book?.title || (r as any)?.book?.title || "Unknown Book",
+    borrowed:     r?.loan_date ? fmt(r.loan_date) : "—",
+    returned:     r?.return_date ? fmt(r.return_date) : "—",
+    days:         r?.return_date && r?.loan_date
                     ? daysBetween(r.loan_date, r.return_date)
-                    : r.status === "BORROWED"
+                    : r?.status === "BORROWED" && r?.loan_date
                       ? daysBetween(r.loan_date, new Date().toISOString())
                       : 0,
-    amount:       Number(r.payment?.amount ?? r.fine ?? 0),
-    status:       r.status,
+    amount:       Number(r?.payment?.amount ?? r?.fine ?? 0),
+    status:       r?.status || "UNKNOWN",
   }));
+
 
   type Row = typeof rows[number];
 

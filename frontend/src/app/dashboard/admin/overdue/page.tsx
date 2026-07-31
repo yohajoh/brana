@@ -27,8 +27,9 @@ export default function AdminOverduePage() {
   };
   const cols:ColumnDef<OR,unknown>[]=[
     {id:"sel",header:()=><input type="checkbox" checked={rows.length>0&&sel.size===rows.length} onChange={e=>selectAll(e.target.checked)} className="w-4 h-4 rounded border-[#e8e4dc]"/>,cell:({row})=><input type="checkbox" checked={sel.has(row.original.id)} onChange={()=>toggle(row.original.id)} className="w-4 h-4 rounded border-[#e8e4dc]"/>},
-    {id:"student",header:String(t("admin_overdue.table.student")),cell:({row})=><div><p className="text-[13px] font-bold text-[#0d0d0d] truncate">{row.original.user.name}</p><p className="text-[11px] text-[#0d0d0d]/40 truncate">{row.original.user.email}</p></div>},
-    {id:"book",header:String(t("admin_overdue.table.book")),cell:({row})=><span className="text-[12px] text-[#0d0d0d] truncate block">{row.original.physical_book.title}</span>},
+    {id:"student",header:String(t("admin_overdue.table.student")),cell:({row})=><div><p className="text-[13px] font-bold text-[#0d0d0d] truncate">{row.original.user?.name || "Student"}</p><p className="text-[11px] text-[#0d0d0d]/40 truncate">{row.original.user?.email || ""}</p></div>},
+    {id:"book",header:String(t("admin_overdue.table.book")),cell:({row})=><span className="text-[12px] text-[#0d0d0d] truncate block">{row.original.physical_book?.title || (row.original as any).book?.title || "Book"}</span>},
+
     {id:"due",header:String(t("admin_overdue.table.due_date")),cell:({row})=><span className="text-[12px] text-[#0d0d0d]/50">{new Date(row.original.due_date).toLocaleDateString()}</span>},
     {id:"days",header:String(t("admin_overdue.table.days_overdue")),cell:({row})=><span className="text-[13px] font-black text-red-600">{row.original.daysOverdue}</span>},
     {id:"fine",header:String(t("admin_overdue.table.estimated_fine")),cell:({row})=><span className="text-[12px] font-bold text-[#0d0d0d]">{Number(row.original.estimatedFine).toFixed(2)} ETB</span>},

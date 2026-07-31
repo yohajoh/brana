@@ -21,18 +21,21 @@ const daysBetween = (a: string, b: string) =>
 export const HistorySummary = ({ rentals, loading }: Props) => {
   const { t } = useLanguage();
 
-  const totalBorrowed = rentals.length;
-  const totalPaid = rentals.reduce((s, r) => {
-    const p = r.payment?.amount ? Number(r.payment.amount) : 0;
-    const f = r.fine ? Number(r.fine) : 0;
+  const safeRentals = rentals || [];
+  const totalBorrowed = safeRentals.length;
+  const totalPaid = safeRentals.reduce((s, r) => {
+    const p = r?.payment?.amount ? Number(r.payment.amount) : 0;
+    const f = r?.fine ? Number(r.fine) : 0;
     return s + Math.max(p, f);
   }, 0);
   const avgCost = totalBorrowed > 0 ? totalPaid / totalBorrowed : 0;
-  const totalDays = rentals.reduce((s, r) => {
+  const totalDays = safeRentals.reduce((s, r) => {
+    if (!r?.loan_date) return s;
     if (r.return_date) return s + daysBetween(r.loan_date, r.return_date);
     if (r.status === "BORROWED") return s + daysBetween(r.loan_date, new Date().toISOString());
     return s;
   }, 0);
+
 
   const stats = [
     { label: String(t("student_history.summary.total_borrowed")), value: totalBorrowed.toString(), sub: "books read" },

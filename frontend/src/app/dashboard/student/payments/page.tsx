@@ -214,8 +214,9 @@ function PaymentsContent() {
             {pendingFines.map(r => (
               <div key={r.id} className="bg-white rounded-2xl border border-[#e8e4dc] px-4 py-3.5 flex items-center justify-between gap-4">
                 <div className="min-w-0">
-                  <p className="text-[13px] font-semibold text-[#0d0d0d] truncate">{r.physical_book.title}</p>
+                  <p className="text-[13px] font-semibold text-[#0d0d0d] truncate">{r.physical_book?.title || (r as any).book?.title || "Book"}</p>
                   <p className="text-[11px] text-[#0d0d0d]/40 mt-0.5">
+
                     Fine: <span className="font-bold text-red-600">{Number(r.fine || 0).toFixed(2)} ETB</span>
                   </p>
                 </div>
