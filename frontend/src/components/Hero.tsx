@@ -35,9 +35,8 @@ export const Hero = () => {
 
         {/* ── Left: editorial copy ──────────────────────────────── */}
         <div className="flex-1 max-w-2xl">
-          {/* App name — visible to Google crawler and users */}
           <p className="text-[13px] font-black text-white/90 mb-1 tracking-wide">
-            Brana Library — ASTU Campus Book Rental
+            {t("hero.eyebrow") as string}
           </p>
 
           {/* Small label */}

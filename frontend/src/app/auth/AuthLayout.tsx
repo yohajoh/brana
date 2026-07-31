@@ -95,7 +95,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
 
       {/* ── Footer ──────────────────────────────────────────────── */}
       <footer className="relative z-10 py-5 text-center">
-        <p className="text-xs text-[#9ca3af]">&copy; {new Date().getFullYear()} Birana Library — ASTU</p>
+        <p className="text-xs text-[#9ca3af]">&copy; {new Date().getFullYear()} Brana Library System</p>
       </footer>
     </div>
   );
@@ -206,7 +206,7 @@ export const SplitAuthLayout: React.FC<SplitAuthLayoutProps> = ({
             )}
             <div className="h-px bg-white/15 mb-5" />
             <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#f5c518] mb-2">
-              Birana Library · ASTU
+              Brana Library · Digital & Physical
             </p>
             <h2 className="text-xl font-serif font-black text-white leading-tight mb-2">{imageTitle}</h2>
             <p className="text-xs text-white/50 leading-relaxed">{imageTagline}</p>
@@ -268,7 +268,7 @@ export const SplitAuthLayout: React.FC<SplitAuthLayoutProps> = ({
           {/* Footer strip */}
           <div className="relative z-10 shrink-0 px-6 sm:px-8 py-3 border-t border-[#e2e0e7]/60">
             <p className="text-[10px] text-[#c0bfca]">
-              &copy; {new Date().getFullYear()} Birana Library System — ASTU
+              &copy; {new Date().getFullYear()} Brana Library System
             </p>
           </div>
         </div>

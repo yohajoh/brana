@@ -30,7 +30,7 @@
   "hero": {
     "title_part1": "Dubbisa Keessan Itti Aanu፣ Qofaan",
     "title_italic": "Cunqursuun",
-    "eyebrow": "Mana Kitaabaa Kampasii ASTU · Diijitaalaa & Qaamaa",
+    "eyebrow": "Mana Kitaabaa Braanaa · Liqeeffannaa Kitaabaa Diijitaalaa fi Qaamaa",
     "description": "Gibi gubae keenya keessatti kitaabota liqeeffachuuf karaa salphaa ta'e dhandhamaa. Kaataaloogii keenya onlaayinii barbaadaa, battalumatti gaafadhaa, kitaaba keessan mooraa keessanitti argadhaa. Barattoota dubbisuu jaallatan, rakkina malee qophaa'e.",
     "cta": "Sassaabbiiwwan sakatta'i",
     "cta_secondary": "Akkawuntii bilisaa uumi"
@@ -130,14 +130,15 @@
     "social_title": "Hawaasaa",
     "privacy": "Iyyaannoo Dhuunfaa",
     "terms": "Haalawwan Tajaajilaa",
-    "rights": "Mirgi hunduun eegamaadha."
+    "rights": "Mirgi hunduun eegamaadha.",
+    "location": "Adaamaa, Itoophiyaa"
   },
   "about_page": {
     "story": {
       "title": "Seenaa Keenya",
-      "p1": "Hundi isaa tarree Google Forms fi garee namoota fedhii qabanitiin jalqabe. Waggoota hedduu dura gamታni keenya kitaaba liqeeffachuu harkaan bulchaa ture - barattoonni forms guutu, namoonni fedha qaban hunda spreadsheet irratti hordofu ture.",
-      "p2": "Inni ni hojjeta ture, garuu salphaa hin turre. Kitaabonni makuu keessatti badu turan. Barattoonni maaltu akka jirun hin beekan turan. Namoonni fedha qaban dhimma bulchiinsaa irratti sa'aatii dheeraa dabarsu turan. Karaan biraa jiraachuu akka qabu beekna ture.",
-      "p3": "Snaaf ijaarre. Maaltu akka marii hiriyoota gidduutti jalqabe gara pirojeektii sirna liqeeffannaa salphaa, haqa qabuu fi hawaasummaa irratti xiyyeeffatu ijaaruutti jijjiirame. Har'a, 'Fellowship Library' platform dijitaalaa guutuu barattoonni akka sakatta'an, gaafatan fi kitaaba argatan dha - hundi isaanii dormii isaaniitti kan geeffaman dha."
+      "p1": "Mana Kitaabaa Braanaa hubannoo salphaa tokkoon jalqabe: bantiinsi kitaabaa bakka itti barattan yookiin eenyu akka beektan irratti hundaa'uu hin qabu. Mana kitaabaa kamiyyuu — yunivarsiitii, mana barumsaa, yookiin hawaasaaf — sirna liqeeffannaa salphaa, ariifataa fi ammayyaa ijaarreerra.",
+      "p2": "Qajeelcha waraqaa fi hordoffii harka irraan sirna qulqulluu ammayyaa waliin bakka buuneerra. Barattoonni yeroo dhugaa maaltu akka jiru ilaaluu danda'u. Bulchitoota kitaabaa liqeeffannoo, adabbii fi qabachiisa salphatti to'achuu danda'u.",
+      "p3": "Braanaa mana kitaabaa kamiyyuu tajaajiluu akka danda'u qindaa'eera. Mana kitaabaa yoo qabaattan onlaayinitti fiduuf yoo barbaaddan, Braanaa isiniif ijaarameera."
     },
     "mission": {
       "title": "Ergaa Keenya",

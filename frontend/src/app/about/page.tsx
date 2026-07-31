@@ -152,9 +152,11 @@ export default function AboutPage() {
                 <Image src="/about img.jpg" alt="Library" width={700} height={500}
                   className="w-full object-cover aspect-[4/3]" />
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#0d0d0d]/80 to-transparent p-4 sm:p-6">
-                  <p className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-[#f5c518] mb-1">ASTU Campus</p>
+                  <p className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-[#f5c518] mb-1">
+                    {t("about_page.involvement.story_section_eyebrow") as string}
+                  </p>
                   <p className="text-xs sm:text-sm text-white font-semibold">
-                    {t("about_page.involvement.story_section_eyebrow") as string} — Gibi Gubae Library
+                    {t("about_page.story.title") as string}
                   </p>
                 </div>
               </div>

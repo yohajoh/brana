@@ -30,7 +30,7 @@
   "hero": {
     "title_part1": "Your Next Read, Just a Click",
     "title_italic": "Away",
-    "eyebrow": "ASTU Campus Library · Digital & Physical",
+    "eyebrow": "Brana Library · Digital & Physical Book Rental",
     "description": "Experience the simplest way to borrow books within our gibi gubae. Search our online catalog, request instantly, and get your book delivered to your dorm. Built for students who love reading without the hassle.",
     "cta": "Explore Collections",
     "cta_secondary": "Create free account"
@@ -130,14 +130,15 @@
     "social_title": "Social",
     "privacy": "Privacy Policy",
     "terms": "Terms of Service",
-    "rights": "All rights reserved."
+    "rights": "All rights reserved.",
+    "location": "Adama, Ethiopia"
   },
   "about_page": {
     "story": {
       "title": "Our Story",
-      "p1": "It all started with a stack of Google Forms and a team of dedicated volunteers. For years, our fellowship managed book lending manually—students would fill out forms, volunteers would track everything on spreadsheets, and books were handed out whenever schedules aligned.",
-      "p2": "It worked, but it wasn't easy. Books got lost in the shuffle. Students didn't know what was available. Volunteers spent hours on administrative work instead of connecting with readers. We knew there had to be a better way.",
-      "p3": "So we built one. What started as a conversation among friends became a project to create a simple, fair, and community-focused borrowing system. Today, the Fellowship Library is a fully digital platform that lets students browse, request, and receive books—all delivered to their dorm, with a pay-per-day model that's fair for everyone."
+      "p1": "Brana Library started with a simple belief: access to books should not depend on where you study or who you know. We built a platform that makes it easy to discover, borrow, and return books — physical and digital — from any library that runs on Brana.",
+      "p2": "We replaced paper forms and manual tracking with a clean, modern system. Students can see what is available in real time. Librarians can manage rentals, fines, and reservations effortlessly. Everything in one place.",
+      "p3": "Brana is designed to serve any library — university, school, or community. If you run a library and want to bring it online, Brana is built for you."
     },
     "mission": {
       "title": "Our Mission",
@@ -1160,4 +1161,3 @@
     }
   }
 }
-

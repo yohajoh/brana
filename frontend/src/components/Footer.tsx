@@ -73,7 +73,7 @@ export const Footer = () => {
                 </div>
                 <div className="flex items-center gap-2.5">
                   <MapPin size={13} className="text-[#f5c518] shrink-0" />
-                  <span className="text-sm text-white/50">ASTU, Adama, Ethiopia</span>
+                  <span className="text-sm text-white/50">{t("footer.location") as string}</span>
                 </div>
               </div>
             </div>
@@ -177,7 +177,7 @@ export const Footer = () => {
       <div className="border-t border-white/04">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-[11px] text-white/22">
-            &copy; {year} Birana Library System — Adama Science &amp; Technology University.
+            &copy; {year} Brana Library System.
           </p>
           <p className="text-[11px] text-white/22">
             {t("footer.rights") as string}
