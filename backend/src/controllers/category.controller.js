@@ -51,7 +51,7 @@ export const deleteCategory = async (req, res) => {
     action: 'DELETE',
     entityType: 'CATEGORY',
     entityId: req.params.id,
-    description: `Deleted category "${category?.name || req.params.id}"`,
+    description: category?.name ? `Deleted category "${category.name}"` : 'Deleted category',
     req,
   });
   res.json({ status: 'success', message: 'Category deleted successfully' });

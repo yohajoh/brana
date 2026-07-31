@@ -108,7 +108,7 @@ export const deleteDigitalBook = async (req, res) => {
     action: "DELETE",
     entityType: "DIGITAL_BOOK",
     entityId: req.params.id,
-    description: `Soft-deleted digital book "${book?.title || req.params.id}"`,
+    description: book?.title ? `Soft-deleted digital book "${book.title}"` : "Soft-deleted digital book",
     req,
   });
   res.json({ status: "success", message: "Digital book soft-deleted successfully" });

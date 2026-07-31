@@ -234,7 +234,7 @@ export const blockUser = async (req, res, next) => {
       action: "BLOCK",
       entityType: "USER",
       entityId: req.params.id,
-      description: `Blocked user "${targetUser?.name || req.params.id}"`,
+      description: targetUser?.name ? `Blocked user "${targetUser.name}"` : "Blocked user",
       req,
     });
     res.status(200).json({
@@ -257,7 +257,7 @@ export const unblockUser = async (req, res, next) => {
       action: "UNBLOCK",
       entityType: "USER",
       entityId: req.params.id,
-      description: `Unblocked user "${targetUser?.name || req.params.id}"`,
+      description: targetUser?.name ? `Unblocked user "${targetUser.name}"` : "Unblocked user",
       req,
     });
     res.status(200).json({
@@ -280,7 +280,7 @@ export const deleteUser = async (req, res, next) => {
       action: "DELETE",
       entityType: "USER",
       entityId: req.params.id,
-      description: `Deleted user "${targetUser?.name || req.params.id}"`,
+      description: targetUser?.name ? `Deleted user "${targetUser.name}"` : "Deleted user",
       req,
     });
     res.status(200).json({
@@ -304,7 +304,7 @@ export const promoteStudentToAdmin = async (req, res, next) => {
       action: "PROMOTE",
       entityType: "USER",
       entityId: req.params.id,
-      description: `Promoted student "${targetUser?.name || req.params.id}" to admin`,
+      description: targetUser?.name ? `Promoted student "${targetUser.name}" to admin` : "Promoted student to admin",
       req,
     });
 
@@ -329,7 +329,7 @@ export const convertAdminToStudent = async (req, res, next) => {
       action: "DEMOTE_TO_STUDENT",
       entityType: "USER",
       entityId: req.params.id,
-      description: `Converted admin "${targetUser?.name || req.params.id}" to student`,
+      description: targetUser?.name ? `Converted admin "${targetUser.name}" to student` : "Converted admin to student",
       req,
     });
 
@@ -356,7 +356,7 @@ export const transferSuperAdmin = async (req, res, next) => {
       action: "TRANSFER_SUPER_ADMIN",
       entityType: "USER",
       entityId: req.params.id,
-      description: `Transferred super admin role to "${targetUser?.name || req.params.id}"`,
+      description: targetUser?.name ? `Transferred super admin role to "${targetUser.name}"` : "Transferred super admin role",
       req,
     });
 

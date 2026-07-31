@@ -54,7 +54,7 @@ export const deleteAuthor = async (req, res) => {
     action: 'DELETE',
     entityType: 'AUTHOR',
     entityId: req.params.id,
-    description: `Deleted author "${author?.name || req.params.id}"`,
+    description: author?.name ? `Deleted author "${author.name}"` : 'Deleted author',
     req,
   });
   res.json({ status: 'success', message: 'Author deleted successfully' });
