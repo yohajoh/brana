@@ -162,7 +162,7 @@ export default function BookDetailPage() {
     try {
       setBorrowLoading(true);
       let targetRentalId = rentalId;
-      if (!targetRentalId) { const r = await fetchApi("/rentals/borrow", { method: "POST", body: JSON.stringify({ book_id: physicalBook.id, allow_debt_settlement: true }) }); targetRentalId = r?.data?.rental?.id; }
+      if (!targetRentalId) { const r = await fetchApi("/rentals/borrow", { method: "POST", body: JSON.stringify({ book_id: physicalBook.id, allow_debt_settlement: true, time_zone: Intl.DateTimeFormat().resolvedOptions().timeZone, overdue_time: "09:00" }) }); targetRentalId = r?.data?.rental?.id; }
       if (!targetRentalId) throw new Error("Borrowed rental was not created");
       const payRes = await fetchApi(`/payments/rental/${targetRentalId}/initiate`, { method: "POST", body: JSON.stringify({ method: "CHAPA", context: "BORROW" }) });
       const chapaUrl = payRes?.data?.chapaUrl || payRes?.data?.checkout_url || payRes?.chapaUrl || payRes?.checkout_url || (payRes?.data?.payment?.tx_ref ? `https://checkout.chapa.co/checkout/payment/${payRes.data.payment.tx_ref}` : "");

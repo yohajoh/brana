@@ -137,10 +137,11 @@ const toUtcDateString = (date) => {
 const buildOverdueEventWindow = ({ dueDate, overdueTime }) => {
   const time = normalizeTimeString(overdueTime) || { hours: 9, minutes: 0 };
   const datePart = toUtcDateString(dueDate);
+  // Append 'Z' so Google Calendar API receives valid RFC3339 UTC timestamps.
   const startDateTime = `${datePart}T${String(time.hours).padStart(2, "0")}:${String(time.minutes).padStart(
     2,
     "0",
-  )}:00`;
+  )}:00Z`;
   const totalMinutes = time.hours * 60 + time.minutes + 15;
   const endHours = Math.floor(totalMinutes / 60) % 24;
   const endMinutes = totalMinutes % 60;
@@ -153,7 +154,7 @@ const buildOverdueEventWindow = ({ dueDate, overdueTime }) => {
   const endDateTime = `${endDatePart}T${String(endHours).padStart(2, "0")}:${String(endMinutes).padStart(
     2,
     "0",
-  )}:00`;
+  )}:00Z`;
   return { startDateTime, endDateTime };
 };
 
@@ -859,6 +860,7 @@ export const sendOverdueReminders = async (io, rentalIds = []) => {
       user_id: true,
       due_date: true,
       physical_book: { select: { title: true } },
+      user: { select: { id: true, name: true, email: true, google_refresh_token: true } },
     },
   });
 
@@ -876,6 +878,38 @@ export const sendOverdueReminders = async (io, rentalIds = []) => {
       type: "ALERT",
       io,
     });
+
+    // Add Google Calendar event for overdue alert if user has calendar connected
+    if (rental.user?.google_refresh_token && rental.user?.email) {
+      try {
+        const calendar = getCalendarClient(rental.user.google_refresh_token);
+        const eventStart = now.toISOString();
+        const eventEnd = new Date(now.getTime() + 15 * 60 * 1000).toISOString();
+        const dueDateStr = new Date(rental.due_date).toLocaleDateString("en-US", {
+          weekday: "long", year: "numeric", month: "long", day: "numeric",
+        });
+        const event = {
+          summary: `🔴 OVERDUE: Return "${rental.physical_book.title}" Now`,
+          description: `Your borrowed book "${rental.physical_book.title}" was due on ${dueDateStr} — ${daysOverdue} day(s) ago.\n\nEstimated fine: ${estimatedFine} ETB\n\nPlease return the book immediately to avoid additional fines.`,
+          start: { dateTime: eventStart, timeZone: "UTC" },
+          end: { dateTime: eventEnd, timeZone: "UTC" },
+          attendees: [{ email: rental.user.email }],
+          reminders: {
+            useDefault: false,
+            overrides: [{ method: "email", minutes: 0 }, { method: "popup", minutes: 0 }],
+          },
+          colorId: "11", // Tomato red
+        };
+        await calendar.events.insert({
+          calendarId: "primary",
+          resource: event,
+          sendUpdates: "all",
+        });
+      } catch (error) {
+        console.error(`[sendOverdueReminders] Failed to create calendar event for ${rental.user.email}:`, error?.message || error);
+      }
+    }
+
     sent++;
   }
 

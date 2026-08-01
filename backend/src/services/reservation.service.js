@@ -177,6 +177,37 @@ export const createReservation = async (userId, { book_id }, io, options = {}) =
     io,
   });
 
+  // Add a Google Calendar reminder event so the student knows they joined the queue
+  const fullUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { name: true, email: true, google_refresh_token: true },
+  });
+
+  if (fullUser?.google_refresh_token && fullUser?.email) {
+    try {
+      const calendar = getCalendarClient(fullUser.google_refresh_token);
+      const { startDateTime, endDateTime } = buildWindowFromDate(new Date());
+      await calendar.events.insert({
+        calendarId: "primary",
+        resource: {
+          summary: `📋 Waitlist: "${book.title}" (Position #${reservation.queue_position})`,
+          description: `You have joined the waitlist for "${book.title}".\n\nQueue position: #${reservation.queue_position}\n\nYou will receive a notification when the book becomes available. You will have a limited window to borrow it.`,
+          start: { dateTime: startDateTime, timeZone: "UTC" },
+          end:   { dateTime: endDateTime,   timeZone: "UTC" },
+          attendees: [{ email: fullUser.email }],
+          reminders: {
+            useDefault: false,
+            overrides: [{ method: "email", minutes: 0 }],
+          },
+          colorId: "7", // Peacock blue
+        },
+        sendUpdates: "all",
+      });
+    } catch (error) {
+      console.error("[createReservation] Failed to create waitlist calendar event:", error?.message || error);
+    }
+  }
+
   return reservation;
 };
 
@@ -417,6 +448,66 @@ export const fulfillReservationAsRental = async (reservationId, adminUserId, bod
     type: "RESERVATION",
     io,
   });
+
+  // Add Google Calendar due-date reminder for the newly issued rental
+  const reservationUser = await prisma.user.findUnique({
+    where: { id: reservation.user_id },
+    select: { name: true, email: true, google_refresh_token: true },
+  });
+
+  if (reservationUser?.google_refresh_token && reservationUser?.email) {
+    try {
+      const calendar = getCalendarClient(reservationUser.google_refresh_token);
+      const dueDateStr = dueDate.toLocaleDateString("en-US", {
+        weekday: "long", year: "numeric", month: "long", day: "numeric",
+      });
+
+      const pad = (v) => String(v).padStart(2, "0");
+      const toUtcDate = (d) => `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
+
+      // Due-date event
+      const dueDatePart = toUtcDate(dueDate);
+      await calendar.events.insert({
+        calendarId: "primary",
+        resource: {
+          summary: `📚 Return Due: "${reservation.book.title}"`,
+          description: `Your reserved book "${reservation.book.title}" is due today.\nCopy Code: ${copy.copy_code}\n\nPlease return it to the library to avoid late fees.\n\nDue Date: ${dueDateStr}`,
+          start: { dateTime: `${dueDatePart}T09:00:00Z`, timeZone: "UTC" },
+          end:   { dateTime: `${dueDatePart}T09:15:00Z`, timeZone: "UTC" },
+          attendees: [{ email: reservationUser.email }],
+          reminders: {
+            useDefault: false,
+            overrides: [{ method: "email", minutes: 60 }, { method: "popup", minutes: 30 }],
+          },
+          colorId: "5",
+        },
+        sendUpdates: "all",
+      });
+
+      // "Due tomorrow" reminder event
+      const reminderDate = new Date(dueDate);
+      reminderDate.setUTCDate(reminderDate.getUTCDate() - 1);
+      const reminderDatePart = toUtcDate(reminderDate);
+      await calendar.events.insert({
+        calendarId: "primary",
+        resource: {
+          summary: `⏰ Due Tomorrow: "${reservation.book.title}"`,
+          description: `Reminder: Your borrowed book "${reservation.book.title}" is due tomorrow (${dueDateStr}).\nCopy Code: ${copy.copy_code}\n\nPlease return it on time to avoid fines.`,
+          start: { dateTime: `${reminderDatePart}T09:00:00Z`, timeZone: "UTC" },
+          end:   { dateTime: `${reminderDatePart}T09:15:00Z`, timeZone: "UTC" },
+          attendees: [{ email: reservationUser.email }],
+          reminders: {
+            useDefault: false,
+            overrides: [{ method: "email", minutes: 60 }, { method: "popup", minutes: 0 }],
+          },
+          colorId: "6",
+        },
+        sendUpdates: "all",
+      });
+    } catch (error) {
+      console.error("[fulfillReservationAsRental] Failed to create due-date calendar events:", error?.message || error);
+    }
+  }
 
   return { reservation: fulfilledReservation, rental };
 };
