@@ -184,10 +184,13 @@ export const getStudentRecommendations = async (userId, limit = 8) => {
     ).map((r) => r.book_id),
   );
 
+  // Filter out nulls — Prisma 7.x throws if notIn contains a null value.
+  const rentedBookIdList = [...rentedBookIds].filter((id) => id != null);
+
   const recommendations = await prisma.book.findMany({
     where: {
       deleted_at: null,
-      id: { notIn: [...rentedBookIds] },
+      ...(rentedBookIdList.length > 0 ? { id: { notIn: rentedBookIdList } } : {}),
       ...(preferredCategories.length > 0
         ? { category_id: { in: preferredCategories } }
         : {}),
