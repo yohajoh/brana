@@ -5,7 +5,9 @@ import { toast } from "sonner";
 import { useSystemConfig, useUpdateSystemConfig } from "@/lib/hooks/useQueries";
 
 import { useNotificationSoundSetting, previewNotificationSound } from "@/lib/notificationSound";
-import { Volume2, VolumeX, Play } from "lucide-react";
+import { useDesktopNotificationSetting, isNotificationSupported } from "@/lib/desktopNotifications";
+import { useDesktopNotifications } from "@/lib/hooks/useDesktopNotifications";
+import { Volume2, VolumeX, Play, Bell, BellOff } from "lucide-react";
 
 const fadeUp={hidden:{opacity:0,y:16},show:{opacity:1,y:0,transition:{duration:0.38,ease:[0.16,1,0.3,1]}}};
 const stagger={hidden:{},show:{transition:{staggerChildren:0.08}}};
@@ -28,6 +30,8 @@ export default function AdminSettingsPage() {
   const cfg=data?.data?.config as Config|undefined;
   const [form,setForm]=useState({max_loan_days:"14",daily_fine:"2",max_books_per_user:"3",reservation_window_hr:"24",low_stock_threshold:"2",never_returned_days:"60",enable_notifications:true});
   const [soundEnabled, setSoundEnabled] = useNotificationSoundSetting();
+  const [desktopEnabled, setDesktopEnabled] = useDesktopNotificationSetting();
+  const { permission, requestPermission } = useDesktopNotifications();
 
   useEffect(()=>{
     if(!cfg) return;
@@ -58,6 +62,40 @@ export default function AdminSettingsPage() {
     setSoundEnabled(nextState);
     if (nextState) {
       previewNotificationSound();
+    }
+  };
+
+  const handleToggleDesktop = async () => {
+    if (!isNotificationSupported()) {
+      toast.error("Desktop notifications are not supported in this browser.");
+      return;
+    }
+
+    if (desktopEnabled) {
+      setDesktopEnabled(false);
+      toast.info("Desktop notifications turned OFF for this app.");
+      return;
+    }
+
+    if (permission === "denied") {
+      toast.error("Notifications are blocked in your browser settings. Please allow them first.");
+      return;
+    }
+
+    if (permission === "default") {
+      const res = await requestPermission();
+      if (res === "granted") {
+        setDesktopEnabled(true);
+        toast.success("Desktop notifications enabled!");
+      } else {
+        toast.error("Permission was not granted.");
+      }
+      return;
+    }
+
+    if (permission === "granted") {
+      setDesktopEnabled(true);
+      toast.success("Desktop notifications turned ON.");
     }
   };
 
@@ -120,6 +158,26 @@ export default function AdminSettingsPage() {
                 <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm transition-all ${soundEnabled ? "left-6" : "left-1"}`} />
               </button>
             </div>
+          </div>
+
+          {/* Desktop OS Notification Toggle */}
+          <div className="flex items-center justify-between p-4 bg-[#f5f4f0] rounded-xl border border-[#e8e4dc]">
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-lg ${desktopEnabled && permission === "granted" ? "bg-[#0d0d0d] text-[#f5c518]" : "bg-[#e8e4dc] text-[#0d0d0d]/40"}`}>
+                {desktopEnabled && permission === "granted" ? <Bell size={16} /> : <BellOff size={16} />}
+              </div>
+              <div>
+                <p className="text-[13px] font-bold text-[#0d0d0d]">Desktop OS Notifications</p>
+                <p className="text-[11px] text-[#0d0d0d]/40 mt-0.5">Show native OS alerts when on another tab</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleToggleDesktop}
+              className={`relative w-11 h-6 rounded-full transition-colors ${desktopEnabled && permission === "granted" ? "bg-[#0d0d0d]" : "bg-[#e8e4dc]"}`}
+            >
+              <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm transition-all ${desktopEnabled && permission === "granted" ? "left-6" : "left-1"}`} />
+            </button>
           </div>
 
           {/* Toggle Email/System Notifications */}

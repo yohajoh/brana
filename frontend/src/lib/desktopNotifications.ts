@@ -36,6 +36,62 @@ function getDefaultIcon(): string {
   return `${window.location.origin}/icon.jpg`;
 }
 
+import { useState, useEffect } from "react";
+
+const DESKTOP_NOTIF_STORAGE_KEY = "brana_desktop_notif_enabled";
+
+/**
+ * Returns whether desktop OS notifications are enabled in local settings.
+ * Defaults to true if permission is granted.
+ */
+export function isDesktopNotificationEnabled(): boolean {
+  if (typeof window === "undefined") return true;
+  const stored = localStorage.getItem(DESKTOP_NOTIF_STORAGE_KEY);
+  if (stored === null) return true;
+  return stored === "true";
+}
+
+/**
+ * Updates desktop notification enabled setting and dispatches a change event.
+ */
+export function setDesktopNotificationEnabled(enabled: boolean): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(DESKTOP_NOTIF_STORAGE_KEY, String(enabled));
+  window.dispatchEvent(
+    new CustomEvent("brana_desktop_setting_changed", { detail: { enabled } })
+  );
+}
+
+/**
+ * React Hook for reactive desktop notification setting state.
+ */
+export function useDesktopNotificationSetting(): [boolean, (enabled: boolean) => void] {
+  const [enabled, setEnabled] = useState<boolean>(true);
+
+  useEffect(() => {
+    setEnabled(isDesktopNotificationEnabled());
+
+    const handleCustomEvent = (e: Event) => {
+      const customEvent = e as CustomEvent<{ enabled: boolean }>;
+      if (customEvent.detail && typeof customEvent.detail.enabled === "boolean") {
+        setEnabled(customEvent.detail.enabled);
+      }
+    };
+
+    window.addEventListener("brana_desktop_setting_changed", handleCustomEvent);
+    return () => {
+      window.removeEventListener("brana_desktop_setting_changed", handleCustomEvent);
+    };
+  }, []);
+
+  const updateSetting = (val: boolean) => {
+    setDesktopNotificationEnabled(val);
+    setEnabled(val);
+  };
+
+  return [enabled, updateSetting];
+}
+
 /**
  * Returns `true` if the Web Notifications API is available in this environment.
  */
@@ -95,6 +151,10 @@ export function triggerDesktopNotification(
 ): Notification | null {
   if (!isNotificationSupported()) {
     console.warn("[Brana Notif] ❌ Web Notifications API not supported in this browser.");
+    return null;
+  }
+  if (!isDesktopNotificationEnabled()) {
+    console.log("[Brana Notif] 🔕 Desktop notifications disabled in user settings.");
     return null;
   }
   if (Notification.permission !== "granted") {

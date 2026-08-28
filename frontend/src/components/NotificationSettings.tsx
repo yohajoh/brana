@@ -1,16 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { Volume2, VolumeX, Bell, CheckCircle2, AlertCircle, Play } from "lucide-react";
+import { useState } from "react";
+import { Volume2, VolumeX, Bell, BellOff, CheckCircle2, AlertCircle, Play } from "lucide-react";
+import { toast } from "sonner";
 import {
   useNotificationSoundSetting,
   previewNotificationSound,
 } from "@/lib/notificationSound";
+import {
+  useDesktopNotificationSetting,
+  isNotificationSupported,
+} from "@/lib/desktopNotifications";
 import { useDesktopNotifications } from "@/lib/hooks/useDesktopNotifications";
 
 export function NotificationSettings() {
   const [soundEnabled, setSoundEnabled] = useNotificationSoundSetting();
+  const [desktopEnabled, setDesktopEnabled] = useDesktopNotificationSetting();
   const { permission, isSupported, requestPermission } = useDesktopNotifications();
   const [requesting, setRequesting] = useState(false);
 
@@ -18,17 +23,47 @@ export function NotificationSettings() {
     const nextState = !soundEnabled;
     setSoundEnabled(nextState);
     if (nextState) {
-      // Play brief confirmation preview chime when turned ON
       previewNotificationSound();
     }
   };
 
-  const handleEnableDesktop = async () => {
-    setRequesting(true);
-    try {
-      await requestPermission();
-    } finally {
-      setRequesting(false);
+  const handleToggleDesktop = async () => {
+    if (!isSupported) {
+      toast.error("Desktop notifications are not supported in this browser.");
+      return;
+    }
+
+    if (desktopEnabled) {
+      setDesktopEnabled(false);
+      toast.info("Desktop notifications turned OFF for this app.");
+      return;
+    }
+
+    // Trying to turn ON
+    if (permission === "denied") {
+      toast.error("Notifications are blocked in your browser settings. Please allow them first.");
+      return;
+    }
+
+    if (permission === "default") {
+      setRequesting(true);
+      try {
+        const res = await requestPermission();
+        if (res === "granted") {
+          setDesktopEnabled(true);
+          toast.success("Desktop notifications enabled!");
+        } else {
+          toast.error("Permission was not granted.");
+        }
+      } finally {
+        setRequesting(false);
+      }
+      return;
+    }
+
+    if (permission === "granted") {
+      setDesktopEnabled(true);
+      toast.success("Desktop notifications turned ON.");
     }
   };
 
@@ -61,7 +96,6 @@ export function NotificationSettings() {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            {/* Preview Button */}
             <button
               type="button"
               onClick={previewNotificationSound}
@@ -72,7 +106,6 @@ export function NotificationSettings() {
               <span>Test Sound</span>
             </button>
 
-            {/* Switch Toggle */}
             <button
               id="student-sound-toggle-btn"
               type="button"
@@ -92,21 +125,36 @@ export function NotificationSettings() {
           </div>
         </div>
 
-        {/* Desktop OS Notifications Status Block */}
-        <div className="flex items-center justify-between p-4 sm:p-5 bg-[#f8f7f5] rounded-2xl border border-[#e8e4dc]">
+        {/* Desktop OS Notifications Toggle & Status Block */}
+        <div className="flex items-center justify-between p-4 sm:p-5 bg-[#f8f7f5] rounded-2xl border border-[#e8e4dc] transition-all hover:border-[#0d0d0d]/20">
           <div className="flex items-start gap-3.5 pr-3">
-            <div className="w-10 h-10 rounded-xl bg-[#142b6f]/10 text-[#142b6f] flex items-center justify-center shrink-0">
-              <Bell size={20} strokeWidth={2} />
+            <div
+              className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                desktopEnabled && permission === "granted"
+                  ? "bg-[#142b6f] text-white"
+                  : "bg-[#e8e4dc] text-[#0d0d0d]/40"
+              }`}
+            >
+              {desktopEnabled && permission === "granted" ? (
+                <Bell size={20} strokeWidth={2} />
+              ) : (
+                <BellOff size={20} strokeWidth={2} />
+              )}
             </div>
             <div>
               <p className="text-[14px] font-bold text-[#0d0d0d]">Desktop OS Notifications</p>
               <p className="text-[11.5px] text-[#0d0d0d]/50 mt-0.5 leading-relaxed">
-                Receive native desktop alerts when you are working in another tab or application.
+                Receive native OS desktop alerts when you are working in another tab or window.
               </p>
               <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-semibold">
-                {permission === "granted" && (
+                {permission === "granted" && desktopEnabled && (
                   <span className="text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md flex items-center gap-1">
                     <CheckCircle2 size={12} /> Granted & Active
+                  </span>
+                )}
+                {permission === "granted" && !desktopEnabled && (
+                  <span className="text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">
+                    Paused in App Settings
                   </span>
                 )}
                 {permission === "denied" && (
@@ -123,16 +171,25 @@ export function NotificationSettings() {
             </div>
           </div>
 
-          {permission !== "granted" && isSupported && (
+          <div className="flex items-center gap-2 shrink-0">
             <button
+              id="student-desktop-notif-toggle-btn"
               type="button"
-              onClick={handleEnableDesktop}
-              disabled={requesting || permission === "denied"}
-              className="shrink-0 px-3.5 py-2 rounded-xl bg-[#142b6f] text-white text-[12px] font-bold hover:bg-[#1e3a8a] disabled:opacity-50 transition-all shadow-sm"
+              role="switch"
+              aria-checked={desktopEnabled && permission === "granted"}
+              disabled={requesting}
+              onClick={handleToggleDesktop}
+              className={`relative w-12 h-6.5 rounded-full transition-colors duration-200 ease-in-out cursor-pointer disabled:opacity-50 ${
+                desktopEnabled && permission === "granted" ? "bg-[#142b6f]" : "bg-[#d1d5db]"
+              }`}
             >
-              {requesting ? "Requesting..." : permission === "denied" ? "Blocked" : "Enable"}
+              <span
+                className={`absolute top-0.75 left-0.75 w-5 h-5 rounded-full bg-white shadow-md transform transition-transform duration-200 ease-in-out ${
+                  desktopEnabled && permission === "granted" ? "translate-x-5.5" : "translate-x-0"
+                }`}
+              />
             </button>
-          )}
+          </div>
         </div>
       </div>
     </div>

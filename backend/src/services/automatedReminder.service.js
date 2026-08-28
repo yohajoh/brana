@@ -7,6 +7,7 @@ const getConfig = async () => {
   const defaults = {
     daily_fine: 0,
     reminder_days_before_due: 3,
+    enable_notifications: true,
   };
 
   try {
@@ -16,6 +17,7 @@ const getConfig = async () => {
         id: true,
         daily_fine: true,
         reminder_days_before_due: true,
+        enable_notifications: true,
       },
     });
     return config ? { ...defaults, ...config } : null;
@@ -27,6 +29,7 @@ const getConfig = async () => {
         select: {
           id: true,
           daily_fine: true,
+          enable_notifications: true,
         },
       });
       return legacy ? { ...defaults, ...legacy } : null;
@@ -54,6 +57,10 @@ export const sendUpcomingReturnReminders = async (io) => {
   const config = await getConfig();
   if (!config) {
     console.warn('[AutoReminder] No system config found, skipping upcoming return reminders');
+    return { remindersSent: 0 };
+  }
+  if (!config.enable_notifications) {
+    console.log('[AutoReminder] Automated notifications are disabled in Admin System Settings.');
     return { remindersSent: 0 };
   }
 
@@ -178,6 +185,10 @@ export const sendOverdueRemindersAutomated = async (io) => {
   const config = await getConfig();
   if (!config) {
     console.warn('[AutoReminder] No system config found, skipping overdue reminders');
+    return { remindersSent: 0 };
+  }
+  if (!config.enable_notifications) {
+    console.log('[AutoReminder] Automated notifications are disabled in Admin System Settings.');
     return { remindersSent: 0 };
   }
 
