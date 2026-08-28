@@ -21,6 +21,7 @@ import { useDesktopNotifications } from "@/lib/hooks/useDesktopNotifications";
 type BannerVariant = "prompt" | "denied";
 
 const DISMISSED_KEY = "brana_desktop_notif_dismissed";
+const AUTO_DISMISS_MS = 7000; // Auto disappear after 7 seconds if not hovered
 
 export function DesktopNotificationBanner() {
   const { permission, isSupported, requestPermission } = useDesktopNotifications();
@@ -28,6 +29,7 @@ export function DesktopNotificationBanner() {
   // Persisted dismiss — don't re-show if user already dismissed this session
   const [dismissed, setDismissed] = useState(true); // start hidden to avoid flash
   const [requesting, setRequesting] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
   useEffect(() => {
     // Only reveal after mount to avoid SSR hydration mismatch
@@ -39,6 +41,19 @@ export function DesktopNotificationBanner() {
     setDismissed(true);
     sessionStorage.setItem(DISMISSED_KEY, "1");
   }, []);
+
+  // Auto-dismiss after 7s unless hovered or requesting permission
+  useEffect(() => {
+    if (dismissed || permission === "granted" || requesting || isHovered) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      dismiss();
+    }, AUTO_DISMISS_MS);
+
+    return () => clearTimeout(timer);
+  }, [dismissed, permission, requesting, isHovered, dismiss]);
 
   const handleEnable = useCallback(async () => {
     setRequesting(true);
@@ -66,6 +81,8 @@ export function DesktopNotificationBanner() {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -12 }}
         transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
         role="status"
         aria-live="polite"
         className={`
