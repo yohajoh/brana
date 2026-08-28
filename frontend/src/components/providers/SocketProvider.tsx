@@ -3,6 +3,11 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
 import { useQueryClient } from "@tanstack/react-query";
+import {
+  triggerDesktopNotification,
+  getNotificationTitle,
+  getNotificationUrl,
+} from "@/lib/desktopNotifications";
 
 type Notification = {
   id: string;
@@ -63,6 +68,19 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       // Invalidate React Query cache to refresh notifications
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
       queryClient.invalidateQueries({ queryKey: ["all-notifications"] });
+
+      // ── OS Desktop notification (only fires when tab is in background) ──
+      const role: "admin" | "student" = window.location.pathname.startsWith("/dashboard/admin")
+        ? "admin"
+        : "student";
+
+      triggerDesktopNotification({
+        title: getNotificationTitle(notification.type, role),
+        body: notification.message,
+        dataUrl: getNotificationUrl(notification.type, role, notification.id),
+        tag: `brana-${notification.type.toLowerCase()}-${notification.id}`,
+        ttl: 8000,
+      });
     });
 
     newSocket.on("disconnect", () => {
