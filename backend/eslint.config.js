@@ -36,6 +36,7 @@ export default [
       // Node-specific checks
       "n/no-missing-import": "error",
       "n/no-process-exit": "error",
+      "n/no-unsupported-features/node-builtins": "off",
 
       ...prettierConfig.rules, // Must be last to override
     },
