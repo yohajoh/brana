@@ -83,10 +83,12 @@ export const streamPdf = async (req, res, next) => {
       }
 
       if (!upstreamResp.ok && upstreamResp.status !== 206) {
-        return res.status(upstreamResp.status || 502).json({
-          status: "error",
-          message: "Failed to retrieve PDF file from upstream storage",
-        });
+        console.warn(`Upstream PDF fetch returned status ${upstreamResp.status} for ${book.pdf_url}`);
+        let fallbackBytes = bytes || (book?.pdf_file ? Buffer.from(book.pdf_file) : null);
+        if (!fallbackBytes) {
+          fallbackBytes = await generateFallbackPdfBuffer(book?.title || "Digital Book");
+        }
+        return sendBytesChunk(res, req, fallbackBytes, contentDisposition, wantsDownload);
       }
 
       const upstreamStatus = upstreamResp.status;
