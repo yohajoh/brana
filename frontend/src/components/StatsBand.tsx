@@ -29,19 +29,19 @@ export const StatsBand = () => {
 
   const stats = [
     {
-      value: s?.totalBooks     ? `${s.totalBooks.toLocaleString()}+`    : null,
+      value: s != null && s.totalBooks     != null ? `${s.totalBooks.toLocaleString()}+`    : null,
       label: t("stats_band.books")      as string,
     },
     {
-      value: s?.totalCategories ? `${s.totalCategories}`                : null,
+      value: s != null && s.totalCategories != null ? `${s.totalCategories}`                : null,
       label: t("stats_band.categories") as string,
     },
     {
-      value: s?.totalRentals    ? `${s.totalRentals.toLocaleString()}+` : null,
+      value: s != null && s.totalRentals    != null ? `${s.totalRentals.toLocaleString()}+` : null,
       label: t("stats_band.borrowed")   as string,
     },
     {
-      value: s?.totalStudents   ? `${s.totalStudents.toLocaleString()}+`: null,
+      value: s != null && s.totalStudents   != null ? `${s.totalStudents.toLocaleString()}+`: null,
       label: t("stats_band.students")   as string,
     },
   ];
@@ -59,7 +59,7 @@ export const StatsBand = () => {
               className="px-6 py-6 text-center lg:text-left"
             >
               <div className="text-2xl sm:text-3xl font-serif font-black text-[#142b6f] leading-none mb-1 min-h-[36px]">
-                {isLoading || !value ? (
+                {isLoading || value === null ? (
                   <span className="inline-block w-16 h-7 rounded-lg bg-[#e2e0e7] animate-pulse" />
                 ) : (
                   value

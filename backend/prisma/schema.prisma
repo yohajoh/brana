@@ -93,13 +93,13 @@ model SystemConfig {
   daily_fine               Decimal
   max_books_per_user       Int
   enable_notifications     Boolean  @default(true)
-  last_updated_by_id       String   @db.Uuid
+  last_updated_by_id       String?  @db.Uuid
   created_at               DateTime @default(now())
   low_stock_threshold      Int      @default(2)
   reservation_window_hr    Int      @default(24)
   never_returned_days      Int      @default(60)
   reminder_days_before_due Int      @default(3)
-  updated_by_user          User     @relation("SystemConfigUpdatedBy", fields: [last_updated_by_id], references: [id])
+  updated_by_user          User?    @relation("SystemConfigUpdatedBy", fields: [last_updated_by_id], references: [id])
 }
 
 model Category {

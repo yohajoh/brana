@@ -113,7 +113,40 @@ const setIfColumnExists = (target, columns, column, value) => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const getConfig = async () => {
-  const config = await findLatestConfigCompat();
+  let config = await findLatestConfigCompat();
+
+  if (!config) {
+    // Auto-seed defaults on first use. last_updated_by_id is intentionally
+    // NULL here (system-initiated, no admin actor yet). We use a raw INSERT
+    // with ON CONFLICT DO NOTHING to avoid a race condition on concurrent
+    // requests, then re-fetch through the normal compat path.
+    try {
+      await prisma.$executeRaw`
+        INSERT INTO "SystemConfig" (
+          max_loan_days, daily_fine, max_books_per_user,
+          reservation_window_hr, low_stock_threshold,
+          never_returned_days, reminder_days_before_due,
+          enable_notifications, last_updated_by_id, created_at
+        )
+        SELECT
+          ${CONFIG_DEFAULTS.max_loan_days},
+          ${CONFIG_DEFAULTS.daily_fine},
+          ${CONFIG_DEFAULTS.max_books_per_user},
+          ${CONFIG_DEFAULTS.reservation_window_hr},
+          ${CONFIG_DEFAULTS.low_stock_threshold},
+          ${CONFIG_DEFAULTS.never_returned_days},
+          ${CONFIG_DEFAULTS.reminder_days_before_due},
+          ${CONFIG_DEFAULTS.enable_notifications},
+          NULL,
+          NOW()
+        WHERE NOT EXISTS (SELECT 1 FROM "SystemConfig")
+      `;
+    } catch {
+      // If the raw insert fails (e.g. last_updated_by_id is NOT NULL at DB level),
+      // we fall through to the 503 below rather than crashing with an unhelpful error.
+    }
+    config = await findLatestConfigCompat();
+  }
 
   if (!config) {
     throw new AppError(
