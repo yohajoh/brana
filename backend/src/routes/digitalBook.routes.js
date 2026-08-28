@@ -14,8 +14,8 @@ const router = Router();
 router.get("/", digitalBookController.getDigitalBooks);
 
 // IMPORTANT: More specific routes must come before parameterized routes
-router.get("/:id/pdf", protect, digitalBookController.streamPdf);
-router.post("/:id/read", protect, digitalBookController.markAsRead);
+router.get("/:id/pdf", optionalProtect, digitalBookController.streamPdf);
+router.post("/:id/read", optionalProtect, digitalBookController.markAsRead);
 router.get("/:id/page-data", optionalProtect, digitalBookController.getDigitalBookPageData);
 router.get("/:id", optionalProtect, digitalBookController.getDigitalBook);
 
