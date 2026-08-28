@@ -86,9 +86,26 @@ export async function requestNotificationPermission(): Promise<
 export function triggerDesktopNotification(
   payload: DesktopNotificationPayload
 ): Notification | null {
-  if (!isNotificationSupported()) return null;
-  if (Notification.permission !== "granted") return null;
-  if (typeof document !== "undefined" && !document.hidden) return null;
+  if (!isNotificationSupported()) {
+    console.warn("[Brana Notif] ❌ Web Notifications API not supported in this browser.");
+    return null;
+  }
+  if (Notification.permission !== "granted") {
+    console.warn(
+      `[Brana Notif] ❌ Permission is "${Notification.permission}" — not "granted". ` +
+      `Click the "Enable Desktop Notifications" banner to request access.`
+    );
+    return null;
+  }
+  if (typeof document !== "undefined" && !document.hidden) {
+    console.info(
+      "[Brana Notif] ℹ️ Tab is active (document.hidden = false) — skipping OS notification " +
+      "(in-app toast handles active-tab events). Switch to another tab to test."
+    );
+    return null;
+  }
+
+  console.log("[Brana Notif] ✅ Firing OS notification:", payload.title);
 
   const {
     title,
