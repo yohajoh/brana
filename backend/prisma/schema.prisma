@@ -226,7 +226,8 @@ model DigitalBook {
   category_id      String      @db.Uuid
   description      String
   cover_image_url  String
-  pdf_file         Bytes
+  pdf_file         Bytes?
+  pdf_url          String?
   pdf_name         String
   pdf_access       PDFAccess
   deleted_at       DateTime?

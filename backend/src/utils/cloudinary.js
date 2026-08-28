@@ -107,6 +107,50 @@ export const uploadMultipleToCloudinary = async (files, opts = {}) => {
   return Promise.all(uploads);
 };
 
+export const uploadPdfToCloudinary = async (pdfFile, opts = {}) => {
+  if (!pdfFile) return null;
+
+  const cfg = getCloudinaryConfig();
+  if (!cfg) {
+    return `data:${pdfFile.mimetype || 'application/pdf'};base64,${pdfFile.buffer.toString('base64')}`;
+  }
+
+  const { cloudName, apiKey, apiSecret } = cfg;
+  const folder = opts.folder || 'brana/digital-books/pdfs';
+  const timestamp = Math.floor(Date.now() / 1000);
+
+  const signature = signUploadParams(
+    {
+      folder,
+      timestamp,
+    },
+    apiSecret,
+  );
+
+  const form = new FormData();
+  const blob = new Blob([pdfFile.buffer], { type: pdfFile.mimetype || 'application/pdf' });
+  form.append('file', blob, pdfFile.originalname || `pdf-${Date.now()}.pdf`);
+  form.append('api_key', apiKey);
+  form.append('timestamp', String(timestamp));
+  form.append('folder', folder);
+  form.append('signature', signature);
+
+  const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/raw/upload`, {
+    method: 'POST',
+    body: form,
+  });
+
+  const payload = await response.json();
+  if (!response.ok || !payload.secure_url) {
+    if (process.env.NODE_ENV !== 'production') {
+      return `data:${pdfFile.mimetype || 'application/pdf'};base64,${pdfFile.buffer.toString('base64')}`;
+    }
+    throw new AppError(payload?.error?.message || 'Cloudinary PDF upload failed', 502);
+  }
+
+  return payload.secure_url;
+};
+
 /**
  * Extract Cloudinary public_id from a secure_url.
  * e.g. https://res.cloudinary.com/demo/image/upload/v123/brana/authors/abc.jpg

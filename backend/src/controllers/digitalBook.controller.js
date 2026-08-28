@@ -45,10 +45,32 @@ export const streamPdf = async (req, res) => {
   const contentDisposition =
     wantsDownload && canDownload ? `attachment; filename="${fileName}"` : `inline; filename="${fileName}"`;
 
+  const totalLength = bytes.length;
+  const range = req.headers.range;
+
+  if (range && !wantsDownload) {
+    const parts = range.replace(/bytes=/, "").split("-");
+    const start = parseInt(parts[0], 10);
+    const end = parts[1] ? parseInt(parts[1], 10) : totalLength - 1;
+    const chunkSize = (end - start) + 1;
+    const chunk = bytes.slice(start, end + 1);
+
+    res.writeHead(206, {
+      "Content-Range": `bytes ${start}-${end}/${totalLength}`,
+      "Accept-Ranges": "bytes",
+      "Content-Length": chunkSize,
+      "Content-Type": "application/pdf",
+      "Content-Disposition": contentDisposition,
+      "Cache-Control": "private, max-age=3600",
+    });
+    return res.end(chunk);
+  }
+
   res.set({
     "Content-Type": "application/pdf",
     "Content-Disposition": contentDisposition,
-    "Content-Length": bytes.length,
+    "Content-Length": totalLength,
+    "Accept-Ranges": "bytes",
     "Cache-Control": "private, max-age=3600",
   });
   res.send(bytes);

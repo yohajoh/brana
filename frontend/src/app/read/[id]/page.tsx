@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { toast } from "sonner";
 import { API_BASE_URL } from "@/lib/api";
 
 /* PDF.js is loaded from CDN via a script tag injected below.
@@ -10,7 +11,14 @@ import { API_BASE_URL } from "@/lib/api";
 declare global {
   interface Window {
     pdfjsLib: {
-      getDocument: (src: { data: ArrayBuffer }) => { promise: Promise<PdfDoc> };
+      getDocument: (src: {
+        url?: string;
+        data?: ArrayBuffer;
+        withCredentials?: boolean;
+        rangeChunkSize?: number;
+        disableAutoFetch?: boolean;
+        disableStream?: boolean;
+      } | string) => { promise: Promise<PdfDoc> };
       GlobalWorkerOptions: { workerSrc: string };
     };
   }
@@ -40,6 +48,64 @@ export default function ReadPage() {
   const [scale, setScale] = useState(1.4);
   const pdfDocRef = useRef<PdfDoc | null>(null);
 
+  /* ── DRM Hotkey, Print & Arrow Nav Protection ──────────────── */
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isCmdOrCtrl = e.metaKey || e.ctrlKey;
+      const key = e.key.toLowerCase();
+
+      // Block Save (Ctrl+S / Cmd+S)
+      if (isCmdOrCtrl && key === "s") {
+        e.preventDefault();
+        toast.error("Saving or downloading this document is disabled.");
+        return;
+      }
+
+      // Block Print (Ctrl+P / Cmd+P)
+      if (isCmdOrCtrl && key === "p") {
+        e.preventDefault();
+        toast.error("Printing this document is disabled.");
+        return;
+      }
+
+      // Block View Source (Ctrl+U / Cmd+U)
+      if (isCmdOrCtrl && key === "u") {
+        e.preventDefault();
+        return;
+      }
+
+      // Block DevTools shortcuts (F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C)
+      if (
+        e.key === "F12" ||
+        (isCmdOrCtrl && e.shiftKey && (key === "i" || key === "j" || key === "c" || key === "k"))
+      ) {
+        e.preventDefault();
+        toast.error("Developer tools shortcuts are restricted on this document.");
+        return;
+      }
+
+      // Smooth keyboard page navigation
+      if (e.key === "ArrowLeft") {
+        goPrev();
+      } else if (e.key === "ArrowRight") {
+        goNext();
+      }
+    };
+
+    // Inject anti-print CSS rule
+    const printStyle = document.createElement("style");
+    printStyle.id = "anti-print-style";
+    printStyle.innerHTML = "@media print { body { display: none !important; } }";
+    document.head.appendChild(printStyle);
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      const existing = document.getElementById("anti-print-style");
+      if (existing) existing.remove();
+    };
+  }, [currentPage, numPages]);
+
   /* ── Load pdf.js from CDN once ─────────────────────────────── */
   useEffect(() => {
     if (document.getElementById("pdfjs-script")) return;
@@ -53,7 +119,7 @@ export default function ReadPage() {
     document.head.appendChild(script);
   }, []);
 
-  /* ── Fetch PDF bytes from backend ──────────────────────────── */
+  /* ── Stream PDF via HTTP Range Requests (Real-World Range Transport) ── */
   useEffect(() => {
     if (!id) return;
     let cancelled = false;
@@ -61,28 +127,28 @@ export default function ReadPage() {
     const load = async () => {
       try {
         setStatus("loading");
-        const resp = await fetch(`${API_BASE_URL}/digital-books/${id}/pdf`, {
-          credentials: "include",
-          cache: "no-store",
-        });
-        if (!resp.ok) {
-          const txt = await resp.text();
-          let msg = `Error ${resp.status}`;
-          try { msg = (JSON.parse(txt) as { message?: string }).message || msg; } catch { /* ignore */ }
-          throw new Error(msg);
-        }
-        const buf = await resp.arrayBuffer();
-        if (cancelled) return;
 
-        /* Wait for pdf.js to be ready */
+        /* Wait for pdf.js script to load */
         await new Promise<void>((resolve) => {
           const check = setInterval(() => {
             if (window.pdfjsLib) { clearInterval(check); resolve(); }
-          }, 60);
+          }, 50);
         });
 
-        const doc = await window.pdfjsLib.getDocument({ data: buf }).promise;
         if (cancelled) return;
+
+        /* PDF.js Streams PDF via HTTP 206 Range Requests - NEVER loads entire PDF in memory */
+        const loadingTask = window.pdfjsLib.getDocument({
+          url: `${API_BASE_URL}/digital-books/${id}/pdf`,
+          withCredentials: true,
+          rangeChunkSize: 65536,  // 64 KB chunks
+          disableAutoFetch: true, // Prevent downloading full PDF automatically!
+          disableStream: false,
+        });
+
+        const doc = await loadingTask.promise;
+        if (cancelled) return;
+
         pdfDocRef.current = doc;
         setNumPages(doc.numPages);
         setStatus("rendering");
@@ -93,7 +159,7 @@ export default function ReadPage() {
         }).catch(() => {/* silent */});
 
       } catch (e) {
-        if (!cancelled) { setError(e instanceof Error ? e.message : "Failed to load."); setStatus("error"); }
+        if (!cancelled) { setError(e instanceof Error ? e.message : "Failed to load document."); setStatus("error"); }
       }
     };
 
@@ -129,7 +195,20 @@ export default function ReadPage() {
         if (!ctx || cancelled) return;
 
         await page.render({ canvasContext: ctx, viewport }).promise;
-        if (!cancelled) setStatus("done");
+
+        if (!cancelled) {
+          // Draw subtle security watermark across rendered page
+          ctx.save();
+          ctx.font = "bold 20px sans-serif";
+          ctx.fillStyle = "rgba(0, 0, 0, 0.08)";
+          ctx.translate(viewport.width / 2, viewport.height / 2);
+          ctx.rotate(-Math.PI / 6);
+          ctx.textAlign = "center";
+          ctx.fillText("BRANA DIGITAL LIBRARY • CONFIDENTIAL", 0, 0);
+          ctx.restore();
+
+          setStatus("done");
+        }
       } catch { /* ignore render errors */ }
     };
 

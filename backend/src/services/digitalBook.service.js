@@ -12,7 +12,7 @@
 import { prisma } from "../prisma.js";
 import { AppError } from "../middlewares/error.middleware.js";
 import { paginationMeta } from "../utils/apiFeatures.js";
-import { uploadImageToCloudinary, deleteImagesFromCloudinary } from "../utils/cloudinary.js";
+import { uploadImageToCloudinary, uploadPdfToCloudinary, deleteImagesFromCloudinary } from "../utils/cloudinary.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS
@@ -75,6 +75,7 @@ const DIGITAL_LIST_SELECT = /** @type {any} */ ({
   title: true,
   description: true,
   cover_image_url: true,
+  pdf_url: true,
   pdf_name: true,
   pdf_access: true,
   pages: true,
@@ -97,6 +98,7 @@ const DIGITAL_DETAIL_SELECT = /** @type {any} */ ({
   title: true,
   description: true,
   cover_image_url: true,
+  pdf_url: true,
   pdf_name: true,
   pdf_access: true,
   pages: true,
@@ -516,12 +518,13 @@ export const getPdfBytes = async (id, user) => {
       id: true,
       title: true,
       pdf_file: true,
+      pdf_url: true,
       pdf_name: true,
       pdf_access: true,
     },
   });
   if (!book) throw new AppError("Digital book not found", 404);
-  if (!book.pdf_file) throw new AppError("PDF file not available", 404);
+  if (!book.pdf_url && !book.pdf_file) throw new AppError("PDF file not available", 404);
 
   const roles = Array.isArray(user?.roles) ? user.roles : [user?.role].filter(Boolean);
   const isAdmin = roles.includes("ADMIN");
@@ -529,8 +532,23 @@ export const getPdfBytes = async (id, user) => {
   // Students can read all uploaded PDFs inline. Restriction applies to download capability.
   const canDownload = book.pdf_access !== "RESTRICTED" || isAdmin;
 
+  let bytes;
+  if (book.pdf_url) {
+    if (book.pdf_url.startsWith('data:')) {
+      const base64Data = book.pdf_url.split(',')[1];
+      bytes = Buffer.from(base64Data, 'base64');
+    } else {
+      const resp = await fetch(book.pdf_url);
+      if (!resp.ok) throw new AppError("Failed to retrieve PDF file from Cloudinary", 502);
+      const arrayBuf = await resp.arrayBuffer();
+      bytes = Buffer.from(arrayBuf);
+    }
+  } else {
+    bytes = book.pdf_file;
+  }
+
   return {
-    bytes: book.pdf_file,
+    bytes,
     fileName: book.pdf_name || `${book.title}.pdf`,
     canDownload,
     access: book.pdf_access,
@@ -542,8 +560,7 @@ export const getPdfBytes = async (id, user) => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Create a digital book with PDF file.
- * Accepts uploaded PDF via multer (buffer stored as BYTEA).
+ * Create a digital book with PDF file uploaded to Cloudinary.
  */
 export const createDigitalBook = async (data, pdfFile = null, imageFile = null, galleryFiles = []) => {
   const title = data.title?.trim();
@@ -556,9 +573,12 @@ export const createDigitalBook = async (data, pdfFile = null, imageFile = null, 
   const validAccess = ["FREE", "PAID", "RESTRICTED"];
   const access = data.pdf_access?.toUpperCase() || "FREE";
   if (!validAccess.includes(access)) throw new AppError("Invalid pdf_access value", 400);
-  const coverFromUpload = await uploadImageToCloudinary(imageFile, {
-    folder: "brana/digital-books/covers",
-  });
+
+  const [coverFromUpload, pdfFromUpload] = await Promise.all([
+    uploadImageToCloudinary(imageFile, { folder: "brana/digital-books/covers" }),
+    uploadPdfToCloudinary(pdfFile, { folder: "brana/digital-books/pdfs" }),
+  ]);
+
   const pagesInt = Math.max(1, parseInt(data.pages, 10) || 100);
   const description = data.description?.trim() || "No description provided.";
   const tags = parseList(data.tags);
@@ -571,7 +591,7 @@ export const createDigitalBook = async (data, pdfFile = null, imageFile = null, 
       category_id,
       description,
       cover_image_url: coverFromUpload || data.cover_image_url || DEFAULT_COVER_IMAGE,
-      pdf_file: pdfFile.buffer,
+      pdf_url: pdfFromUpload,
       pdf_name: pdfFile.originalname,
       pdf_access: /** @type {any} */ (access),
       pages: pagesInt,
@@ -680,7 +700,8 @@ export const updateDigitalBook = async (id, data, pdfFile = null, imageFile = nu
   }
 
   if (pdfFile) {
-    updateData.pdf_file = pdfFile.buffer;
+    const uploadedPdfUrl = await uploadPdfToCloudinary(pdfFile, { folder: "brana/digital-books/pdfs" });
+    updateData.pdf_url = uploadedPdfUrl;
     updateData.pdf_name = pdfFile.originalname;
   }
 
