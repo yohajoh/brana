@@ -62,12 +62,19 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     });
 
     newSocket.on("notification", (notification: Notification) => {
+      // ── In-app state update ──────────────────────────────────────────────
       setNotifications((prev) => [notification, ...prev]);
       setUnreadCount((prev) => prev + 1);
-
-      // Invalidate React Query cache to refresh notifications
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
       queryClient.invalidateQueries({ queryKey: ["all-notifications"] });
+
+      // ── Desktop notification diagnostics ────────────────────────────────
+      console.group("[Brana Socket] 🔔 notification event received");
+      console.log("  payload   :", notification);
+      console.log("  permission:", typeof Notification !== "undefined" ? Notification.permission : "unsupported");
+      console.log("  hidden    :", document.hidden, "(true = user is on another tab)");
+      console.log("  pathname  :", window.location.pathname);
+      console.groupEnd();
 
       // ── OS Desktop notification (only fires when tab is in background) ──
       const role: "admin" | "student" = window.location.pathname.startsWith("/dashboard/admin")

@@ -26,8 +26,15 @@ export type DesktopNotificationPayload = {
   ttl?: number;
 };
 
-/** Default Brana icon served from /public. */
-const DEFAULT_ICON = "/icon.jpg";
+/**
+ * Default Brana icon — must be an absolute URL because the Notifications API
+ * does not resolve relative paths against the page origin.
+ * We build the full URL at runtime so it works on any host (localhost, prod, etc.).
+ */
+function getDefaultIcon(): string {
+  if (typeof window === "undefined") return "";
+  return `${window.location.origin}/icon.jpg`;
+}
 
 /**
  * Returns `true` if the Web Notifications API is available in this environment.
@@ -105,37 +112,60 @@ export function triggerDesktopNotification(
     return null;
   }
 
-  console.log("[Brana Notif] ✅ Firing OS notification:", payload.title);
+  console.log(
+    "[Brana Notif] ✅ Firing OS notification:",
+    payload.title,
+    "| hidden:", document.hidden,
+    "| permission:", Notification.permission
+  );
 
   const {
     title,
     body,
-    icon = DEFAULT_ICON,
+    // Always resolve to an absolute URL — relative paths fail in the Notifications API
+    icon = getDefaultIcon(),
     dataUrl,
     tag,
     ttl = 6000,
   } = payload;
 
+  // Ensure icon is absolute (caller may have passed a relative path)
+  const resolvedIcon =
+    icon && icon.startsWith("/")
+      ? `${window.location.origin}${icon}`
+      : icon;
+
   const options: NotificationOptions = {
     body,
-    icon,
+    icon: resolvedIcon || undefined,
     tag,
     requireInteraction: false,
     silent: false,
   };
 
-  const n = new Notification(title, options);
+  let n: Notification;
+  try {
+    n = new Notification(title, options);
+  } catch (err) {
+    console.error(
+      "[Brana Notif] ❌ new Notification() threw — check OS Do Not Disturb or browser restrictions:",
+      err
+    );
+    return null;
+  }
+
+  n.onerror = (e) => {
+    console.error("[Brana Notif] ❌ Notification error event:", e);
+  };
 
   n.onclick = () => {
     n.close();
-    if (typeof window !== "undefined") {
-      window.focus();
-      if (dataUrl) {
-        const resolved = dataUrl.startsWith("/")
-          ? `${window.location.origin}${dataUrl}`
-          : dataUrl;
-        window.location.href = resolved;
-      }
+    window.focus();
+    if (dataUrl) {
+      const resolved = dataUrl.startsWith("/")
+        ? `${window.location.origin}${dataUrl}`
+        : dataUrl;
+      window.location.href = resolved;
     }
   };
 
@@ -143,6 +173,7 @@ export function triggerDesktopNotification(
   const timer = setTimeout(() => n.close(), ttl);
   n.onclose = () => clearTimeout(timer);
 
+  console.log("[Brana Notif] 🎉 Notification created successfully.");
   return n;
 }
 
