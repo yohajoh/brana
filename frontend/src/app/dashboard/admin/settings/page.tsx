@@ -4,6 +4,9 @@ import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { useSystemConfig, useUpdateSystemConfig } from "@/lib/hooks/useQueries";
 
+import { useNotificationSoundSetting, previewNotificationSound } from "@/lib/notificationSound";
+import { Volume2, VolumeX, Play } from "lucide-react";
+
 const fadeUp={hidden:{opacity:0,y:16},show:{opacity:1,y:0,transition:{duration:0.38,ease:[0.16,1,0.3,1]}}};
 const stagger={hidden:{},show:{transition:{staggerChildren:0.08}}};
 const IC="w-full px-4 py-3 rounded-xl border border-[#e8e4dc] bg-[#f5f4f0] text-sm text-[#0d0d0d] focus:outline-none focus:border-[#0d0d0d] focus:bg-white focus:shadow-[0_0_0_3px_rgba(245,197,24,0.2)] transition-all [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none";
@@ -24,6 +27,7 @@ export default function AdminSettingsPage() {
   const {data,isLoading}=useSystemConfig(); const update=useUpdateSystemConfig();
   const cfg=data?.data?.config as Config|undefined;
   const [form,setForm]=useState({max_loan_days:"14",daily_fine:"2",max_books_per_user:"3",reservation_window_hr:"24",low_stock_threshold:"2",never_returned_days:"60",enable_notifications:true});
+  const [soundEnabled, setSoundEnabled] = useNotificationSoundSetting();
 
   useEffect(()=>{
     if(!cfg) return;
@@ -49,6 +53,14 @@ export default function AdminSettingsPage() {
     }catch{toast.error("Failed to save settings");}
   };
 
+  const handleToggleSound = () => {
+    const nextState = !soundEnabled;
+    setSoundEnabled(nextState);
+    if (nextState) {
+      previewNotificationSound();
+    }
+  };
+
   const fields=[
     {key:"max_loan_days",         label:"Max Loan Days",                hint:"Default number of days a book can be borrowed"},
     {key:"daily_fine",            label:"Daily Fine (ETB)",              hint:"Fine charged per day after the due date"},
@@ -65,7 +77,7 @@ export default function AdminSettingsPage() {
         <motion.div variants={fadeUp}>
           <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.2em] mb-1">Admin</p>
           <h1 className="text-[26px] font-serif font-black text-[#0d0d0d]">System Settings</h1>
-          <p className="text-sm text-[#0d0d0d]/45 mt-1">Configure global rental and inventory rules.</p>
+          <p className="text-sm text-[#0d0d0d]/45 mt-1">Configure global rental, inventory rules, and notification sound alerts.</p>
         </motion.div>
 
       {isLoading?(
@@ -80,15 +92,45 @@ export default function AdminSettingsPage() {
             ))}
           </div>
 
-          {/* Toggle */}
+          {/* Sound Alert Setting */}
+          <div className="flex items-center justify-between p-4 bg-[#f5f4f0] rounded-xl border border-[#e8e4dc]">
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-lg ${soundEnabled ? "bg-[#0d0d0d] text-[#f5c518]" : "bg-[#e8e4dc] text-[#0d0d0d]/40"}`}>
+                {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+              </div>
+              <div>
+                <p className="text-[13px] font-bold text-[#0d0d0d]">Notification Sound Chime</p>
+                <p className="text-[11px] text-[#0d0d0d]/40 mt-0.5">Play sound on all incoming real-time alerts</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={previewNotificationSound}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-[#e8e4dc] bg-white text-[11px] font-bold text-[#0d0d0d] hover:bg-gray-50 active:scale-95 transition-all shadow-sm"
+              >
+                <Play size={10} className="fill-current text-[#0d0d0d]" />
+                Test
+              </button>
+              <button
+                type="button"
+                onClick={handleToggleSound}
+                className={`relative w-11 h-6 rounded-full transition-colors ${soundEnabled ? "bg-[#0d0d0d]" : "bg-[#e8e4dc]"}`}
+              >
+                <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm transition-all ${soundEnabled ? "left-6" : "left-1"}`} />
+              </button>
+            </div>
+          </div>
+
+          {/* Toggle Email/System Notifications */}
           <div className="flex items-center justify-between p-4 bg-[#f5f4f0] rounded-xl border border-[#e8e4dc]">
             <div>
-              <p className="text-[13px] font-bold text-[#0d0d0d]">Enable Notifications</p>
+              <p className="text-[13px] font-bold text-[#0d0d0d]">Enable Automated System Reminders</p>
               <p className="text-[11px] text-[#0d0d0d]/40 mt-0.5">Send automated email and in-app reminders</p>
             </div>
             <button type="button" onClick={()=>setForm(p=>({...p,enable_notifications:!p.enable_notifications}))}
-              className={`relative w-12 h-6 rounded-full transition-colors ${form.enable_notifications?"bg-[#0d0d0d]":"bg-[#e8e4dc]"}`}>
-              <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm transition-all ${form.enable_notifications?"left-7":"left-1"}`}/>
+              className={`relative w-11 h-6 rounded-full transition-colors ${form.enable_notifications?"bg-[#0d0d0d]":"bg-[#e8e4dc]"}`}>
+              <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm transition-all ${form.enable_notifications?"left-6":"left-1"}`}/>
             </button>
           </div>
 

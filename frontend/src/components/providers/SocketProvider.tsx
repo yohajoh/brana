@@ -8,6 +8,7 @@ import {
   getNotificationTitle,
   getNotificationUrl,
 } from "@/lib/desktopNotifications";
+import { playNotificationSound } from "@/lib/notificationSound";
 
 type Notification = {
   id: string;
@@ -76,6 +77,9 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       console.log("  hidden    :", document.hidden, "(true = user is on another tab)");
       console.log("  pathname  :", window.location.pathname);
       console.groupEnd();
+
+      // ── Audible Notification Sound (plays visible or hidden if enabled) ──
+      playNotificationSound();
 
       // ── OS Desktop notification (only fires when tab is in background) ──
       const role: "admin" | "student" = window.location.pathname.startsWith("/dashboard/admin")

@@ -3,10 +3,11 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { User, Shield, Calendar, ChevronRight } from "lucide-react";
+import { User, Shield, Calendar, Bell, ChevronRight } from "lucide-react";
 import { useCurrentUser } from "@/lib/hooks/useQueries";
 import { ProfileSettings }        from "@/components/ProfileSettings";
 import { SecuritySettings }       from "@/components/SecuritySettings";
+import { NotificationSettings }   from "@/components/NotificationSettings";
 import { GoogleCalendarSettings } from "@/components/GoogleCalendarSettings";
 import { useLanguage }            from "@/components/providers/LanguageProvider";
 
@@ -19,12 +20,13 @@ type UserData = {
   phone:string|null; year:string|null; department:string|null; student_id:string|null; role:string;
 };
 
-type TabKey = "profile" | "security" | "calendar";
+type TabKey = "profile" | "security" | "notifications" | "calendar";
 
 const TABS: { key: TabKey; labelKey: string; icon: React.ElementType; desc: string }[] = [
-  { key: "profile",  labelKey: "student_settings.profile_title",  icon: User,     desc: "Name, phone, year, department" },
-  { key: "security", labelKey: "student_settings.security_title", icon: Shield,   desc: "Password & email" },
-  { key: "calendar", labelKey: "student_settings.calendar_title", icon: Calendar, desc: "Google Calendar sync" },
+  { key: "profile",       labelKey: "student_settings.profile_title",  icon: User,     desc: "Name, phone, year, department" },
+  { key: "security",      labelKey: "student_settings.security_title", icon: Shield,   desc: "Password & email" },
+  { key: "notifications", labelKey: "Notifications & Sounds",          icon: Bell,     desc: "Sound chime & desktop alerts" },
+  { key: "calendar",      labelKey: "student_settings.calendar_title", icon: Calendar, desc: "Google Calendar sync" },
 ];
 
 export default function SettingsPage() {
@@ -141,9 +143,10 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              {tab === "profile"  && <ProfileSettings user={user || null} loading={isLoading} onUpdate={() => {}} />}
-              {tab === "security" && <SecuritySettings user={user || null} loading={isLoading} />}
-              {tab === "calendar" && <GoogleCalendarSettings />}
+              {tab === "profile"       && <ProfileSettings user={user || null} loading={isLoading} onUpdate={() => {}} />}
+              {tab === "security"      && <SecuritySettings user={user || null} loading={isLoading} />}
+              {tab === "notifications" && <NotificationSettings />}
+              {tab === "calendar"      && <GoogleCalendarSettings />}
             </motion.div>
           </AnimatePresence>
         </div>
