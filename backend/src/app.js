@@ -88,7 +88,8 @@ const corsOptions = {
     callback(new AppError(`Origin not allowed by CORS: ${origin}`, 403));
   },
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Range"],
+  exposedHeaders: ["Content-Range", "Accept-Ranges", "Content-Length", "Content-Type", "Content-Disposition"],
   credentials: true,
   optionsSuccessStatus: 200,
 };
@@ -99,10 +100,13 @@ app.use(
     threshold: 1024,
     level: resolvedCompressionLevel,
     filter: (req, res) => {
-      // Never compress binary file downloads — it corrupts PDF/Excel buffers
-      if (req.headers["x-no-compression"] || res.locals.noCompress) return false;
-      const disposition = res.getHeader("Content-Disposition");
-      if (typeof disposition === "string" && disposition.startsWith("attachment")) return false;
+      // Never compress binary PDF / file streams — compression corrupts HTTP 206 Partial Content ranges & PDF buffers
+      if (req.headers["x-no-compression"] || res.locals?.noCompress) return false;
+      if (req.originalUrl && req.originalUrl.includes("/pdf")) return false;
+      const contentType = String(res.getHeader("Content-Type") || "");
+      if (contentType.includes("application/pdf") || contentType.includes("octet-stream")) return false;
+      const disposition = String(res.getHeader("Content-Disposition") || "");
+      if (disposition.startsWith("attachment") || disposition.startsWith("inline")) return false;
       return compression.filter(req, res);
     },
   }),

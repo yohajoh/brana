@@ -512,8 +512,11 @@ export const markDigitalBookAsRead = async (id, userId) => {
  *   Download permission is limited for RESTRICTED (admin only)
  */
 export const getPdfBytes = async (id, user) => {
+  const where = digitalIdentifierWhere(id);
+  if (!where) throw new AppError("Digital book not found", 404);
+
   const book = await prisma.digitalBook.findFirst({
-    where: { id, deleted_at: null },
+    where,
     select: {
       id: true,
       title: true,
@@ -532,22 +535,16 @@ export const getPdfBytes = async (id, user) => {
   // Students can read all uploaded PDFs inline. Restriction applies to download capability.
   const canDownload = book.pdf_access !== "RESTRICTED" || isAdmin;
 
-  let bytes;
-  if (book.pdf_url) {
-    if (book.pdf_url.startsWith('data:')) {
-      const base64Data = book.pdf_url.split(',')[1];
-      bytes = Buffer.from(base64Data, 'base64');
-    } else {
-      const resp = await fetch(book.pdf_url);
-      if (!resp.ok) throw new AppError("Failed to retrieve PDF file from Cloudinary", 502);
-      const arrayBuf = await resp.arrayBuffer();
-      bytes = Buffer.from(arrayBuf);
-    }
-  } else {
+  let bytes = null;
+  if (book.pdf_url && book.pdf_url.startsWith("data:")) {
+    const base64Data = book.pdf_url.split(",")[1];
+    bytes = Buffer.from(base64Data, "base64");
+  } else if (!book.pdf_url && book.pdf_file) {
     bytes = book.pdf_file;
   }
 
   return {
+    book,
     bytes,
     fileName: book.pdf_name || `${book.title}.pdf`,
     canDownload,

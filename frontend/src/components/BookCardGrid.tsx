@@ -98,6 +98,13 @@ export const BookCardGrid = ({ books, loading, listQuery = "" }: Props) => {
                   src={book.cover_image_url || "/reading_illustration.png"}
                   alt={book.title}
                   fill
+                  onError={(e) => {
+                    const target = e.currentTarget as HTMLImageElement;
+                    if (target.src !== "/reading_illustration.png") {
+                      target.srcset = "";
+                      target.src = "/reading_illustration.png";
+                    }
+                  }}
                   className="object-cover transition-transform duration-500 group-hover:scale-105"
                 />
 

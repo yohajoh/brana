@@ -382,6 +382,13 @@ export default function BookDetailPage() {
               <Image
                 src={activeImage || book.cover_image_url || "/reading_illustration.png"}
                 alt={book.title} fill priority
+                onError={(e) => {
+                  const target = e.currentTarget as HTMLImageElement;
+                  if (target.src !== "/reading_illustration.png") {
+                    target.srcset = "";
+                    target.src = "/reading_illustration.png";
+                  }
+                }}
                 className="object-contain"
               />
               {/* Bottom badges */}

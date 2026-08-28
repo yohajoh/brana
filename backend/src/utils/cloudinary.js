@@ -135,20 +135,28 @@ export const uploadPdfToCloudinary = async (pdfFile, opts = {}) => {
   form.append('folder', folder);
   form.append('signature', signature);
 
-  const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/raw/upload`, {
-    method: 'POST',
-    body: form,
-  });
+  try {
+    const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/raw/upload`, {
+      method: 'POST',
+      body: form,
+      signal: AbortSignal.timeout(5000),
+    });
 
-  const payload = await response.json();
-  if (!response.ok || !payload.secure_url) {
+    const payload = await response.json();
+    if (!response.ok || !payload.secure_url) {
+      if (process.env.NODE_ENV !== 'production') {
+        return `data:${pdfFile.mimetype || 'application/pdf'};base64,${pdfFile.buffer.toString('base64')}`;
+      }
+      throw new AppError(payload?.error?.message || 'Cloudinary PDF upload failed', 502);
+    }
+
+    return payload.secure_url;
+  } catch (err) {
     if (process.env.NODE_ENV !== 'production') {
       return `data:${pdfFile.mimetype || 'application/pdf'};base64,${pdfFile.buffer.toString('base64')}`;
     }
-    throw new AppError(payload?.error?.message || 'Cloudinary PDF upload failed', 502);
+    throw new AppError(`Cloudinary PDF upload failed: ${err.message}`, 502);
   }
-
-  return payload.secure_url;
 };
 
 /**

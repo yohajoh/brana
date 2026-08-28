@@ -2,10 +2,27 @@
  * Digital Book Controller
  */
 
+import { Readable } from "node:stream";
+import PDFDocument from "pdfkit";
 import { prisma } from '../prisma.js';
 import * as digitalBookService from "../services/digitalBook.service.js";
 import { logAdminActivity } from "../services/adminActivity.service.js";
 import { broadcastNotification } from "../services/notification.service.js";
+
+const generateFallbackPdfBuffer = (title = "Digital Book") => {
+  return new Promise((resolve) => {
+    const doc = new PDFDocument({ size: "A4" });
+    const chunks = [];
+    doc.on("data", (c) => chunks.push(c));
+    doc.on("end", () => resolve(Buffer.concat(chunks)));
+
+    doc.fontSize(22).text(title, 100, 100);
+    doc.fontSize(14).text("Brana Digital Library", 100, 150);
+    doc.fontSize(12).text("The PDF document storage service is currently unreachable from this network.", 100, 180);
+    doc.fontSize(10).text("Please check your internet connection or Cloudinary CDN status.", 100, 210);
+    doc.end();
+  });
+};
 
 
 export const getDigitalBooks = async (req, res) => {
@@ -39,21 +56,100 @@ export const getDigitalBookPageData = async (req, res) => {
   res.json({ status: "success", data });
 };
 
-export const streamPdf = async (req, res) => {
-  const { bytes, fileName, canDownload } = await digitalBookService.getPdfBytes(req.params.id, req.user);
-  const wantsDownload = req.query.download === "true";
-  const contentDisposition =
-    wantsDownload && canDownload ? `attachment; filename="${fileName}"` : `inline; filename="${fileName}"`;
+export const streamPdf = async (req, res, next) => {
+  try {
+    res.locals.noCompress = true;
+    const { book, bytes, fileName, canDownload } = await digitalBookService.getPdfBytes(req.params.id, req.user);
+    const wantsDownload = req.query.download === "true";
+    const contentDisposition =
+      wantsDownload && canDownload ? `attachment; filename="${fileName}"` : `inline; filename="${fileName}"`;
 
-  const totalLength = bytes.length;
+    if (book?.pdf_url && !book.pdf_url.startsWith("data:")) {
+      const fetchHeaders = req.headers.range ? { range: req.headers.range } : undefined;
+
+      let upstreamResp;
+      try {
+        upstreamResp = await fetch(book.pdf_url, {
+          ...(fetchHeaders ? { headers: fetchHeaders } : {}),
+          signal: AbortSignal.timeout(3000),
+        });
+      } catch (fetchErr) {
+        console.error("Upstream PDF fetch connection error:", fetchErr.message);
+        let fallbackBytes = bytes || (book?.pdf_file ? Buffer.from(book.pdf_file) : null);
+        if (!fallbackBytes) {
+          fallbackBytes = await generateFallbackPdfBuffer(book?.title || "Digital Book");
+        }
+        return sendBytesChunk(res, req, fallbackBytes, contentDisposition, wantsDownload);
+      }
+
+      if (!upstreamResp.ok && upstreamResp.status !== 206) {
+        return res.status(upstreamResp.status || 502).json({
+          status: "error",
+          message: "Failed to retrieve PDF file from upstream storage",
+        });
+      }
+
+      const upstreamStatus = upstreamResp.status;
+      res.status(upstreamStatus);
+
+      const headersToForward = ["content-range", "accept-ranges", "content-length", "content-type"];
+      headersToForward.forEach((h) => {
+        const val = upstreamResp.headers.get(h);
+        if (val) res.setHeader(h, val);
+      });
+
+      res.setHeader("Content-Disposition", contentDisposition);
+      res.setHeader("Cache-Control", "private, max-age=3600");
+
+      if (upstreamResp.body) {
+        const stream = Readable.fromWeb(upstreamResp.body);
+        stream.on("error", (err) => {
+          console.error("PDF stream error:", err);
+          if (!res.headersSent) {
+            res.status(500).end();
+          }
+        });
+
+        res.on("close", () => {
+          stream.destroy();
+        });
+
+        return stream.pipe(res);
+      } else {
+        return res.end();
+      }
+    }
+
+    const pdfBytes = bytes || (book?.pdf_file ? Buffer.from(book.pdf_file) : null);
+    if (!pdfBytes) {
+      return res.status(404).json({ status: "error", message: "PDF data unavailable" });
+    }
+
+    return sendBytesChunk(res, req, pdfBytes, contentDisposition, wantsDownload);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const sendBytesChunk = (res, req, pdfBytes, contentDisposition, wantsDownload) => {
+  const totalLength = pdfBytes.length;
   const range = req.headers.range;
 
   if (range && !wantsDownload) {
     const parts = range.replace(/bytes=/, "").split("-");
-    const start = parseInt(parts[0], 10);
-    const end = parts[1] ? parseInt(parts[1], 10) : totalLength - 1;
-    const chunkSize = (end - start) + 1;
-    const chunk = bytes.slice(start, end + 1);
+    const start = parseInt(parts[0], 10) || 0;
+    const requestedEnd = parts[1] ? parseInt(parts[1], 10) : totalLength - 1;
+    const end = Math.min(requestedEnd, totalLength - 1);
+
+    if (start >= totalLength) {
+      res.writeHead(416, {
+        "Content-Range": `bytes */${totalLength}`,
+      });
+      return res.end();
+    }
+
+    const chunk = pdfBytes.slice(start, end + 1);
+    const chunkSize = chunk.length;
 
     res.writeHead(206, {
       "Content-Range": `bytes ${start}-${end}/${totalLength}`,
@@ -73,7 +169,7 @@ export const streamPdf = async (req, res) => {
     "Accept-Ranges": "bytes",
     "Cache-Control": "private, max-age=3600",
   });
-  res.send(bytes);
+  res.send(pdfBytes);
 };
 
 export const markAsRead = async (req, res) => {

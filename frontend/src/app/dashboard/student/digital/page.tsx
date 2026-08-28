@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { API_BASE_URL, fetchApi } from "@/lib/api";
 import { useLanguage } from "@/components/providers/LanguageProvider";
@@ -19,9 +19,9 @@ type DigitalBook = {
 };
 type ApiResponse = { books: DigitalBook[]; meta?: { total?: number; totalPages?: number } };
 
-const fadeUp  = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.38, ease: [0.16, 1, 0.3, 1] } } };
-const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
-const cardVar = { hidden: { opacity: 0, y: 12, scale: 0.97 }, show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] } } };
+const fadeUp: Variants  = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.38, ease: [0.16, 1, 0.3, 1] } } };
+const stagger: Variants = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
+const cardVar: Variants = { hidden: { opacity: 0, y: 12, scale: 0.97 }, show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] } } };
 
 export default function StudentDigitalPage() {
   const { t }  = useLanguage();
@@ -101,6 +101,13 @@ export default function StudentDigitalPage() {
                 <Image
                   src={book.cover_image_url || "https://placehold.co/300x420?text=Book"}
                   alt={book.title} fill sizes="220px"
+                  onError={(e) => {
+                    const target = e.currentTarget as HTMLImageElement;
+                    if (target.src !== "https://placehold.co/300x420?text=Book") {
+                      target.srcset = "";
+                      target.src = "https://placehold.co/300x420?text=Book";
+                    }
+                  }}
                   className="object-cover transition-transform duration-500 group-hover:scale-105"
                 />
                 <span className={`absolute top-2 left-2 px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wide ${
