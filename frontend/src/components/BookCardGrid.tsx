@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Star, BookOpen, Download, Eye } from "lucide-react";
 import { motion } from "framer-motion";
+import { getImageUrl } from "@/lib/api";
 
 type Book = {
   id: string;
@@ -95,7 +96,7 @@ export const BookCardGrid = ({ books, loading, listQuery = "" }: Props) => {
               {/* Cover */}
               <div className="relative aspect-[2/3] rounded-2xl overflow-hidden mb-3 shadow-[0_4px_16px_rgba(0,0,0,0.10)] group-hover:shadow-[0_10px_32px_rgba(20,43,111,0.18)] transition-all duration-300">
                 <Image
-                  src={book.cover_image_url || "/reading_illustration.png"}
+                  src={getImageUrl(book.cover_image_url)}
                   alt={book.title}
                   fill
                   onError={(e) => {

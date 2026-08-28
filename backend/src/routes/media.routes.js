@@ -1,14 +1,12 @@
-/**
- * Media Routes  –  BASE: /api/media
- * Admin-only pre-upload endpoint used by the dashboard modals.
- */
-
 import { Router } from 'express';
-import { uploadFiles } from '../controllers/media.controller.js';
+import { uploadFiles, proxyImage } from '../controllers/media.controller.js';
 import { protect, restrictTo } from '../middlewares/auth.middleware.js';
 import { uploadImage } from '../utils/upload.js';
 
 const router = Router();
+
+// Public image proxy endpoint with automatic fallback for unreachable Cloudinary URLs
+router.get('/image-proxy', proxyImage);
 
 router.use(protect, restrictTo('ADMIN'));
 

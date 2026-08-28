@@ -138,3 +138,12 @@ export async function fetchApi<T = any>(endpoint: string, options: RequestInit =
 
   return data as T;
 }
+
+export function getImageUrl(url?: string | null): string {
+  if (!url) return "/reading_illustration.png";
+  if (url.startsWith("data:") || url.startsWith("/")) return url;
+  if (url.includes("cloudinary.com")) {
+    return `${API_BASE_URL}/media/image-proxy?url=${encodeURIComponent(url)}`;
+  }
+  return url;
+}

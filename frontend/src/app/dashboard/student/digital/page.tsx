@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion, Variants } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
-import { API_BASE_URL, fetchApi } from "@/lib/api";
+import { API_BASE_URL, fetchApi, getImageUrl } from "@/lib/api";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { toast } from "sonner";
 
@@ -99,7 +99,7 @@ export default function StudentDigitalPage() {
             <motion.div key={book.id} variants={cardVar} className="group flex flex-col">
               <div className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-[#e8e4dc] mb-3">
                 <Image
-                  src={book.cover_image_url || "https://placehold.co/300x420?text=Book"}
+                  src={getImageUrl(book.cover_image_url)}
                   alt={book.title} fill sizes="220px"
                   onError={(e) => {
                     const target = e.currentTarget as HTMLImageElement;
