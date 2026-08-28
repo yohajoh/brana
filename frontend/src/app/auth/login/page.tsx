@@ -4,7 +4,7 @@ import { FormEvent, useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { SplitAuthLayout } from "../AuthLayout";
-import { fetchApi, API_BASE_URL } from "@/lib/api";
+import { fetchApi, API_BASE_URL, seedCurrentUserCache } from "@/lib/api";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { FcGoogle } from "react-icons/fc";
 import { Eye, EyeOff } from "lucide-react";
@@ -61,7 +61,14 @@ function LoginContent() {
         method: "POST",
         body: JSON.stringify({ email: fd.get("email"), password: fd.get("password") }),
       });
-      const role = data?.data?.user?.role ?? "STUDENT";
+      const user = data?.data?.user ?? null;
+      const role = user?.role ?? "STUDENT";
+
+      // Seed the client-side user cache immediately so route guards get a
+      // cache hit instead of racing a /auth/me request against Firefox's
+      // cookie commit (which can lose the race and redirect back to login).
+      if (user) seedCurrentUserCache(user);
+
       router.push(role === "ADMIN" ? "/dashboard/admin" : "/dashboard/student");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : (t("auth.login.messages.invalid_credentials") as string));

@@ -1,7 +1,10 @@
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   (typeof window !== "undefined" ? "http://localhost:5000/api" : "http://localhost:5000/api");
-const CURRENT_USER_CACHE_TTL_MS = Math.max(0, Number(process.env.NEXT_PUBLIC_CURRENT_USER_CACHE_TTL_MS));
+const CURRENT_USER_CACHE_TTL_MS = Math.max(
+  30_000, // minimum 30s — prevents 0ms TTL when env var is unset
+  Number(process.env.NEXT_PUBLIC_CURRENT_USER_CACHE_TTL_MS) || 0
+);
 
 type CurrentUser = {
   id: string;
@@ -33,6 +36,16 @@ const parseJsonSafely = async (response: Response): Promise<unknown> => {
 
 export function invalidateCurrentUserCache() {
   currentUserCache = null;
+}
+
+/**
+ * Pre-seeds the cache with a known user object (e.g. from a login response).
+ * Calling this right after login means the route guards don't need to make
+ * a separate /auth/me request, eliminating the race condition on Firefox.
+ */
+export function seedCurrentUserCache(user: CurrentUser) {
+  currentUserCache = { value: user, expiresAt: Date.now() + CURRENT_USER_CACHE_TTL_MS };
+  currentUserInFlight = null;
 }
 
 /** Fetches current user. Returns user object or null if not logged in. */
