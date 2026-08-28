@@ -42,15 +42,11 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    const token = document.cookie
-      .split("; ")
-      .find((row) => row.startsWith("token="))
-      ?.split("=")[1];
-
-    if (!token) return;
-
     const newSocket = io(SOCKET_URL, {
-      auth: { token },
+      // No explicit token needed — the browser sends the httpOnly JWT cookie
+      // automatically on the WebSocket handshake when withCredentials is true.
+      // The backend socket middleware reads it from socket.handshake.headers.cookie.
+      withCredentials: true,
       transports: ["websocket"],
       reconnection: true,
       reconnectionAttempts: 5,
@@ -58,7 +54,12 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     });
 
     newSocket.on("connect", () => {
+      console.log("[Brana Socket] ✅ Connected:", newSocket.id);
       setSocket(newSocket);
+    });
+
+    newSocket.on("connect_error", (err) => {
+      console.warn("[Brana Socket] ❌ Connection error:", err.message);
     });
 
     newSocket.on("notification", (notification: Notification) => {
@@ -85,12 +86,13 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         title: getNotificationTitle(notification.type, role),
         body: notification.message,
         dataUrl: getNotificationUrl(notification.type, role, notification.id),
-        tag: `brana-${notification.type.toLowerCase()}-${notification.id}`,
+        tag: `brana-${notification.type.toLowerCase()}-${notification.id ?? Date.now()}`,
         ttl: 8000,
       });
     });
 
     newSocket.on("disconnect", () => {
+      console.log("[Brana Socket] 🔌 Disconnected");
       setSocket(null);
     });
 

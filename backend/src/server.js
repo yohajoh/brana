@@ -159,7 +159,23 @@ const startWorker = () => {
 
   io.use((/** @type {AuthenticatedSocket} */ socket, next) => {
     try {
-      const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.split(" ")[1];
+      // Priority 1: httpOnly cookie — sent automatically by the browser on the WS handshake.
+      // This is the primary auth path since the frontend cannot read httpOnly cookies via JS.
+      const cookieHeader = socket.handshake.headers?.cookie || "";
+      const cookieToken = cookieHeader
+        .split(";")
+        .map((c) => c.trim())
+        .find((c) => c.startsWith("token="))
+        ?.split("=")
+        .slice(1)
+        .join("="); // handles base64 tokens with "=" padding
+
+      // Priority 2: explicit auth.token from handshake (kept for backward compat)
+      // Priority 3: Authorization Bearer header
+      const token =
+        cookieToken ||
+        socket.handshake.auth?.token ||
+        socket.handshake.headers?.authorization?.split(" ")[1];
 
       if (!token) {
         return next(new Error("Authentication error: No token provided"));

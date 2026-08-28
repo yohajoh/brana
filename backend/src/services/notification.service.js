@@ -114,21 +114,28 @@ export const notifyAdmins = async ({ message, type = 'INFO', io }) => {
 
   if (admins.length === 0) return;
 
-  await prisma.notification.createMany({
-    data: admins.map((admin) => ({
-      user_id: admin.id,
-      message,
-      type: /** @type {any} */ (type),
-    })),
-  });
+  // Create records first so we have the generated IDs
+  const created = await Promise.all(
+    admins.map((admin) =>
+      prisma.notification.create({
+        data: {
+          user_id: admin.id,
+          message,
+          type: /** @type {any} */ (type),
+        },
+        select: NOTIFICATION_SELECT,
+      })
+    )
+  );
 
   if (io) {
-    admins.forEach((admin) => {
-      io.to(`user:${admin.id}`).emit('notification', {
-        message,
-        type,
-        is_read: false,
-        created_at: new Date(),
+    created.forEach((notification) => {
+      io.to(`user:${notification.user_id}`).emit('notification', {
+        id: notification.id,
+        message: notification.message,
+        type: notification.type,
+        is_read: notification.is_read,
+        created_at: notification.created_at,
       });
     });
   }
@@ -155,25 +162,33 @@ export const broadcastNotification = async ({ message, type = 'SYSTEM', io }) =>
 
   if (users.length === 0) return { count: 0 };
 
-  const result = await prisma.notification.createMany({
-    data: users.map((u) => ({
-      user_id: u.id,
-      message: message.trim(),
-      type: /** @type {any} */ (type),
-    })),
-  });
+  // Create records individually so we get back the generated IDs for socket emit
+  const created = await Promise.all(
+    users.map((u) =>
+      prisma.notification.create({
+        data: {
+          user_id: u.id,
+          message: message.trim(),
+          type: /** @type {any} */ (type),
+        },
+        select: NOTIFICATION_SELECT,
+      })
+    )
+  );
 
   if (io) {
-    // Broadcast to all connected sockets
-    io.emit('notification', {
-      message: message.trim(),
-      type,
-      is_read: false,
-      created_at: new Date(),
+    created.forEach((notification) => {
+      io.to(`user:${notification.user_id}`).emit('notification', {
+        id: notification.id,
+        message: notification.message,
+        type: notification.type,
+        is_read: notification.is_read,
+        created_at: notification.created_at,
+      });
     });
   }
 
-  return { count: result.count };
+  return { count: created.length };
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
