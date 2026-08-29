@@ -150,16 +150,17 @@ export default function ReadPage() {
 
         if (cancelled) return;
 
-        /* PDF.js fetches only what it needs via HTTP Range requests through our backend proxy.
-           The Cloudinary URL is never exposed — the browser only ever sees
-           /api/digital-books/:id/pdf with session cookies. Each range chunk is
-           ~64 KB, so the full file is never present in browser memory or DevTools. */
+        /* PDF.js range-request mode:
+           - disableStream: true  → forces PDF.js to use Range requests instead of streaming
+           - disableAutoFetch: true → never pre-fetches the whole file
+           - rangeChunkSize: 65536 → 64 KB per Range request
+           The backend slices our own buffer, so every request gets a proper 206. */
         const loadingTask = window.pdfjsLib.getDocument({
           url: `${API_BASE_URL}/digital-books/${id}/pdf`,
-          withCredentials: true,   // send session cookie so auth is enforced
-          rangeChunkSize: 65536,   // 64 KB per range request
-          disableAutoFetch: true,  // never pre-fetch the whole file
-          disableStream: false,
+          withCredentials: true,
+          rangeChunkSize: 65536,
+          disableAutoFetch: true,
+          disableStream: true,    // ← critical: forces range-request mode
         });
 
         const doc = await loadingTask.promise;

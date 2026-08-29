@@ -143,36 +143,36 @@ const sendBytesChunk = (res, req, pdfBytes, contentDisposition, wantsDownload) =
     const end = Math.min(requestedEnd, totalLength - 1);
 
     if (start >= totalLength) {
-      res.writeHead(416, {
-        "Content-Range": `bytes */${totalLength}`,
-      });
+      res.writeHead(416, { "Content-Range": `bytes */${totalLength}` });
       return res.end();
     }
 
     const chunk = pdfBytes.slice(start, end + 1);
-    const chunkSize = chunk.length;
-
     res.writeHead(206, {
-      "Content-Range": `bytes ${start}-${end}/${totalLength}`,
-      "Accept-Ranges": "bytes",
-      "Content-Length": chunkSize,
-      "Content-Type": "application/pdf",
+      "Content-Range":      `bytes ${start}-${end}/${totalLength}`,
+      "Accept-Ranges":      "bytes",
+      "Content-Length":     chunk.length,
+      "Content-Type":       "application/pdf",
       "Content-Disposition": contentDisposition,
-      "Cache-Control": "private, no-store",
+      "Cache-Control":      "private, no-store",
       "X-Content-Type-Options": "nosniff",
     });
     return res.end(chunk);
   }
 
-  res.set({
-    "Content-Type": "application/pdf",
+  // No Range header — this is PDF.js's initial probe request.
+  // Respond with 200 + full metadata but NO body so PDF.js sees Accept-Ranges
+  // and switches to range mode. With disableStream:true it will immediately
+  // re-request with Range headers.
+  res.writeHead(200, {
+    "Content-Type":       "application/pdf",
     "Content-Disposition": contentDisposition,
-    "Content-Length": totalLength,
-    "Accept-Ranges": "bytes",
-    "Cache-Control": "private, no-store",
+    "Content-Length":     totalLength,
+    "Accept-Ranges":      "bytes",
+    "Cache-Control":      "private, no-store",
     "X-Content-Type-Options": "nosniff",
   });
-  res.send(pdfBytes);
+  return res.end(); // empty body — PDF.js reads Content-Length then uses Range requests
 };
 
 export const markAsRead = async (req, res) => {
