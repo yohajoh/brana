@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { API_BASE_URL } from "@/lib/api";
+import { API_BASE_URL, fetchCurrentUser } from "@/lib/api";
 
 /* PDF.js is loaded from CDN via a script tag injected below.
    We declare the global type so TypeScript is happy. */
@@ -40,13 +40,26 @@ export default function ReadPage() {
   const params = useParams<{ id: string }>();
   const id     = params?.id ?? "";
 
-  const containerRef       = useRef<HTMLDivElement>(null);
-  const [status, setStatus] = useState<"loading" | "rendering" | "done" | "error">("loading");
+  const containerRef        = useRef<HTMLDivElement>(null);
+  const [status, setStatus]  = useState<"loading" | "rendering" | "done" | "error">("loading");
   const [errorMsg, setError] = useState("");
-  const [numPages, setNumPages] = useState(0);
+  const [numPages, setNumPages]     = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
-  const [scale, setScale] = useState(1.4);
-  const pdfDocRef = useRef<PdfDoc | null>(null);
+  const [scale, setScale]   = useState(1.4);
+  const pdfDocRef           = useRef<PdfDoc | null>(null);
+  // Watermark label — resolved once on mount, never exposed in the DOM
+  const watermarkRef        = useRef<string>("BRANA DIGITAL LIBRARY");
+
+  /* ── Resolve watermark identity once on mount ─────────────── */
+  useEffect(() => {
+    fetchCurrentUser().then((u) => {
+      if (u) {
+        // e.g. "John D. • john@example.com • BRANA"
+        const label = [u.name, u.email, u.student_id].filter(Boolean).join(" • ") + " • BRANA";
+        watermarkRef.current = label;
+      }
+    }).catch(() => {/* silent — generic watermark already set */});
+  }, []);
 
   /* ── DRM Hotkey, Print & Arrow Nav Protection ──────────────── */
   useEffect(() => {
@@ -137,12 +150,15 @@ export default function ReadPage() {
 
         if (cancelled) return;
 
-        /* PDF.js Streams PDF via HTTP 206 Range Requests - NEVER loads entire PDF in memory */
+        /* PDF.js fetches only what it needs via HTTP Range requests through our backend proxy.
+           The Cloudinary URL is never exposed — the browser only ever sees
+           /api/digital-books/:id/pdf with session cookies. Each range chunk is
+           ~64 KB, so the full file is never present in browser memory or DevTools. */
         const loadingTask = window.pdfjsLib.getDocument({
           url: `${API_BASE_URL}/digital-books/${id}/pdf`,
-          withCredentials: true,
-          rangeChunkSize: 65536,  // 64 KB chunks
-          disableAutoFetch: true, // Prevent downloading full PDF automatically!
+          withCredentials: true,   // send session cookie so auth is enforced
+          rangeChunkSize: 65536,   // 64 KB per range request
+          disableAutoFetch: true,  // never pre-fetch the whole file
           disableStream: false,
         });
 
@@ -197,14 +213,17 @@ export default function ReadPage() {
         await page.render({ canvasContext: ctx, viewport }).promise;
 
         if (!cancelled) {
-          // Draw subtle security watermark across rendered page
+          // Draw identity watermark — includes user name/email so leaked screenshots are traceable
           ctx.save();
-          ctx.font = "bold 20px sans-serif";
-          ctx.fillStyle = "rgba(0, 0, 0, 0.08)";
+          ctx.font = "bold 18px sans-serif";
+          ctx.fillStyle = "rgba(0, 0, 0, 0.07)";
           ctx.translate(viewport.width / 2, viewport.height / 2);
           ctx.rotate(-Math.PI / 6);
           ctx.textAlign = "center";
-          ctx.fillText("BRANA DIGITAL LIBRARY • CONFIDENTIAL", 0, 0);
+          // Two passes: one in the center, one offset — covers more of the page
+          ctx.fillText(watermarkRef.current, 0, 0);
+          ctx.fillText(watermarkRef.current, 0, viewport.height * 0.35);
+          ctx.fillText(watermarkRef.current, 0, -viewport.height * 0.35);
           ctx.restore();
 
           setStatus("done");

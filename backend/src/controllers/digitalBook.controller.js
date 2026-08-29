@@ -65,61 +65,48 @@ export const streamPdf = async (req, res, next) => {
       wantsDownload && canDownload ? `attachment; filename="${fileName}"` : `inline; filename="${fileName}"`;
 
     if (book?.pdf_url && !book.pdf_url.startsWith("data:")) {
-      const fetchHeaders = req.headers.range ? { range: req.headers.range } : undefined;
+      // Proxy the PDF through the backend — never expose the Cloudinary URL to the client.
+      // Forward any Range header so PDF.js range-streaming works correctly.
+      const fetchHeaders = {};
+      if (req.headers.range) fetchHeaders["range"] = req.headers.range;
 
       let upstreamResp;
       try {
         upstreamResp = await fetch(book.pdf_url, {
-          ...(fetchHeaders ? { headers: fetchHeaders } : {}),
-          signal: AbortSignal.timeout(3000),
+          headers: fetchHeaders,
+          signal: AbortSignal.timeout(15_000), // 15 s — enough for Cloudinary cold start
         });
       } catch (fetchErr) {
-        console.error("Upstream PDF fetch connection error:", fetchErr.message);
-        let fallbackBytes = bytes || (book?.pdf_file ? Buffer.from(book.pdf_file) : null);
-        if (!fallbackBytes) {
-          fallbackBytes = await generateFallbackPdfBuffer(book?.title || "Digital Book");
-        }
-        return sendBytesChunk(res, req, fallbackBytes, contentDisposition, wantsDownload);
+        console.error("Upstream PDF fetch error:", fetchErr.message);
+        const fallback = await generateFallbackPdfBuffer(book?.title || "Digital Book");
+        return sendBytesChunk(res, req, fallback, contentDisposition, wantsDownload);
       }
 
       if (!upstreamResp.ok && upstreamResp.status !== 206) {
-        console.warn(`Upstream PDF fetch returned status ${upstreamResp.status} for ${book.pdf_url}`);
-        let fallbackBytes = bytes || (book?.pdf_file ? Buffer.from(book.pdf_file) : null);
-        if (!fallbackBytes) {
-          fallbackBytes = await generateFallbackPdfBuffer(book?.title || "Digital Book");
-        }
-        return sendBytesChunk(res, req, fallbackBytes, contentDisposition, wantsDownload);
+        console.warn(`Upstream PDF returned ${upstreamResp.status} for ${book.pdf_url}`);
+        const fallback = await generateFallbackPdfBuffer(book?.title || "Digital Book");
+        return sendBytesChunk(res, req, fallback, contentDisposition, wantsDownload);
       }
 
-      const upstreamStatus = upstreamResp.status;
-      res.status(upstreamStatus);
-
-      const headersToForward = ["content-range", "accept-ranges", "content-length", "content-type"];
-      headersToForward.forEach((h) => {
+      // Forward status + relevant headers, then pipe the body straight through
+      res.status(upstreamResp.status);
+      for (const h of ["content-range", "accept-ranges", "content-length", "content-type"]) {
         const val = upstreamResp.headers.get(h);
         if (val) res.setHeader(h, val);
-      });
-
+      }
       res.setHeader("Content-Disposition", contentDisposition);
-      res.setHeader("Cache-Control", "private, max-age=3600");
+      res.setHeader("Cache-Control", "private, no-store"); // prevent browser caching the raw PDF
 
       if (upstreamResp.body) {
         const stream = Readable.fromWeb(upstreamResp.body);
         stream.on("error", (err) => {
-          console.error("PDF stream error:", err);
-          if (!res.headersSent) {
-            res.status(500).end();
-          }
+          console.error("PDF pipe error:", err);
+          if (!res.headersSent) res.status(500).end();
         });
-
-        res.on("close", () => {
-          stream.destroy();
-        });
-
+        res.on("close", () => stream.destroy());
         return stream.pipe(res);
-      } else {
-        return res.end();
       }
+      return res.end();
     }
 
     const pdfBytes = bytes || (book?.pdf_file ? Buffer.from(book.pdf_file) : null);
