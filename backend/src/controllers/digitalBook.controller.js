@@ -61,20 +61,28 @@ export const streamPdf = async (req, res, next) => {
     res.locals.noCompress = true;
     const { book, bytes, fileName, canDownload } = await digitalBookService.getPdfBytes(req.params.id, req.user);
     const wantsDownload = req.query.download === "true";
+
+    // Disposition is ALWAYS inline unless the user explicitly requests a download
+    // AND the book permits it. This prevents the browser showing a download prompt.
     const contentDisposition =
-      wantsDownload && canDownload ? `attachment; filename="${fileName}"` : `inline; filename="${fileName}"`;
+      wantsDownload && canDownload
+        ? `attachment; filename="${fileName}"`
+        : `inline; filename="${fileName}"`;
 
     if (book?.pdf_url && !book.pdf_url.startsWith("data:")) {
-      // Proxy the PDF through the backend — never expose the Cloudinary URL to the client.
-      // Forward any Range header so PDF.js range-streaming works correctly.
-      const fetchHeaders = {};
-      if (req.headers.range) fetchHeaders["range"] = req.headers.range;
+      // Proxy through backend — Cloudinary URL is never exposed to the client.
+      const fetchHeaders = {
+        // Always ask Cloudinary for the full file so we control the response.
+        // We handle range-slicing ourselves so the browser only ever sees
+        // properly formed 206 responses (no browser-triggered downloads).
+        ...(req.headers.range ? { range: req.headers.range } : {}),
+      };
 
       let upstreamResp;
       try {
         upstreamResp = await fetch(book.pdf_url, {
           headers: fetchHeaders,
-          signal: AbortSignal.timeout(15_000), // 15 s — enough for Cloudinary cold start
+          signal: AbortSignal.timeout(15_000),
         });
       } catch (fetchErr) {
         console.error("Upstream PDF fetch error:", fetchErr.message);
@@ -88,14 +96,22 @@ export const streamPdf = async (req, res, next) => {
         return sendBytesChunk(res, req, fallback, contentDisposition, wantsDownload);
       }
 
-      // Forward status + relevant headers, then pipe the body straight through
       res.status(upstreamResp.status);
+
+      // Forward only safe, read-relevant headers — never forward content-disposition
+      // from Cloudinary (it may say "attachment"); we always set our own.
       for (const h of ["content-range", "accept-ranges", "content-length", "content-type"]) {
         const val = upstreamResp.headers.get(h);
         if (val) res.setHeader(h, val);
       }
+      // Ensure Accept-Ranges is always declared so PDF.js knows range requests work
+      if (!upstreamResp.headers.get("accept-ranges")) {
+        res.setHeader("Accept-Ranges", "bytes");
+      }
       res.setHeader("Content-Disposition", contentDisposition);
-      res.setHeader("Cache-Control", "private, no-store"); // prevent browser caching the raw PDF
+      res.setHeader("Cache-Control", "private, no-store");
+      // Block browser from sniffing the content type and triggering a download
+      res.setHeader("X-Content-Type-Options", "nosniff");
 
       if (upstreamResp.body) {
         const stream = Readable.fromWeb(upstreamResp.body);
@@ -156,7 +172,8 @@ const sendBytesChunk = (res, req, pdfBytes, contentDisposition, wantsDownload) =
     "Content-Disposition": contentDisposition,
     "Content-Length": totalLength,
     "Accept-Ranges": "bytes",
-    "Cache-Control": "private, max-age=3600",
+    "Cache-Control": "private, no-store",
+    "X-Content-Type-Options": "nosniff",
   });
   res.send(pdfBytes);
 };
