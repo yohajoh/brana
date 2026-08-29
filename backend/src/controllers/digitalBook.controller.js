@@ -9,6 +9,13 @@ import * as digitalBookService from "../services/digitalBook.service.js";
 import { logAdminActivity } from "../services/adminActivity.service.js";
 import { broadcastNotification } from "../services/notification.service.js";
 
+// Module-level PDF buffer cache — keyed by book ID, expires after 1 hour.
+// Cloudinary doesn't reliably honour Range requests, so we fetch the full
+// file once and slice it ourselves. This gives us real 206 range responses
+// without depending on CDN behaviour.
+/** @type {Map<string, { buffer: Buffer, expiresAt: number }>} */
+const pdfCache = new Map();
+
 const generateFallbackPdfBuffer = (title = "Digital Book") => {
   return new Promise((resolve) => {
     const doc = new PDFDocument({ size: "A4" });
@@ -71,58 +78,47 @@ export const streamPdf = async (req, res, next) => {
 
     if (book?.pdf_url && !book.pdf_url.startsWith("data:")) {
       // Proxy through backend — Cloudinary URL is never exposed to the client.
-      const fetchHeaders = {
-        // Always ask Cloudinary for the full file so we control the response.
-        // We handle range-slicing ourselves so the browser only ever sees
-        // properly formed 206 responses (no browser-triggered downloads).
-        ...(req.headers.range ? { range: req.headers.range } : {}),
-      };
+      //
+      // Strategy: fetch the full PDF from Cloudinary once and cache it in a
+      // module-level Map keyed by book ID. Then serve every range slice ourselves.
+      // This means:
+      //   - The Cloudinary URL is never sent to the browser
+      //   - The browser only ever receives small 206 chunks
+      //   - Subsequent page turns are instant (served from memory)
 
-      let upstreamResp;
-      try {
-        upstreamResp = await fetch(book.pdf_url, {
-          headers: fetchHeaders,
-          signal: AbortSignal.timeout(15_000),
-        });
-      } catch (fetchErr) {
-        console.error("Upstream PDF fetch error:", fetchErr.message);
-        const fallback = await generateFallbackPdfBuffer(book?.title || "Digital Book");
-        return sendBytesChunk(res, req, fallback, contentDisposition, wantsDownload);
+      const rangeHeader = req.headers.range;
+      const cached = pdfCache.get(book.id);
+
+      // ── Fetch & cache if not already in memory ────────────────────────────────
+      let pdfBuffer;
+      if (cached && cached.expiresAt > Date.now()) {
+        pdfBuffer = cached.buffer;
+      } else {
+        let cloudResp;
+        try {
+          cloudResp = await fetch(book.pdf_url, {
+            signal: AbortSignal.timeout(30_000),
+          });
+        } catch (err) {
+          console.error("PDF upstream fetch error:", err.message);
+          const fallback = await generateFallbackPdfBuffer(book?.title || "Digital Book");
+          return sendBytesChunk(res, req, fallback, contentDisposition, wantsDownload);
+        }
+
+        if (!cloudResp.ok) {
+          console.warn(`Upstream PDF returned ${cloudResp.status}`);
+          const fallback = await generateFallbackPdfBuffer(book?.title || "Digital Book");
+          return sendBytesChunk(res, req, fallback, contentDisposition, wantsDownload);
+        }
+
+        const arrayBuf = await cloudResp.arrayBuffer();
+        pdfBuffer = Buffer.from(arrayBuf);
+        // Cache for 1 hour — evict automatically
+        pdfCache.set(book.id, { buffer: pdfBuffer, expiresAt: Date.now() + 3_600_000 });
       }
 
-      if (!upstreamResp.ok && upstreamResp.status !== 206) {
-        console.warn(`Upstream PDF returned ${upstreamResp.status} for ${book.pdf_url}`);
-        const fallback = await generateFallbackPdfBuffer(book?.title || "Digital Book");
-        return sendBytesChunk(res, req, fallback, contentDisposition, wantsDownload);
-      }
-
-      res.status(upstreamResp.status);
-
-      // Forward only safe, read-relevant headers — never forward content-disposition
-      // from Cloudinary (it may say "attachment"); we always set our own.
-      for (const h of ["content-range", "accept-ranges", "content-length", "content-type"]) {
-        const val = upstreamResp.headers.get(h);
-        if (val) res.setHeader(h, val);
-      }
-      // Ensure Accept-Ranges is always declared so PDF.js knows range requests work
-      if (!upstreamResp.headers.get("accept-ranges")) {
-        res.setHeader("Accept-Ranges", "bytes");
-      }
-      res.setHeader("Content-Disposition", contentDisposition);
-      res.setHeader("Cache-Control", "private, no-store");
-      // Block browser from sniffing the content type and triggering a download
-      res.setHeader("X-Content-Type-Options", "nosniff");
-
-      if (upstreamResp.body) {
-        const stream = Readable.fromWeb(upstreamResp.body);
-        stream.on("error", (err) => {
-          console.error("PDF pipe error:", err);
-          if (!res.headersSent) res.status(500).end();
-        });
-        res.on("close", () => stream.destroy());
-        return stream.pipe(res);
-      }
-      return res.end();
+      // ── Serve from our own buffer — proper range slicing ─────────────────────
+      return sendBytesChunk(res, req, pdfBuffer, contentDisposition, wantsDownload);
     }
 
     const pdfBytes = bytes || (book?.pdf_file ? Buffer.from(book.pdf_file) : null);
@@ -162,7 +158,8 @@ const sendBytesChunk = (res, req, pdfBytes, contentDisposition, wantsDownload) =
       "Content-Length": chunkSize,
       "Content-Type": "application/pdf",
       "Content-Disposition": contentDisposition,
-      "Cache-Control": "private, max-age=3600",
+      "Cache-Control": "private, no-store",
+      "X-Content-Type-Options": "nosniff",
     });
     return res.end(chunk);
   }
