@@ -68,17 +68,19 @@ interface WishlistDemandData {
 }
 
 function BookCoverImage({ title, coverUrl }: { title: string; coverUrl?: string | null }) {
-  const [imgSrc, setImgSrc] = useState<string>(() => getImageUrl(coverUrl));
+  const initialSrc = coverUrl && coverUrl.trim() ? coverUrl : "/reading_illustration.png";
+  const [imgSrc, setImgSrc] = useState<string>(initialSrc);
   const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
-    setImgSrc(getImageUrl(coverUrl));
+    const nextSrc = coverUrl && coverUrl.trim() ? coverUrl : "/reading_illustration.png";
+    setImgSrc(nextSrc);
     setHasError(false);
   }, [coverUrl]);
 
   if (hasError || !imgSrc) {
     return (
-      <div className="w-full h-full p-1.5 flex flex-col justify-between bg-gradient-to-br from-[#142b6f] via-[#1e3a8a] to-[#0f172a] text-white">
+      <div className="w-full h-full p-1 flex flex-col justify-between bg-gradient-to-br from-[#142b6f] via-[#1e3a8a] to-[#0f172a] text-white">
         <span className="text-[7px] font-black uppercase tracking-widest text-[#f5c518] truncate">BRANA</span>
         <p className="text-[8px] font-bold leading-tight line-clamp-2 text-white/90">{title}</p>
       </div>
@@ -93,7 +95,10 @@ function BookCoverImage({ title, coverUrl }: { title: string; coverUrl?: string 
       className="object-cover"
       unoptimized
       onError={() => {
-        if (imgSrc !== "/reading_illustration.png") {
+        if (coverUrl && imgSrc === coverUrl) {
+          // Attempt image proxy route
+          setImgSrc(getImageUrl(coverUrl));
+        } else if (imgSrc !== "/reading_illustration.png") {
           setImgSrc("/reading_illustration.png");
         } else {
           setHasError(true);
@@ -179,7 +184,7 @@ export default function AdminWishlistDemandPage() {
         const item = row.original;
         return (
           <div className="flex items-center gap-3 py-1">
-            <div className="relative w-11 h-15 shrink-0 rounded-lg overflow-hidden border border-[#e8e4dc] bg-[#142b6f] shadow-xs">
+            <div className="relative w-10 h-14 shrink-0 rounded-lg overflow-hidden border border-[#e8e4dc] bg-[#142b6f] shadow-xs">
               <BookCoverImage title={item.title} coverUrl={item.cover_image_url} />
             </div>
             <div className="min-w-0">
