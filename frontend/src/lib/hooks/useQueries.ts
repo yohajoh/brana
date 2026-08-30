@@ -10,6 +10,7 @@ export type Book = {
   available: number;
   copies: number;
   cover_image?: string;
+  cover_image_url?: string;
   description?: string;
   publisher?: string;
   published_year?: number;
@@ -21,6 +22,7 @@ export type DigitalBook = {
   id: string;
   title: string;
   cover_image?: string;
+  cover_image_url?: string;
   file_url: string;
   file_size: number;
   description?: string;
@@ -362,9 +364,12 @@ export function useCreateBook() {
 
       const title = String(data.get("title") || "Creating...");
       const tempId = `temp-${Date.now()}`;
-      // cover_image_url is now a pre-uploaded Cloudinary URL string, not a File
       const coverImageUrl = String(data.get("cover_image_url") || "");
-      const imageUrl = coverImageUrl || undefined;
+      const imageFile = data.get("image");
+      let imageUrl = coverImageUrl || undefined;
+      if (!imageUrl && imageFile && typeof imageFile !== "string" && imageFile instanceof File) {
+        imageUrl = URL.createObjectURL(imageFile);
+      }
 
       if (type === "physical") {
         queryClient.setQueriesData<BooksResponse>({ queryKey: ["books"] }, (old) => {
@@ -376,6 +381,7 @@ export function useCreateBook() {
             available: Number(data.get("total") || 0),
             copies: Number(data.get("total") || 0),
             cover_image: imageUrl,
+            cover_image_url: imageUrl,
           };
           return { ...old, books: [tempBook, ...(old as BooksResponse).books] };
         });
@@ -388,6 +394,7 @@ export function useCreateBook() {
             file_url: "",
             file_size: 0,
             cover_image: imageUrl,
+            cover_image_url: imageUrl,
           };
           return { ...old, books: [tempBook, ...(old as DigitalBooksResponse).books] };
         });

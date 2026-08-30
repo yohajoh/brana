@@ -504,7 +504,8 @@ function BookModal({ onClose, authors, categories, editingBook, onSubmit, submit
     description:"", publication_year:"", loan_duration_days:"", rental_price:"10",
     tags:"", topics:"", pdf_access:"RESTRICTED" as "FREE"|"PAID"|"RESTRICTED" });
   // Pre-uploaded Cloudinary URLs
-  const [coverUrl, setCoverUrl] = useState<string>(editingBook?.cover_image_url||"");
+  const [coverUrl, setCoverUrl]   = useState<string>(editingBook?.cover_image_url||"");
+  const [coverFile, setCoverFile] = useState<File|null>(null);
   const [galleryUrls, setGalleryUrls] = useState<string[]>(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     editingBook?.images ? (editingBook.images as any[]).map((i)=>i.image_url||i) : []
@@ -552,6 +553,7 @@ function BookModal({ onClose, authors, categories, editingBook, onSubmit, submit
 
   const handleCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return;
+    setCoverFile(file);
     setCoverUrl(URL.createObjectURL(file));
     setCoverUploading(true); setCoverPct(0);
     try {
@@ -559,7 +561,7 @@ function BookModal({ onClose, authors, categories, editingBook, onSubmit, submit
       const [url] = await uploadViaXHR([file], folder, setCoverPct);
       setCoverUrl(url);
     } catch (err) {
-      setCoverUrl(""); toast.error(err instanceof Error ? err.message : "Cover upload failed");
+      toast.error(err instanceof Error ? err.message : "Cover upload failed");
     } finally { setCoverUploading(false); if (imgRef.current) imgRef.current.value = ""; }
   };
 
@@ -579,7 +581,14 @@ function BookModal({ onClose, authors, categories, editingBook, onSubmit, submit
     e.preventDefault(); if (isUploading) return;
     const fd = new FormData();
     Object.entries(form).forEach(([k,v])=>{ if(v!=="") fd.append(k,String(v)); });
-    if (coverUrl && !coverUrl.startsWith("blob:")) fd.append("cover_image_url", coverUrl);
+
+    if (coverFile) {
+      fd.append("image", coverFile);
+    }
+    if (coverUrl && !coverUrl.startsWith("blob:")) {
+      fd.append("cover_image_url", coverUrl);
+    }
+
     galleryUrls.forEach(url=>{ if(!url.startsWith("blob:")) fd.append("gallery_urls", url); });
     if (pdfFile) fd.append("pdf", pdfFile);
     await onSubmit(type, fd);
