@@ -1193,7 +1193,7 @@ export function useConditionHistory(copyId: string) {
 export function useUpdateCondition() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ copyId, data }: { copyId: string; data: { condition: string; notes: string } }) =>
+    mutationFn: ({ copyId, data }: { copyId: string; data: { condition: string; notes?: string } }) =>
       api.patch<{ data: unknown }>(`/books/copies/${copyId}/condition`, data),
     onMutate: async ({ copyId, data }) => {
       await queryClient.cancelQueries({ queryKey: ["books"] });

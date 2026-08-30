@@ -17,9 +17,9 @@ import Image from "next/image";
 
 type Tab = "all"|"physical"|"digital"|"categories";
 const ITEMS = 10;
-const fadeUp  = { hidden:{opacity:0,y:16}, show:{opacity:1,y:0,transition:{duration:0.38,ease:[0.16,1,0.3,1]}} };
+const fadeUp  = { hidden:{opacity:0,y:16}, show:{opacity:1,y:0,transition:{duration:0.38,ease:[0.16,1,0.3,1] as const}} };
 const stagger = { hidden:{}, show:{transition:{staggerChildren:0.06}} };
-const modalIn = { hidden:{opacity:0,scale:0.97,y:16}, show:{opacity:1,scale:1,y:0,transition:{duration:0.28,ease:[0.16,1,0.3,1]}} };
+const modalIn = { hidden:{opacity:0,scale:0.97,y:16}, show:{opacity:1,scale:1,y:0,transition:{duration:0.28,ease:[0.16,1,0.3,1] as const}} };
 const IC = "w-full px-4 py-3 rounded-xl border border-[#e8e4dc] bg-[#f5f4f0] text-sm text-[#0d0d0d] focus:outline-none focus:border-[#0d0d0d] focus:bg-white focus:shadow-[0_0_0_3px_rgba(245,197,24,0.2)] transition-all placeholder:text-[#0d0d0d]/25";
 
 interface Book {
@@ -66,60 +66,395 @@ function Confirm({ title, desc, confirmLabel, tone, onClose, onConfirm, loading 
   );
 }
 
-/* ── Searchable dropdown ────────────────────────────────── */
-function SearchDropdown({ label, placeholder, options, selectedId, onSelect, onCreate, isCreating }:
-  { label:string; placeholder:string; options:{id:string;name:string}[]; selectedId:string;
-    onSelect:(o:{id:string;name:string})=>void; onCreate:(v:string)=>Promise<void>; isCreating:boolean }) {
+/* ── Searchable dropdown with Quick Add sub-modal trigger ───────── */
+function SearchDropdown({
+  label,
+  placeholder,
+  options,
+  selectedId,
+  onSelect,
+  onOpenQuickModal,
+}: {
+  label: string;
+  placeholder: string;
+  options: { id: string; name: string }[];
+  selectedId: string;
+  onSelect: (o: { id: string; name: string }) => void;
+  onOpenQuickModal: () => void;
+}) {
   const [open, setOpen] = useState(false);
-  const [q, setQ]       = useState("");
+  const [q, setQ] = useState("");
   const ref = useRef<HTMLDivElement>(null);
-  const sel = options.find(o=>o.id===selectedId);
-  const filtered = options.filter(o=>o.name.toLowerCase().includes(q.toLowerCase()));
-  const canCreate = q.trim().length>0 && !options.some(o=>o.name.toLowerCase()===q.trim().toLowerCase());
+
+  const sel = options.find((o) => o.id === selectedId);
+  const filtered = options.filter((o) => o.name.toLowerCase().includes(q.toLowerCase()));
 
   useEffect(() => {
-    const h = (e:MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
-    document.addEventListener("mousedown",h); return ()=>document.removeEventListener("mousedown",h);
-  },[]);
+    const h = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, []);
 
   return (
     <div ref={ref} className="relative">
-      <label className="block text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-wider mb-1.5">{label} *</label>
-      <button type="button" onClick={()=>{setOpen(v=>!v); setQ("");}}
-        className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-[#e8e4dc] bg-[#f5f4f0] text-sm text-left hover:bg-white focus:outline-none focus:border-[#0d0d0d] transition-all">
-        <span className={sel?"text-[#0d0d0d]":"text-[#0d0d0d]/30"}>{sel?.name||placeholder}</span>
-        <ChevronDown size={14} className={`text-[#0d0d0d]/30 transition-transform ${open?"rotate-180":""}`}/>
+      <div className="flex items-center justify-between mb-1.5">
+        <label className="block text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-wider">
+          {label} *
+        </label>
+        <button
+          type="button"
+          onClick={() => {
+            setOpen(false);
+            onOpenQuickModal();
+          }}
+          className="text-[11px] font-bold text-[#142b6f] hover:underline flex items-center gap-1"
+        >
+          <Plus size={12} />
+          <span>Add New {label}</span>
+        </button>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => {
+          setOpen((v) => !v);
+          setQ("");
+        }}
+        className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-[#e8e4dc] bg-[#f5f4f0] text-sm text-left hover:bg-white focus:outline-none focus:border-[#0d0d0d] transition-all"
+      >
+        <span className={sel ? "text-[#0d0d0d] font-bold" : "text-[#0d0d0d]/30"}>
+          {sel?.name || placeholder}
+        </span>
+        <ChevronDown size={14} className={`text-[#0d0d0d]/30 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
+
       <AnimatePresence>
         {open && (
-          <motion.div initial={{opacity:0,y:-6,scale:0.98}} animate={{opacity:1,y:0,scale:1}} exit={{opacity:0,y:-6,scale:0.98}}
-            transition={{duration:0.15}} className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 bg-white rounded-xl border border-[#e8e4dc] shadow-xl overflow-hidden">
+          <motion.div
+            initial={{ opacity: 0, y: -6, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -6, scale: 0.98 }}
+            transition={{ duration: 0.15 }}
+            className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 bg-white rounded-xl border border-[#e8e4dc] shadow-xl overflow-hidden"
+          >
             <div className="p-2.5 border-b border-[#e8e4dc]">
-              <input autoFocus value={q} onChange={e=>setQ(e.target.value)}
+              <input
+                autoFocus
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
                 placeholder={`Search ${label.toLowerCase()}…`}
-                className="w-full px-3 py-2 text-sm rounded-lg border border-[#e8e4dc] focus:outline-none focus:border-[#0d0d0d] bg-[#f5f4f0] focus:bg-white transition-all"/>
+                className="w-full px-3 py-2 text-sm rounded-lg border border-[#e8e4dc] focus:outline-none focus:border-[#0d0d0d] bg-[#f5f4f0] focus:bg-white transition-all"
+              />
             </div>
             <div className="max-h-48 overflow-y-auto p-1.5 space-y-0.5">
-              {filtered.length===0 ? <p className="px-3 py-2 text-sm text-[#0d0d0d]/35">No matches</p>
-                : filtered.map(o=>(
-                  <button key={o.id} type="button" onClick={()=>{onSelect(o);setOpen(false);setQ("");}}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${selectedId===o.id?"bg-[#0d0d0d] text-white font-bold":"text-[#0d0d0d] hover:bg-[#f5f4f0]"}`}>
+              {filtered.length === 0 ? (
+                <p className="px-3 py-2 text-sm text-[#0d0d0d]/35">No matches found</p>
+              ) : (
+                filtered.map((o) => (
+                  <button
+                    key={o.id}
+                    type="button"
+                    onClick={() => {
+                      onSelect(o);
+                      setOpen(false);
+                      setQ("");
+                    }}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                      selectedId === o.id
+                        ? "bg-[#0d0d0d] text-white font-bold"
+                        : "text-[#0d0d0d] hover:bg-[#f5f4f0]"
+                    }`}
+                  >
                     {o.name}
                   </button>
-                ))}
+                ))
+              )}
             </div>
-            {canCreate && (
-              <div className="p-2.5 border-t border-[#e8e4dc]">
-                <button type="button" disabled={isCreating} onClick={async()=>{await onCreate(q.trim());setOpen(false);setQ("");}}
-                  className="w-full px-3 py-2.5 rounded-xl bg-[#0d0d0d] text-white text-[12px] font-bold disabled:opacity-50 transition-colors hover:bg-[#292524]">
-                  {isCreating ? "Creating…" : `Create "${q.trim()}"`}
-                </button>
-              </div>
-            )}
           </motion.div>
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+/* ── Quick Sub-Modal for Author ───────── */
+function QuickAuthorModal({
+  onClose,
+  onCreated,
+}: {
+  onClose: () => void;
+  onCreated: (author: { id: string; name: string }) => void;
+}) {
+  const [name, setName] = useState("");
+  const [bio, setBio] = useState("");
+  const [imgPreview, setPreview] = useState<string | null>(null);
+  const [uploadedImgUrl, setUploadedImgUrl] = useState<string | null>(null);
+  const [authorFile, setAuthorFile] = useState<File | null>(null);
+  const [imgUploading, setImgUploading] = useState(false);
+  const [imgPct, setImgPct] = useState(0);
+  const imgRef = useRef<HTMLInputElement>(null);
+  const createAuthor = useCreateAuthor();
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPreview(URL.createObjectURL(file));
+    setAuthorFile(file);
+    setImgUploading(true);
+    setImgPct(0);
+    try {
+      const [url] = await uploadViaXHR([file], "brana/authors", setImgPct);
+      setUploadedImgUrl(url);
+    } catch {
+      // If direct upload fails, fallback to sending raw File in FormData
+    } finally {
+      setImgUploading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || imgUploading) return;
+    const fd = new FormData();
+    fd.append("name", name.trim());
+
+    // Backend authorService requires bio >= 10 characters
+    const finalBio = bio.trim().length >= 10
+      ? bio.trim()
+      : `${name.trim()} is a distinguished author in the Brana library catalog.`;
+    fd.append("bio", finalBio);
+
+    // Backend authorService requires image (File or URL string)
+    if (authorFile) {
+      fd.append("image", authorFile);
+    } else if (uploadedImgUrl) {
+      fd.append("image", uploadedImgUrl);
+    } else {
+      fd.append("image", "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=400");
+    }
+
+    try {
+      const res = await createAuthor.mutateAsync(fd);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const created = (res as any)?.data?.author || (res as any)?.author;
+      const createdId = created?.id || `temp-${Date.now()}`;
+      const createdName = created?.name || name.trim();
+      onCreated({ id: createdId, name: createdName });
+      toast.success(`Author "${createdName}" saved to database!`);
+      onClose();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to create author");
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[2147483648] bg-black/65 backdrop-blur-sm flex items-center justify-center p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !imgUploading) onClose();
+      }}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 16 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 16 }}
+        transition={{ duration: 0.2 }}
+        className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-[#e8e4dc]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#e8e4dc]">
+          <h3 className="text-[16px] font-serif font-black text-[#0d0d0d]">Add New Author</h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-8 h-8 rounded-xl bg-[#f5f4f0] flex items-center justify-center text-[#0d0d0d]/40 hover:text-[#0d0d0d]"
+          >
+            <X size={15} />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-wider">
+              Author Name *
+            </label>
+            <input
+              required
+              autoFocus
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter author full name"
+              className={IC}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-wider">
+              Bio / Description
+            </label>
+            <textarea
+              rows={3}
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              placeholder="Brief biography (optional)"
+              className={`${IC} resize-none`}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-wider">
+              Author Photo (Optional)
+            </label>
+            <div
+              onClick={() => {
+                if (!imgUploading) imgRef.current?.click();
+              }}
+              className={`relative w-full h-24 rounded-xl border-2 border-dashed overflow-hidden cursor-pointer flex items-center justify-center gap-2 text-xs transition-colors ${
+                imgUploading
+                  ? "border-[#f5c518] bg-amber-50"
+                  : imgPreview
+                  ? "border-emerald-400"
+                  : "border-[#e8e4dc] hover:border-[#0d0d0d]/30 text-[#0d0d0d]/40"
+              }`}
+            >
+              {imgPreview ? (
+                <>
+                  <Image src={imgPreview} alt="author preview" fill className="object-cover" unoptimized />
+                  {imgUploading && (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white text-xs font-bold">
+                      Uploading {imgPct}%…
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <Upload size={14} /> Upload Image
+                </>
+              )}
+            </div>
+            <input
+              ref={imgRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleFile}
+            />
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2.5 rounded-xl border border-[#e8e4dc] text-xs font-bold text-[#0d0d0d]/60 hover:bg-[#f5f4f0]"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={createAuthor.isPending || imgUploading || !name.trim()}
+              className="px-5 py-2.5 rounded-xl bg-[#0d0d0d] text-white text-xs font-bold disabled:opacity-50 hover:bg-[#292524] transition-colors"
+            >
+              {createAuthor.isPending ? "Saving to database…" : "Save Author"}
+            </button>
+          </div>
+        </form>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+/* ── Quick Sub-Modal for Category ───────── */
+function QuickCategoryModal({
+  onClose,
+  onCreated,
+}: {
+  onClose: () => void;
+  onCreated: (cat: { id: string; name: string }) => void;
+}) {
+  const [name, setName] = useState("");
+  const createCategory = useCreateCategory();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+    try {
+      const res = await createCategory.mutateAsync({ name: name.trim() });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const created = (res as any)?.data?.category || (res as any)?.category;
+      const createdId = created?.id || `temp-${Date.now()}`;
+      const createdName = created?.name || name.trim();
+      onCreated({ id: createdId, name: createdName });
+      toast.success(`Category "${createdName}" saved to database!`);
+      onClose();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to create category");
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[2147483648] bg-black/65 backdrop-blur-sm flex items-center justify-center p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 16 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 16 }}
+        transition={{ duration: 0.2 }}
+        className="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden border border-[#e8e4dc]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#e8e4dc]">
+          <h3 className="text-[16px] font-serif font-black text-[#0d0d0d]">Add New Category</h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-8 h-8 rounded-xl bg-[#f5f4f0] flex items-center justify-center text-[#0d0d0d]/40 hover:text-[#0d0d0d]"
+          >
+            <X size={15} />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-wider">
+              Category Name *
+            </label>
+            <input
+              required
+              autoFocus
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Science Fiction, History"
+              className={IC}
+            />
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2.5 rounded-xl border border-[#e8e4dc] text-xs font-bold text-[#0d0d0d]/60 hover:bg-[#f5f4f0]"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={createCategory.isPending || !name.trim()}
+              className="px-5 py-2.5 rounded-xl bg-[#0d0d0d] text-white text-xs font-bold disabled:opacity-50 hover:bg-[#292524] transition-colors"
+            >
+              {createCategory.isPending ? "Saving to database…" : "Save Category"}
+            </button>
+          </div>
+        </form>
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -185,8 +520,15 @@ function BookModal({ onClose, authors, categories, editingBook, onSubmit, submit
   const galRef = useRef<HTMLInputElement>(null);
   const pdfRef = useRef<HTMLInputElement>(null);
   const isUploading = coverUploading || galleryUploading;
-  const createAuthor   = useCreateAuthor();
-  const createCategory = useCreateCategory();
+
+  // Manage locally created entities so they are instantly visible & selected in the modal dropdown
+  const [createdAuthors, setCreatedAuthors]       = useState<Author[]>([]);
+  const [createdCategories, setCreatedCategories] = useState<Category[]>([]);
+  const [showQuickAuthorModal, setShowQuickAuthorModal]     = useState(false);
+  const [showQuickCategoryModal, setShowQuickCategoryModal] = useState(false);
+
+  const allAuthors    = [...createdAuthors, ...authors];
+  const allCategories = [...createdCategories, ...categories];
 
   useEffect(() => {
     if (!editingBook) return;
@@ -244,55 +586,64 @@ function BookModal({ onClose, authors, categories, editingBook, onSubmit, submit
   };
 
   return (
-    <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
-      className="fixed inset-0 z-[2147483647] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4"
-      onClick={e=>{ if(e.target===e.currentTarget && !isUploading) onClose(); }}>
-      <motion.div initial={{opacity:0,y:40}} animate={{opacity:1,y:0}} exit={{opacity:0,y:40}}
-        transition={{duration:0.3,ease:[0.16,1,0.3,1]}}
-        className="bg-white w-full sm:rounded-2xl sm:max-w-2xl max-h-[92dvh] flex flex-col overflow-hidden shadow-2xl"
-        onClick={e=>e.stopPropagation()}>
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[#e8e4dc] shrink-0">
-          <h2 className="text-[16px] font-serif font-black text-[#0d0d0d]">
-            {editingBook ? String(t("admin_books.modal.edit_title")) : String(t("admin_books.modal.add_title"))}
-          </h2>
-          <button onClick={onClose} disabled={isUploading} className="w-8 h-8 rounded-xl bg-[#f5f4f0] flex items-center justify-center text-[#0d0d0d]/40 hover:text-[#0d0d0d] disabled:opacity-40 transition-colors">
-            <X size={15}/>
-          </button>
-        </div>
-        {/* Type tabs */}
-        {!editingBook && (
-          <div className="flex gap-1 p-3 border-b border-[#e8e4dc] shrink-0">
-            {(["physical","digital"] as const).map(tp=>(
-              <button key={tp} type="button" onClick={()=>{ if(!isUploading) setType(tp); }} disabled={isUploading}
-                className={`flex-1 py-2.5 rounded-xl text-[12px] font-bold transition-all disabled:opacity-50 ${type===tp?"bg-[#0d0d0d] text-white":"text-[#0d0d0d]/50 hover:text-[#0d0d0d]"}`}>
-                {tp==="physical"?"Physical":"Digital"}
-              </button>
-            ))}
+    <>
+      <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
+        className="fixed inset-0 z-[2147483647] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4"
+        onClick={e=>{ if(e.target===e.currentTarget && !isUploading) onClose(); }}>
+        <motion.div initial={{opacity:0,y:40}} animate={{opacity:1,y:0}} exit={{opacity:0,y:40}}
+          transition={{duration:0.3,ease:[0.16,1,0.3,1]}}
+          className="bg-white w-full sm:rounded-2xl sm:max-w-2xl max-h-[92dvh] flex flex-col overflow-hidden shadow-2xl"
+          onClick={e=>e.stopPropagation()}>
+          {/* Header */}
+          <div className="flex items-center justify-between px-5 py-4 border-b border-[#e8e4dc] shrink-0">
+            <h2 className="text-[16px] font-serif font-black text-[#0d0d0d]">
+              {editingBook ? String(t("admin_books.modal.edit_title")) : String(t("admin_books.modal.add_title"))}
+            </h2>
+            <button onClick={onClose} disabled={isUploading} className="w-8 h-8 rounded-xl bg-[#f5f4f0] flex items-center justify-center text-[#0d0d0d]/40 hover:text-[#0d0d0d] disabled:opacity-40 transition-colors">
+              <X size={15}/>
+            </button>
           </div>
-        )}
-        {/* Body */}
-        <form id="book-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-5 py-5 space-y-4">
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-wider">{String(t("admin_books.modal.labels.title"))} *</label>
-            <input required value={form.title} onChange={e=>f("title")(e.target.value)} className={IC} placeholder="Book title"/>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <SearchDropdown label={String(t("admin_books.modal.labels.author"))} placeholder={String(t("admin_books.modal.placeholders.author"))}
-              options={authors} selectedId={form.author_id} onSelect={o=>f("author_id")(o.id)}
-              onCreate={async v=>{ const r = await createAuthor.mutateAsync(new FormData()); f("author_id")(r?.data?.author?.id||""); void v; }}
-              isCreating={createAuthor.isPending}/>
-            <SearchDropdown label={String(t("admin_books.modal.labels.category"))} placeholder={String(t("admin_books.modal.placeholders.category"))}
-              options={categories} selectedId={form.category_id} onSelect={o=>f("category_id")(o.id)}
-              onCreate={async v=>{ const r = await createCategory.mutateAsync({name:v}); f("category_id")(r?.data?.category?.id||""); }}
-              isCreating={createCategory.isPending}/>
-          </div>
+          {/* Type tabs */}
+          {!editingBook && (
+            <div className="flex gap-1 p-3 border-b border-[#e8e4dc] shrink-0">
+              {(["physical","digital"] as const).map(tp=>(
+                <button key={tp} type="button" onClick={()=>{ if(!isUploading) setType(tp); }} disabled={isUploading}
+                  className={`flex-1 py-2.5 rounded-xl text-[12px] font-bold transition-all disabled:opacity-50 ${type===tp?"bg-[#0d0d0d] text-white":"text-[#0d0d0d]/50 hover:text-[#0d0d0d]"}`}>
+                  {tp==="physical"?"Physical":"Digital"}
+                </button>
+              ))}
+            </div>
+          )}
+          {/* Body */}
+          <form id="book-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-5 py-5 space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-wider">{String(t("admin_books.modal.labels.title"))} *</label>
+              <input required value={form.title} onChange={e=>f("title")(e.target.value)} className={IC} placeholder="Book title"/>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <SearchDropdown
+                label={String(t("admin_books.modal.labels.author"))}
+                placeholder={String(t("admin_books.modal.placeholders.author"))}
+                options={allAuthors}
+                selectedId={form.author_id}
+                onSelect={(o) => f("author_id")(o.id)}
+                onOpenQuickModal={() => setShowQuickAuthorModal(true)}
+              />
+              <SearchDropdown
+                label={String(t("admin_books.modal.labels.category"))}
+                placeholder={String(t("admin_books.modal.placeholders.category"))}
+                options={allCategories}
+                selectedId={form.category_id}
+                onSelect={(o) => f("category_id")(o.id)}
+                onOpenQuickModal={() => setShowQuickCategoryModal(true)}
+              />
+            </div>
           {type==="physical" && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[["copies",t("admin_books.modal.labels.copies")],["pages",t("admin_books.modal.labels.pages")],
                 ["rental_price",t("admin_books.modal.labels.rental_price")],["loan_duration_days",t("admin_books.modal.labels.loan_duration")]].map(([k,lb])=>(
                 <div key={k as string} className="space-y-1.5">
-                  <label className="text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-wider">{lb}</label>
+                  <label className="text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-wider">{String(lb)}</label>
                   <input type="number" value={form[k as keyof typeof form] as string} onChange={e=>f(k as string)(e.target.value)} className={IC}/>
                 </div>
               ))}
@@ -408,6 +759,28 @@ function BookModal({ onClose, authors, categories, editingBook, onSubmit, submit
         </div>
       </motion.div>
     </motion.div>
+
+      <AnimatePresence>
+        {showQuickAuthorModal && (
+          <QuickAuthorModal
+            onClose={() => setShowQuickAuthorModal(false)}
+            onCreated={(author) => {
+              setCreatedAuthors((prev) => [author, ...prev.filter((a) => a.id !== author.id)]);
+              f("author_id")(author.id);
+            }}
+          />
+        )}
+        {showQuickCategoryModal && (
+          <QuickCategoryModal
+            onClose={() => setShowQuickCategoryModal(false)}
+            onCreated={(cat) => {
+              setCreatedCategories((prev) => [cat, ...prev.filter((c) => c.id !== cat.id)]);
+              f("category_id")(cat.id);
+            }}
+          />
+        )}
+      </AnimatePresence>
+    </>
   );
 }
 
