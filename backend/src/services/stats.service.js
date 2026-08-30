@@ -660,3 +660,176 @@ export const getPublicStats = async () => {
   };
 };
 
+/**
+ * Wishlist Procurement & Demand Analytics for Administrators
+ */
+export const getWishlistDemandStats = async () => {
+  const [
+    totalWishlists,
+    physicalWishlists,
+    digitalWishlists,
+    wishlistGroupPhysical,
+    wishlistGroupDigital,
+  ] = await Promise.all([
+    prisma.wishlist.count(),
+    prisma.wishlist.count({ where: { book_type: 'PHYSICAL' } }),
+    prisma.wishlist.count({ where: { book_type: 'DIGITAL' } }),
+    prisma.wishlist.groupBy({
+      by: ['physical_book_id'],
+      where: { physical_book_id: { not: null } },
+      _count: { physical_book_id: true },
+      orderBy: { _count: { physical_book_id: 'desc' } },
+      take: 100,
+    }),
+    prisma.wishlist.groupBy({
+      by: ['digital_book_id'],
+      where: { digital_book_id: { not: null } },
+      _count: { digital_book_id: true },
+      orderBy: { _count: { digital_book_id: 'desc' } },
+      take: 100,
+    }),
+  ]);
+
+  const physicalIds = wishlistGroupPhysical
+    .map((w) => w.physical_book_id)
+    .filter(Boolean);
+
+  const physicalBooks = await prisma.book.findMany({
+    where: { id: { in: /** @type {any} */ (physicalIds) }, deleted_at: null },
+    include: {
+      author: { select: { id: true, name: true } },
+      category: { select: { id: true, name: true } },
+      _count: { select: { reservations: true, rentals: true } },
+    },
+  });
+
+  const physicalMap = new Map(physicalBooks.map((b) => [b.id, b]));
+
+  const physicalDemandList = wishlistGroupPhysical
+    .map((item) => {
+      if (!item.physical_book_id) return null;
+      const book = physicalMap.get(item.physical_book_id);
+      if (!book) return null;
+
+      const wishlistCount = item._count.physical_book_id;
+      const reservationCount = book._count.reservations;
+      const totalDemand = wishlistCount + reservationCount;
+      const available = book.available;
+      const totalCopies = book.copies;
+
+      let decisionUrgency = 'BALANCED';
+      let recommendedAction = 'Stock meets demand';
+      let recommendedQuantity = 0;
+
+      if (available === 0 && wishlistCount >= 1) {
+        decisionUrgency = 'URGENT_PURCHASE';
+        recommendedAction = 'Out of stock & wishlisted. High priority purchase needed.';
+        recommendedQuantity = Math.max(3, totalDemand + 2);
+      } else if (available <= 2 && wishlistCount >= 1) {
+        decisionUrgency = 'RESTOCK_NEEDED';
+        recommendedAction = 'Low stock with active wishlist interest. Restock recommended.';
+        recommendedQuantity = Math.max(2, totalDemand - available);
+      } else if (wishlistCount >= 3) {
+        decisionUrgency = 'HIGH_DEMAND';
+        recommendedAction = 'High student wishlist demand. Consider expanding copies.';
+        recommendedQuantity = Math.max(2, wishlistCount - available);
+      }
+
+      return {
+        bookId: book.id,
+        title: book.title,
+        cover_image_url: book.cover_image_url,
+        bookType: 'PHYSICAL',
+        author: book.author?.name || 'Unknown',
+        category: book.category?.name || 'Uncategorized',
+        available,
+        totalCopies,
+        wishlistCount,
+        reservationCount,
+        totalRentals: book._count.rentals,
+        totalDemand,
+        decisionUrgency,
+        recommendedAction,
+        recommendedQuantity,
+      };
+    })
+    .filter(Boolean);
+
+  const digitalIds = wishlistGroupDigital
+    .map((w) => w.digital_book_id)
+    .filter(Boolean);
+
+  const digitalBooks = await prisma.digitalBook.findMany({
+    where: { id: { in: /** @type {any} */ (digitalIds) }, deleted_at: null },
+    include: {
+      author: { select: { id: true, name: true } },
+      category: { select: { id: true, name: true } },
+    },
+  });
+
+  const digitalMap = new Map(digitalBooks.map((b) => [b.id, b]));
+
+  const digitalDemandList = wishlistGroupDigital
+    .map((item) => {
+      if (!item.digital_book_id) return null;
+      const book = digitalMap.get(item.digital_book_id);
+      if (!book) return null;
+
+      const wishlistCount = item._count.digital_book_id;
+      return {
+        bookId: book.id,
+        title: book.title,
+        cover_image_url: book.cover_image_url,
+        bookType: 'DIGITAL',
+        author: book.author?.name || 'Unknown',
+        category: book.category?.name || 'Uncategorized',
+        pdf_access: book.pdf_access,
+        available: null,
+        totalCopies: null,
+        wishlistCount,
+        reservationCount: 0,
+        totalRentals: 0,
+        totalDemand: wishlistCount,
+        decisionUrgency: wishlistCount >= 3 ? 'HIGH_DEMAND' : 'BALANCED',
+        recommendedAction:
+          book.pdf_access === 'RESTRICTED'
+            ? 'High wishlist interest — consider granting full PDF access'
+            : 'Active student interest — promote in digital library',
+        recommendedQuantity: 0,
+      };
+    })
+    .filter(Boolean);
+
+  const combinedList = [...physicalDemandList, ...digitalDemandList];
+  combinedList.sort((a, b) => {
+    const urgencyScore = { URGENT_PURCHASE: 3, RESTOCK_NEEDED: 2, HIGH_DEMAND: 1, BALANCED: 0 };
+    const diff = (urgencyScore[b.decisionUrgency] || 0) - (urgencyScore[a.decisionUrgency] || 0);
+    if (diff !== 0) return diff;
+    return b.wishlistCount - a.wishlistCount;
+  });
+
+  const urgentProcurementCount = physicalDemandList.filter(
+    (b) => b.decisionUrgency === 'URGENT_PURCHASE' || b.decisionUrgency === 'RESTOCK_NEEDED'
+  ).length;
+
+  const categoryDemandMap = {};
+  combinedList.forEach((item) => {
+    categoryDemandMap[item.category] = (categoryDemandMap[item.category] || 0) + item.wishlistCount;
+  });
+  const categoryDemand = Object.entries(categoryDemandMap)
+    .map(([category, count]) => ({ category, wishlistCount: count }))
+    .sort((a, b) => b.wishlistCount - a.wishlistCount);
+
+  return {
+    kpis: {
+      totalWishlists,
+      physicalWishlists,
+      digitalWishlists,
+      urgentProcurementCount,
+      uniqueWishlistedBooks: combinedList.length,
+    },
+    procurementItems: combinedList,
+    categoryDemand,
+  };
+};
+

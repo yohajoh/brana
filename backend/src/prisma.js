@@ -1,6 +1,7 @@
 import { config as dotenvConfig } from "dotenv";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
+import dns from "dns";
 
 // Explicitly load .env from src/ regardless of where the process was started
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -12,41 +13,57 @@ import pg from "pg";
 
 const { PrismaClient } = PrismaClientPkg;
 
-const globalForPrisma = globalThis;
-
-/**
- * Strip ?sslmode and ?connect_timeout from the connection string.
- * The pg driver's ssl object is the single source of truth for SSL config.
- * Having both causes SSL negotiation conflicts on some pg versions.
- */
-function stripSslMode(url) {
-  if (!url) return url;
-  try {
-    const u = new URL(url);
-    u.searchParams.delete("sslmode");
-    u.searchParams.delete("connect_timeout");
-    return u.toString();
-  } catch {
-    return url
-      .replace(/[?&]sslmode=[^&]*/g, "")
-      .replace(/[?&]connect_timeout=[^&]*/g, "");
-  }
+if (dns.setDefaultResultOrder) {
+  dns.setDefaultResultOrder("ipv4first");
 }
 
-const rawUrl = process.env.DATABASE_URL || process.env.DATABASE_URL_UNPOOLED;
-const connectionString = stripSslMode(rawUrl);
+const globalForPrisma = globalThis;
 
 console.log("📦 Connecting to database...");
 
 // Reuse pool across hot-reloads in development
 if (!globalForPrisma.__pgPool) {
-  globalForPrisma.__pgPool = new pg.Pool({
-    connectionString,
-    max: Number(process.env.PG_POOL_MAX || 5),
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 15000, // Neon cold-start can take ~5-8s
-    ssl: { rejectUnauthorized: false },
-  });
+  const rawUrl = process.env.DATABASE_URL || process.env.DATABASE_URL_UNPOOLED;
+  let poolConfig = {};
+
+  if (rawUrl) {
+    try {
+      const u = new URL(rawUrl);
+      const originalHostname = u.hostname;
+      let resolvedIp = originalHostname;
+      try {
+        const res = await dns.promises.lookup(originalHostname, { family: 4 });
+        resolvedIp = res.address;
+      } catch (dnsErr) {
+        console.warn("⚠️ DNS lookup fallback to hostname:", dnsErr.message);
+      }
+
+      poolConfig = {
+        host: resolvedIp,
+        port: Number(u.port) || 5432,
+        user: u.username,
+        password: decodeURIComponent(u.password),
+        database: u.pathname.replace(/^\//, ""),
+        max: Number(process.env.PG_POOL_MAX || 5),
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 15000, // Neon cold-start can take ~5-8s
+        ssl: {
+          rejectUnauthorized: false,
+          servername: originalHostname,
+        },
+      };
+    } catch {
+      poolConfig = {
+        connectionString: rawUrl,
+        max: Number(process.env.PG_POOL_MAX || 5),
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 15000,
+        ssl: { rejectUnauthorized: false },
+      };
+    }
+  }
+
+  globalForPrisma.__pgPool = new pg.Pool(poolConfig);
 
   // Log pool-level errors so they're always visible
   globalForPrisma.__pgPool.on("error", (err) => {

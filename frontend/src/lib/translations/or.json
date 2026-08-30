@@ -436,6 +436,7 @@
     "settings": "Teessuma",
     "history": "Seenaa Liqii",
     "wishlist": "Tarree Fedhii",
+    "wishlist_demand": "Fedhii Tarree Fedhii",
     "digital": "Mana Kitaabaa Diijitaalaa",
     "payments": "Kafaltiiwwan",
     "notifications": "Beeksistoota",
@@ -1128,6 +1129,54 @@
     "messages": {
       "reminders_success": "Yaadachiisni milkiin deemaa jira",
       "reminders_failed": "Yaadachiisa erguun hin danda'amne"
+    }
+  },
+  "wishlist_demand": {
+    "eyebrow": "Xiinxala Mana Kitaabaa",
+    "title": "Xiinxala Fedhii Tarree Fedhii",
+    "subtitle": "Fedhii tarree fedhii barattootaa fi qabiyyee kitaabotaa irratti hundaa'e.",
+    "refresh": "Deetaa Haaromsi",
+    "kpis": {
+      "total_wishlists": "Waliigala Tarree Fedhii Barattootaa",
+      "wishlist_breakdown": "Qaamaa: {physical} • Diijitaalaa: {digital}",
+      "urgent_restock": "Gurgurtaa Hatattamaa Barbaachisa",
+      "urgent_desc": "Kitaabota tarree fedhii keessa jiran kan stock keessaa dhumatan",
+      "unique_titles": "Mata-dureewwan Addaa Barbaadaman",
+      "unique_desc": "Mata-dureewwan kaataaloogii barattootaan gaafataman",
+      "top_subject": "Mata-duree Fedhii Ol'aanaa Qabu",
+      "requests_count": "Gaaffii tarree fedhii {count}",
+      "no_category": "Deetaan ramaddii hin jiru"
+    },
+    "tabs": {
+      "all": "Kitaabota Tarree Fedhii Hunda",
+      "urgent": "Bittaa Hatattamaa (Stock 0)",
+      "restock": "Stock Barbaachisa (Stock Xiqqaa)",
+      "high_demand": "Fedhii Ol'aanaa (Fedhii 3+)",
+      "category": "Fedhii Ramaddii"
+    },
+    "search_placeholder": "Mata-duree, barreessaa ykn ramaddii barbaadi…",
+    "table": {
+      "book_title": "Mata-duree Kitaabaa",
+      "type": "Gosa",
+      "category": "Ramaddii",
+      "available_stock": "Stock Argamu",
+      "digital_access": "Bantiinsa Diijitaalaa",
+      "wishlists": "Tarree Fedhii",
+      "reservations": "Bakka Qabachuu",
+      "queued": "{count} tarree keessa",
+      "urgency": "Ariifachiisummaa Bittaa",
+      "recommended_action": "Tarkaanfii Gorfame",
+      "category_name": "Maqaa Ramaddii",
+      "wishlist_demand": "Fedhii Tarree Fedhii",
+      "demand_share": "Qooda Fedhii",
+      "empty_items": "Meeshaan bittaa tarree fedhii walgitu hin argamne",
+      "empty_categories": "Galmeen fedhii ramaddii hin argamne"
+    },
+    "urgency": {
+      "urgent": "Bittaa Hatattamaa",
+      "restock": "Stock Barbaachisa",
+      "high": "Fedhii Ol'aanaa",
+      "balanced": "Kan Wal-qixxaate"
     }
   }
 }

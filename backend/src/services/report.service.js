@@ -304,12 +304,131 @@ const fetchReservations = async () => {
   });
 };
 
+const fetchWishlistProcurement = async () => {
+  const [wishlistGroupPhysical, wishlistGroupDigital] = await Promise.all([
+    prisma.wishlist.groupBy({
+      by: ['physical_book_id'],
+      where: { physical_book_id: { not: null } },
+      _count: { physical_book_id: true },
+      orderBy: { _count: { physical_book_id: 'desc' } },
+      take: 1000,
+    }),
+    prisma.wishlist.groupBy({
+      by: ['digital_book_id'],
+      where: { digital_book_id: { not: null } },
+      _count: { digital_book_id: true },
+      orderBy: { _count: { digital_book_id: 'desc' } },
+      take: 1000,
+    }),
+  ]);
+
+  const physicalIds = wishlistGroupPhysical
+    .map((w) => w.physical_book_id)
+    .filter(Boolean);
+
+  const physicalBooks = await prisma.book.findMany({
+    where: { id: { in: /** @type {any} */ (physicalIds) }, deleted_at: null },
+    include: {
+      author: { select: { name: true } },
+      category: { select: { name: true } },
+      _count: { select: { reservations: true } },
+    },
+  });
+  const physicalMap = new Map(physicalBooks.map((b) => [b.id, b]));
+
+  const physicalRows = wishlistGroupPhysical
+    .map((w) => {
+      if (!w.physical_book_id) return null;
+      const b = physicalMap.get(w.physical_book_id);
+      if (!b) return null;
+      const wishlistCount = w._count.physical_book_id;
+      const activeReservations = b._count.reservations;
+      const available = b.available;
+      const totalCopies = b.copies;
+      const totalDemand = wishlistCount + activeReservations;
+
+      let urgency = 'BALANCED';
+      let recommendation = 'Stock meets demand';
+      let recommendedOrderQty = 0;
+
+      if (available === 0 && wishlistCount >= 1) {
+        urgency = 'URGENT_PURCHASE';
+        recommendation = 'Out of stock & wishlisted. Priority purchase needed.';
+        recommendedOrderQty = Math.max(3, totalDemand + 2);
+      } else if (available <= 2 && wishlistCount >= 1) {
+        urgency = 'RESTOCK_NEEDED';
+        recommendation = 'Low stock with wishlist demand. Restock recommended.';
+        recommendedOrderQty = Math.max(2, totalDemand - available);
+      } else if (wishlistCount >= 3) {
+        urgency = 'HIGH_DEMAND';
+        recommendation = 'High student wishlist demand. Consider expanding copies.';
+        recommendedOrderQty = Math.max(2, wishlistCount - available);
+      }
+
+      return {
+        book_title: b.title,
+        book_type: 'PHYSICAL',
+        author: b.author?.name ?? '',
+        category: b.category?.name ?? '',
+        wishlist_count: wishlistCount,
+        active_reservations: activeReservations,
+        available_copies: available,
+        total_copies: totalCopies,
+        decision_urgency: urgency,
+        procurement_recommendation: recommendation,
+        recommended_purchase_qty: recommendedOrderQty,
+      };
+    })
+    .filter(Boolean);
+
+  const digitalIds = wishlistGroupDigital
+    .map((w) => w.digital_book_id)
+    .filter(Boolean);
+
+  const digitalBooks = await prisma.digitalBook.findMany({
+    where: { id: { in: /** @type {any} */ (digitalIds) }, deleted_at: null },
+    include: {
+      author: { select: { name: true } },
+      category: { select: { name: true } },
+    },
+  });
+  const digitalMap = new Map(digitalBooks.map((b) => [b.id, b]));
+
+  const digitalRows = wishlistGroupDigital
+    .map((w) => {
+      if (!w.digital_book_id) return null;
+      const b = digitalMap.get(w.digital_book_id);
+      if (!b) return null;
+      const wishlistCount = w._count.digital_book_id;
+      return {
+        book_title: b.title,
+        book_type: 'DIGITAL',
+        author: b.author?.name ?? '',
+        category: b.category?.name ?? '',
+        wishlist_count: wishlistCount,
+        active_reservations: 0,
+        available_copies: 'UNLIMITED',
+        total_copies: 'UNLIMITED',
+        decision_urgency: wishlistCount >= 3 ? 'HIGH_DEMAND' : 'BALANCED',
+        procurement_recommendation:
+          b.pdf_access === 'RESTRICTED'
+            ? 'High wishlist interest — consider granting full PDF access'
+            : 'Active student interest — promote in digital library',
+        recommended_purchase_qty: 0,
+      };
+    })
+    .filter(Boolean);
+
+  return [...physicalRows, ...digitalRows];
+};
+
 export const getReportData = async (type) => {
   if (type === 'rentals') return fetchRentals();
   if (type === 'overdue') return fetchOverdue();
   if (type === 'users') return fetchUsers();
   if (type === 'inventory') return fetchInventory();
   if (type === 'reservations') return fetchReservations();
+  if (type === 'wishlist-procurement' || type === 'wishlist') return fetchWishlistProcurement();
   throw new Error('Unsupported report type');
 };
 
@@ -329,11 +448,13 @@ const buildCsv = (rows) => {
 // ─── EXCEL ────────────────────────────────────────────────────────────────────
 
 const REPORT_META = {
-  rentals:      { label: 'Rentals Report',      color: '1E3A5F' },
-  overdue:      { label: 'Overdue Report',       color: 'B91C1C' },
-  users:        { label: 'Users Report',         color: '065F46' },
-  inventory:    { label: 'Inventory Report',     color: '4C1D95' },
-  reservations: { label: 'Reservations Report',  color: '92400E' },
+  rentals:                { label: 'Rentals Report',                color: '1E3A5F' },
+  overdue:                { label: 'Overdue Report',                 color: 'B91C1C' },
+  users:                  { label: 'Users Report',                   color: '065F46' },
+  inventory:              { label: 'Inventory Report',               color: '4C1D95' },
+  reservations:           { label: 'Reservations Report',            color: '92400E' },
+  'wishlist-procurement': { label: 'Wishlist Procurement Report', color: 'BE185D' },
+  wishlist:               { label: 'Wishlist Procurement Report', color: 'BE185D' },
 };
 
 const buildExcel = async (type, rows) => {

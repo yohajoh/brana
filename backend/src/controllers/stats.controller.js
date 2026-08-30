@@ -49,6 +49,11 @@ export const getRevenueStats = async (req, res) => {
   res.json({ status: 'success', data });
 };
 
+export const getWishlistDemandStats = async (req, res) => {
+  const data = await getCached('wishlist-demand', () => statsService.getWishlistDemandStats());
+  res.json({ status: 'success', data });
+};
+
 export const getCurrentMonthTarget = async (req, res) => {
   const data = await getCached('target:current', () => statsService.getCurrentMonthTarget(), 10_000);
   res.json({ status: 'success', data });

@@ -19,5 +19,7 @@ router.get('/books', statsController.getBooksStats);        // Book rankings, st
 router.get('/users', statsController.getUserStats);         // Active users, top borrowers
 router.get('/rentals', statsController.getRentalStats);     // Rental status, time-series
 router.get('/revenue', statsController.getRevenueStats);    // Revenue by method, monthly chart
+router.get('/wishlist-demand', statsController.getWishlistDemandStats); // Wishlist demand analytics for procurement
+router.get('/wishlist', statsController.getWishlistDemandStats);
 
 export default router;

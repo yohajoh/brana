@@ -437,6 +437,7 @@
     "settings": "Settings",
     "history": "Borrowing History",
     "wishlist": "Wish List",
+    "wishlist_demand": "Wishlist Demand",
     "digital": "Digital Library",
     "payments": "Payments",
     "notifications": "Notifications",
@@ -1158,6 +1159,54 @@
     "messages": {
       "reminders_success": "Reminders queued successfully",
       "reminders_failed": "Failed to queue reminders"
+    }
+  },
+  "wishlist_demand": {
+    "eyebrow": "Library Analytics",
+    "title": "Wishlist Demand Analytics",
+    "subtitle": "Data-driven procurement analytics based on student wishlist interest and physical inventory levels.",
+    "refresh": "Refresh Data",
+    "kpis": {
+      "total_wishlists": "Total Student Wishlists",
+      "wishlist_breakdown": "Physical: {physical} • Digital: {digital}",
+      "urgent_restock": "Urgent Restock Needed",
+      "urgent_desc": "Out-of-stock titles wishlisted by students",
+      "unique_titles": "Unique Demanded Titles",
+      "unique_desc": "Distinct catalog titles requested",
+      "top_subject": "Top Demanded Subject",
+      "requests_count": "{count} wishlist request(s)",
+      "no_category": "No category data"
+    },
+    "tabs": {
+      "all": "All Wishlisted Books",
+      "urgent": "Urgent Buy (0 Stock)",
+      "restock": "Restock Needed (Low Stock)",
+      "high_demand": "High Demand (3+ Wishlists)",
+      "category": "Category Demand"
+    },
+    "search_placeholder": "Search title, author, category…",
+    "table": {
+      "book_title": "Book Title",
+      "type": "Type",
+      "category": "Category",
+      "available_stock": "Available Stock",
+      "digital_access": "Digital Access",
+      "wishlists": "Wishlists",
+      "reservations": "Reservations",
+      "queued": "{count} queued",
+      "urgency": "Procurement Urgency",
+      "recommended_action": "Recommended Action",
+      "category_name": "Category Name",
+      "wishlist_demand": "Wishlist Demand",
+      "demand_share": "Demand Interest Share",
+      "empty_items": "No matching wishlist procurement items",
+      "empty_categories": "No category demand records"
+    },
+    "urgency": {
+      "urgent": "Urgent Buy",
+      "restock": "Restock Needed",
+      "high": "High Demand",
+      "balanced": "Balanced"
     }
   }
 }

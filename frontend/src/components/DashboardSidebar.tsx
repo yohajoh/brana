@@ -6,7 +6,7 @@ import {
   LayoutDashboard, History, Heart, Settings, LogOut, Bell,
   Wallet, CalendarClock, Library, Users, BookOpen, PenTool,
   ArrowLeftRight, CalendarCheck2, TriangleAlert, ClipboardList,
-  FileSpreadsheet, Layers, PanelLeftClose, PanelLeftOpen,
+  FileSpreadsheet, Layers, PanelLeftClose, PanelLeftOpen, HeartHandshake,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { API_BASE_URL, invalidateCurrentUserCache } from "@/lib/api";
@@ -43,8 +43,9 @@ export const DashboardSidebar = ({ variant = "default" }: DashboardSidebarProps)
   const adminNav = [
     { name: t("sidebar.dashboard"),     href: "/dashboard/admin",               Icon: LayoutDashboard, exact: true },
     { name: t("sidebar.users"),         href: "/dashboard/admin/users",         Icon: Users },
-    { name: t("sidebar.books"),         href: "/dashboard/admin/books",         Icon: BookOpen },
-    { name: t("sidebar.categories"),    href: "/dashboard/admin/categories",    Icon: Layers },
+    { name: String(t("sidebar.books")),         href: "/dashboard/admin/books",         Icon: BookOpen },
+    { name: String(t("sidebar.wishlist_demand")), href: "/dashboard/admin/wishlist-demand", Icon: HeartHandshake },
+    { name: String(t("sidebar.categories")),    href: "/dashboard/admin/categories",    Icon: Layers },
     { name: t("sidebar.authors"),       href: "/dashboard/admin/authors",       Icon: PenTool },
     { name: t("sidebar.borrowings"),    href: "/dashboard/admin/borrowings",    Icon: ArrowLeftRight },
     { name: t("sidebar.reservations"),  href: "/dashboard/admin/reservations",  Icon: CalendarCheck2 },

@@ -67,7 +67,7 @@ export const exportReport = async (req, res) => {
   const type = req.query.type;
   const format = (req.query.format || 'json').toLowerCase();
 
-  const allowedTypes = ['rentals', 'users', 'inventory', 'overdue', 'reservations'];
+  const allowedTypes = ['rentals', 'users', 'inventory', 'overdue', 'reservations', 'wishlist-procurement', 'wishlist'];
   if (!allowedTypes.includes(type)) {
     throw new AppError('Invalid report type', 400);
   }

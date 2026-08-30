@@ -436,6 +436,7 @@
     "settings": "ቅንብሮች",
     "history": "የውሰት ታሪክ",
     "wishlist": "የምኞት ዝርዝር",
+    "wishlist_demand": "የምኞት ዝርዝር ፍላጎት",
     "digital": "ዲጂታል ቤተ-መጽሐፍት",
     "payments": "ክፍያዎች",
     "notifications": "ማሳወቂያዎች",
@@ -1153,6 +1154,54 @@
     "messages": {
       "reminders_success": "ማሳሰቢያዎች በተሳካ ሁኔታ ተልከዋል",
       "reminders_failed": "ማሳሰቢያዎችን መላክ አልተቻለም"
+    }
+  },
+  "wishlist_demand": {
+    "eyebrow": "የቤተ-መጽሐፍት ትንታኔ",
+    "title": "የምኞት ዝርዝር ፍላጎት ትንታኔ",
+    "subtitle": "በተማሪዎች የምኞት ዝርዝር ፍላጎት እና በአካላዊ መጽሐፍት ክምችት ላይ የተመሠረተ የትንታኔ መረጃ።",
+    "refresh": "መረጃ አድስ",
+    "kpis": {
+      "total_wishlists": "ጠቅላላ የተማሪዎች የምኞት ዝርዝር",
+      "wishlist_breakdown": "አካላዊ: {physical} • ዲጂታል: {digital}",
+      "urgent_restock": "አስቸኳይ ክምችት ያስፈልጋል",
+      "urgent_desc": "ከክምችት ውጭ የሆኑ እና በተማሪዎች የተፈለጉ መጽሐፍት",
+      "unique_titles": "የተፈለጉ ለዩ መጽሐፍት",
+      "unique_desc": "በተማሪዎች የተጠየቁ ለዩ የመጽሐፍ ርዕሶች",
+      "top_subject": "ከፍተኛ ፍላጎት ያለው ርዕሰ ጉዳይ",
+      "requests_count": "{count} የምኞት ጥያቄዎች",
+      "no_category": "ምንም የምድብ መረጃ የለም"
+    },
+    "tabs": {
+      "all": "ሁሉም በምኞት ዝርዝር ያሉ መጽሐፍት",
+      "urgent": "አስቸኳይ ግዢ (0 ክምችት)",
+      "restock": "ክምችት ያስፈልጋል (ዝቅተኛ ክምችት)",
+      "high_demand": "ከፍተኛ ፍላጎት (3+ የምኞት ዝርዝር)",
+      "category": "የምድብ ፍላጎት"
+    },
+    "search_placeholder": "ርዕስ፣ ደራሲ ወይም ምድብ ይፈልጉ…",
+    "table": {
+      "book_title": "የመጽሐፍ ርዕስ",
+      "type": "ዓይነት",
+      "category": "ምድብ",
+      "available_stock": "የሚገኝ ክምችት",
+      "digital_access": "ዲጂታል መዳረሻ",
+      "wishlists": "የምኞት ዝርዝር",
+      "reservations": "ቦታ ማስያዝ",
+      "queued": "{count} በተራ ላይ",
+      "urgency": "የግዢ አስቸኳይነት",
+      "recommended_action": "የሚመከር እርምጃ",
+      "category_name": "የምድብ ስም",
+      "wishlist_demand": "የምኞት ዝርዝር ፍላጎት",
+      "demand_share": "የፍላጎት ድርሻ",
+      "empty_items": "ምንም የሚዛመድ የምኞት ዝርዝር አልተገኘም",
+      "empty_categories": "ምንም የምድብ ፍላጎት መዝገብ አልተገኘም"
+    },
+    "urgency": {
+      "urgent": "አስቸኳይ ግዢ",
+      "restock": "ክምችት ያስፈልጋል",
+      "high": "ከፍተኛ ፍላጎት",
+      "balanced": "የተመጣጠነ"
     }
   }
 }

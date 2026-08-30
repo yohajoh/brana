@@ -12,13 +12,15 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import Link from "next/link";
+import { fetchApi } from "@/lib/api";
 import {
   useStatsOverview,
   useStatsTargets,
   useUpdateTargets,
 } from "@/lib/hooks/useQueries";
 import { useLanguage } from "@/components/providers/LanguageProvider";
-import { TrendingUp, Target } from "lucide-react";
+import { TrendingUp, Target, Heart, ArrowRight, ShoppingCart } from "lucide-react";
 
 /* ── animation variants ─────────────────────────────────── */
 const fadeUp = {
@@ -298,6 +300,98 @@ function GoalRow({ label, item }: { label: string; item: GoalProgress }) {
   );
 }
 
+/* ── wishlist procurement banner component ──────────────── */
+function WishlistProcurementBanner() {
+  const [wishlistData, setWishlistData] = useState<{
+    kpis?: { urgentProcurementCount: number; totalWishlists: number };
+    procurementItems?: Array<{
+      bookId: string;
+      title: string;
+      author: string;
+      category: string;
+      available: number | null;
+      wishlistCount: number;
+      reservationCount: number;
+      decisionUrgency: string;
+    }>;
+  } | null>(null);
+
+  useEffect(() => {
+    fetchApi("/stats/wishlist-demand")
+      .then((res) => setWishlistData(res.data))
+      .catch(() => {});
+  }, []);
+
+  const urgentItems =
+    wishlistData?.procurementItems?.filter(
+      (item) =>
+        item.decisionUrgency === "URGENT_PURCHASE" ||
+        item.decisionUrgency === "RESTOCK_NEEDED"
+    ) || [];
+
+  return (
+    <motion.div
+      variants={fadeUp}
+      className="bg-gradient-to-r from-slate-900 via-purple-950 to-slate-900 rounded-2xl p-5 border border-purple-800/40 text-white shadow-md"
+    >
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-400/30 flex items-center justify-center shrink-0">
+            <Heart className="w-5 h-5 text-rose-400 fill-rose-400/30" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-purple-300">
+                Procurement Intelligence
+              </span>
+              {(wishlistData?.kpis?.urgentProcurementCount || 0) > 0 && (
+                <span className="px-2 py-0.5 text-[10px] font-black bg-rose-500 text-white rounded-full animate-pulse">
+                  {wishlistData?.kpis?.urgentProcurementCount} Urgent Restocks
+                </span>
+              )}
+            </div>
+            <h3 className="text-base font-bold mt-0.5">
+              Student Wishlist Demand & Restock Recommendations
+            </h3>
+            <p className="text-xs text-purple-200/70 mt-0.5">
+              Students have wishlisted {wishlistData?.kpis?.totalWishlists || 0} items. View prioritized procurement decisions to restock high-demand catalog books.
+            </p>
+          </div>
+        </div>
+
+        <Link
+          href="/dashboard/admin/wishlist-demand"
+          className="shrink-0 px-4 py-2.5 rounded-xl bg-[#f5c518] hover:bg-[#e8a800] text-[#0d0d0d] text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 self-start md:self-center"
+        >
+          Open Wishlist Demand Insights
+          <ArrowRight className="w-4 h-4" />
+        </Link>
+      </div>
+
+      {urgentItems.length > 0 && (
+        <div className="mt-4 pt-4 border-t border-purple-800/40 grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {urgentItems.slice(0, 3).map((item) => (
+            <div
+              key={item.bookId}
+              className="p-3 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between text-xs"
+            >
+              <div className="min-w-0 pr-2">
+                <p className="font-bold truncate text-white">{item.title}</p>
+                <p className="text-[10px] text-purple-300/80">
+                  {item.available === 0 ? "Out of Stock" : `${item.available} available`} • {item.wishlistCount} Wishlist(s)
+                </p>
+              </div>
+              <span className="px-2 py-0.5 text-[9px] font-black rounded-md bg-red-500/80 text-white shrink-0">
+                {item.decisionUrgency === "URGENT_PURCHASE" ? "URGENT BUY" : "RESTOCK"}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
 /* ── page ────────────────────────────────────────────────── */
 export default function AdminDashboardPage() {
   const { t } = useLanguage();
@@ -372,6 +466,9 @@ export default function AdminDashboardPage() {
           <StatCard key={s.label} label={s.label} value={s.value} sub={s.sub} colorIdx={s.colorIdx} loading={isLoading} />
         ))}
       </motion.div>
+
+      {/* Wishlist Procurement Banner */}
+      <WishlistProcurementBanner />
 
       {/* Chart + goals */}
       <motion.div variants={stagger} className="grid grid-cols-1 xl:grid-cols-3 gap-5">
