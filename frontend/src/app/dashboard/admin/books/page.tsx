@@ -66,6 +66,8 @@ function Confirm({ title, desc, confirmLabel, tone, onClose, onConfirm, loading 
   );
 }
 
+import { matchesMultiLangQuery } from "@/lib/multiLangSearch";
+
 /* ── Searchable dropdown with Quick Add sub-modal trigger ───────── */
 function SearchDropdown({
   label,
@@ -87,7 +89,7 @@ function SearchDropdown({
   const ref = useRef<HTMLDivElement>(null);
 
   const sel = options.find((o) => o.id === selectedId);
-  const filtered = options.filter((o) => o.name.toLowerCase().includes(q.toLowerCase()));
+  const filtered = options.filter((o) => matchesMultiLangQuery(o.name, q));
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
@@ -933,13 +935,15 @@ export default function AdminBooksPage() {
   const allBooks = [...physical,...digital];
   const source   = tab==="all"?allBooks:tab==="physical"?physical:digital;
   const filtered = source.filter(b=>!search.trim()||(
-    b.title?.toLowerCase().includes(search.toLowerCase())||
-    b.author?.name?.toLowerCase().includes(search.toLowerCase())||
-    b.category?.name?.toLowerCase().includes(search.toLowerCase())
+    matchesMultiLangQuery(b.title, search) ||
+    matchesMultiLangQuery(b.author?.name, search) ||
+    matchesMultiLangQuery(b.category?.name, search) ||
+    matchesMultiLangQuery(b.description, search)
   ));
-  const totalPages = Math.max(1,Math.ceil((tab==="categories"?cats.length:filtered.length)/ITEMS));
+  const filteredCats = cats.filter(c => matchesMultiLangQuery(c.name, search));
+  const totalPages = Math.max(1,Math.ceil((tab==="categories"?filteredCats.length:filtered.length)/ITEMS));
   const paginated  = filtered.slice((page-1)*ITEMS,page*ITEMS);
-  const paginatedCats = cats.slice((page-1)*ITEMS,page*ITEMS);
+  const paginatedCats = filteredCats.slice((page-1)*ITEMS,page*ITEMS);
 
   const handleSaveBook = async (type:"physical"|"digital", fd:FormData) => {
     try {

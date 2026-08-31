@@ -7,6 +7,7 @@ import { useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory 
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { TanStackTable, PortalDropdown } from "@/components/ui/TanStackTable";
 import { ColumnDef } from "@tanstack/react-table";
+import { matchesMultiLangQuery } from "@/lib/multiLangSearch";
 
 const fadeUp  = {hidden:{opacity:0,y:16},show:{opacity:1,y:0,transition:{duration:0.38,ease:[0.16,1,0.3,1]}}};
 const stagger = {hidden:{},show:{transition:{staggerChildren:0.07}}};
@@ -34,7 +35,7 @@ export default function AdminCategoriesPage() {
 
   useEffect(()=>{const h=()=>setMenu(null);window.addEventListener("click",h);return()=>window.removeEventListener("click",h);},[]);
 
-  const filtered   = cats.filter(c=>c.name.toLowerCase().includes(search.toLowerCase()));
+  const filtered   = cats.filter(c=>matchesMultiLangQuery(c.name, search));
   const totalPages = Math.max(1,Math.ceil(filtered.length/ITEMS));
   const paginated  = filtered.slice((page-1)*ITEMS,page*ITEMS);
 

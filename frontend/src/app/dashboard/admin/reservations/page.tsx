@@ -18,8 +18,12 @@ const statusStyle=(s:string)=>{
   switch(s){case "NOTIFIED":return "bg-[#fdf9e7] text-[#a07c00]";case "FULFILLED":return "bg-emerald-50 text-emerald-700";case "EXPIRED":case "CANCELLED":return "bg-[#f5f4f0] text-[#0d0d0d]/35";default:return "bg-[#f5f4f0] text-[#0d0d0d]/55";}
 };
 
+import { Search } from "lucide-react";
+import { matchesMultiLangQuery } from "@/lib/multiLangSearch";
+
 export default function AdminReservationsPage() {
   const { t }=useLanguage();
+  const [search, setSearch] = useState("");
   const [openMenu,setMenu]=useState<string|null>(null);
   const [issueItem,setIssueItem]=useState<Reservation|null>(null);
   const [copyCode,setCopyCode]=useState("");
@@ -31,8 +35,16 @@ export default function AdminReservationsPage() {
   const highDemand=(hdData?.data?.books||[]) as HighDemandReservationBook[];
   const err=(e:unknown,fb:string)=>e instanceof Error&&e.message?e.message:fb;
 
+  const filtered = reservations.filter(r =>
+    matchesMultiLangQuery(r.user?.name, search) ||
+    matchesMultiLangQuery(r.user?.email, search) ||
+    matchesMultiLangQuery(r.user?.student_id, search) ||
+    matchesMultiLangQuery(r.book?.title, search) ||
+    matchesMultiLangQuery(r.status, search)
+  );
+
   const toggle=(id:string)=>setSelected(p=>{const n=new Set(p);if(n.has(id)){n.delete(id);}else{n.add(id);}return n;});
-  const selectAll=(c:boolean)=>setSelected(c?new Set(reservations.map(r=>r.id)):new Set());
+  const selectAll=(c:boolean)=>setSelected(c?new Set(filtered.map(r=>r.id)):new Set());
 
   const handleCancel=async()=>{
     try{const r=await expire.mutateAsync({notifyUsers:false,reservationIds:Array.from(selectedIds)});const count=Number(r?.data?.expiredCount??0);if(count===0){toast.info(String(t("admin_reservations.messages.no_cancelled")));return;}toast.success(String(t("admin_reservations.messages.cancel_success",{count})));setSelected(new Set());}
@@ -46,7 +58,7 @@ export default function AdminReservationsPage() {
   };
 
   const cols:ColumnDef<Reservation,unknown>[]=[
-    {id:"sel",header:()=><input type="checkbox" checked={reservations.length>0&&selectedIds.size===reservations.length} onChange={e=>selectAll(e.target.checked)} className="w-4 h-4 rounded border-[#e8e4dc]"/>,cell:({row})=><input type="checkbox" checked={selectedIds.has(row.original.id)} onChange={()=>toggle(row.original.id)} className="w-4 h-4 rounded border-[#e8e4dc]"/>},
+    {id:"sel",header:()=><input type="checkbox" checked={filtered.length>0&&selectedIds.size===filtered.length} onChange={e=>selectAll(e.target.checked)} className="w-4 h-4 rounded border-[#e8e4dc]"/>,cell:({row})=><input type="checkbox" checked={selectedIds.has(row.original.id)} onChange={()=>toggle(row.original.id)} className="w-4 h-4 rounded border-[#e8e4dc]"/>},
     {id:"student",header:String(t("admin_reservations.table.student")),cell:({row})=><div><p className="text-[13px] font-bold text-[#0d0d0d] truncate">{row.original.user.name}</p><p className="text-[11px] text-[#0d0d0d]/40 truncate">{row.original.user.email}</p></div>},
     {id:"book",header:String(t("admin_reservations.table.book")),cell:({row})=><span className="text-[12px] text-[#0d0d0d] truncate block">{row.original.book.title}</span>},
     {id:"queue",header:String(t("admin_reservations.table.queue")),cell:({row})=><span className="text-[13px] font-black text-[#0d0d0d]">#{row.original.queue_position}</span>},
@@ -76,9 +88,13 @@ export default function AdminReservationsPage() {
       <motion.div variants={stagger} initial="hidden" animate="show" className="p-2 sm:p-4 lg:p-6 space-y-5" onClick={()=>setMenu(null)}>
         <motion.div variants={fadeUp} className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div><p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.2em] mb-1">Library</p><h1 className="text-[26px] font-serif font-black text-[#0d0d0d]">{String(t("admin_reservations.title"))}</h1><p className="text-sm text-[#0d0d0d]/45 mt-1">{String(t("admin_reservations.subtitle"))}</p></div>
-          <div className="flex gap-3 flex-wrap">
-            <button onClick={()=>window.location.reload()} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[#e8e4dc] bg-white text-[12px] font-bold text-[#0d0d0d] hover:bg-[#f5f4f0] transition-colors"><RefreshCcw size={14}/>{String(t("admin_reservations.refresh"))}</button>
-            {selectedIds.size>0&&(<button onClick={handleCancel} disabled={expire.isPending} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-600 text-white text-[12px] font-bold hover:bg-red-700 disabled:opacity-50 transition-colors">{expire.isPending?String(t("admin_reservations.cancelling")):String(t("admin_reservations.cancel_selected",{count:selectedIds.size}))}</button>)}
+          <div className="flex gap-3 flex-wrap items-center">
+            <div className="relative min-w-[220px]">
+              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#0d0d0d]/30" />
+              <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder={String(t("common.search") || "Search…")} className="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-[#e8e4dc] bg-white placeholder:text-[#0d0d0d]/25 focus:outline-none focus:border-[#0d0d0d]" />
+            </div>
+            <button onClick={()=>window.location.reload()} className="flex items-center gap-2 px-4 py-2 rounded-xl border border-[#e8e4dc] bg-white text-[12px] font-bold text-[#0d0d0d] hover:bg-[#f5f4f0] transition-colors"><RefreshCcw size={14}/>{String(t("admin_reservations.refresh"))}</button>
+            {selectedIds.size>0&&(<button onClick={handleCancel} disabled={expire.isPending} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600 text-white text-[12px] font-bold hover:bg-red-700 disabled:opacity-50 transition-colors">{expire.isPending?String(t("admin_reservations.cancelling")):String(t("admin_reservations.cancel_selected",{count:selectedIds.size}))}</button>)}
           </div>
         </motion.div>
 
@@ -96,7 +112,7 @@ export default function AdminReservationsPage() {
             ))}</div>)}
         </motion.div>
 
-        <motion.div variants={fadeUp} className="bg-white rounded-2xl border border-[#e8e4dc] overflow-hidden"><TanStackTable data={reservations} columns={cols} isLoading={isLoading} emptyText="No reservations found." skeletonRows={6}/></motion.div>
+        <motion.div variants={fadeUp} className="bg-white rounded-2xl border border-[#e8e4dc] overflow-hidden"><TanStackTable data={filtered} columns={cols} isLoading={isLoading} emptyText="No reservations found." skeletonRows={6}/></motion.div>
       </motion.div>
 
       {/* Issue modal */}

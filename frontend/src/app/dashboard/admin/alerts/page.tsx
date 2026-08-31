@@ -117,12 +117,16 @@ function SelectAllBtn({ allSelected, onToggle }:{ allSelected:boolean; onToggle:
 }
 
 /* ── Main content ─────────────────────────────────────────── */
+import { Search } from "lucide-react";
+import { matchesMultiLangQuery } from "@/lib/multiLangSearch";
+
 function AlertsContent() {
   const { t } = useLanguage();
   const router = useRouter();
   const params = useSearchParams();
   const notifId   = params.get("notification");
   const activeTab = (params.get("tab") as TabType) || "alerts";
+  const [search, setSearch] = useState("");
 
   /* data */
   const { data:alertsData, isLoading:loadAlerts } = useInventoryAlerts();
@@ -133,8 +137,20 @@ function AlertsContent() {
   const deleteAlertHook = useDeleteAlert();
 
   /* derived — declared before any usage */
-  const alerts:Alert[] = alertsData?.alerts || alertsData?.data?.alerts || [];
-  const notifList      = notifData?.notifications || [];
+  const rawAlerts:Alert[] = alertsData?.alerts || alertsData?.data?.alerts || [];
+  const rawNotifList      = notifData?.notifications || [];
+
+  const alerts = rawAlerts.filter(al =>
+    matchesMultiLangQuery(al.message, search) ||
+    matchesMultiLangQuery(al.type, search) ||
+    matchesMultiLangQuery(al.severity, search) ||
+    matchesMultiLangQuery(al.book?.title, search)
+  );
+
+  const notifList = rawNotifList.filter(n =>
+    matchesMultiLangQuery(n.message, search) ||
+    matchesMultiLangQuery(n.type, search)
+  );
 
   /* alert selection */
   const [aSelected, setASelected] = useState<Set<string>>(new Set());
@@ -260,10 +276,16 @@ function AlertsContent() {
           <h1 className="text-[26px] font-serif font-black text-[#0d0d0d]">{String(t("admin_alerts.title"))}</h1>
           <p className="text-sm text-[#0d0d0d]/45 mt-1">{String(t("admin_alerts.subtitle"))}</p>
         </div>
-        <button onClick={handleScan} disabled={scan.isPending}
-          className="px-5 py-2.5 rounded-xl bg-[#0d0d0d] text-white text-[12px] font-bold disabled:opacity-50 hover:bg-[#292524] transition-colors shrink-0">
-          {scan.isPending ? String(t("admin_alerts.scanning")) : String(t("admin_alerts.run_scan"))}
-        </button>
+        <div className="flex gap-3 flex-wrap items-center">
+          <div className="relative min-w-[240px]">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#0d0d0d]/30" />
+            <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder={String(t("common.search") || "Search…")} className="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-[#e8e4dc] bg-white text-[#0d0d0d] placeholder:text-[#0d0d0d]/25 focus:outline-none focus:border-[#0d0d0d]" />
+          </div>
+          <button onClick={handleScan} disabled={scan.isPending}
+            className="px-5 py-2 rounded-xl bg-[#0d0d0d] text-white text-[12px] font-bold disabled:opacity-50 hover:bg-[#292524] transition-colors shrink-0">
+            {scan.isPending ? String(t("admin_alerts.scanning")) : String(t("admin_alerts.run_scan"))}
+          </button>
+        </div>
       </motion.div>
 
       {/* Tabs */}

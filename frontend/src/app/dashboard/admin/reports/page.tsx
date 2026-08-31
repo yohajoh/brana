@@ -25,13 +25,24 @@ const FORMAT_CONFIG = [
   { key: "pdf",   label: "PDF",   icon: <FileText size={14}/>,        desc: "Print-ready report",       ext: "pdf"  },
 ] as const;
 
+import { Search } from "lucide-react";
+import { matchesMultiLangQuery } from "@/lib/multiLangSearch";
+
 export default function AdminReportsPage() {
   const { t } = useLanguage();
   const [active, setActive] = useState("rentals");
   const [rows, setRows] = useState<Record<string, unknown>[]>([]);
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState<string | null>(null);
   const [lastLoaded, setLastLoaded] = useState<Date | null>(null);
+
+  const filteredRows = useMemo(() => {
+    if (!search.trim()) return rows;
+    return rows.filter((row) =>
+      Object.values(row).some((val) => matchesMultiLangQuery(val, search))
+    );
+  }, [rows, search]);
 
   const REPORTS = [
     { key: "rentals",      label: String(t("admin_reports.types.rentals"))      || "Rentals" },
@@ -211,42 +222,36 @@ export default function AdminReportsPage() {
         </motion.div>
       </AnimatePresence>
 
-      {/* Export buttons */}
-      <motion.div variants={fadeUp} className="flex flex-wrap gap-2 items-center">
-        <span className="text-[10px] font-black text-[#0d0d0d]/30 uppercase tracking-widest mr-1">Export:</span>
-        {FORMAT_CONFIG.map((fmt) => {
-          const isLoading = exporting === fmt.key;
-          return (
-            <button
-              key={fmt.key}
-              id={`export-${fmt.key}-btn`}
-              onClick={() => handleExport(fmt.key)}
-              disabled={!!exporting || rows.length === 0}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-[12px] font-bold transition-all
-                ${rows.length === 0 ? "opacity-40 cursor-not-allowed" : "hover:shadow-md active:scale-95"}
-                bg-white border-[#e8e4dc] text-[#0d0d0d]/70 hover:border-[#0d0d0d]/30 hover:text-[#0d0d0d]`}
-            >
-              {isLoading ? <RefreshCw size={13} className="animate-spin" /> : fmt.icon}
-              {fmt.label}
-              {!isLoading && (
-                <span className="text-[9px] text-[#0d0d0d]/30 font-normal">.{fmt.ext}</span>
-              )}
-            </button>
-          );
-        })}
+      {/* Export buttons & search */}
+      <motion.div variants={fadeUp} className="flex flex-wrap gap-2 items-center justify-between">
+        <div className="flex flex-wrap gap-2 items-center">
+          <span className="text-[10px] font-black text-[#0d0d0d]/30 uppercase tracking-widest mr-1">Export:</span>
+          {FORMAT_CONFIG.map((fmt) => {
+            const isLoading = exporting === fmt.key;
+            return (
+              <button
+                key={fmt.key}
+                id={`export-${fmt.key}-btn`}
+                onClick={() => handleExport(fmt.key)}
+                disabled={!!exporting || rows.length === 0}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-[12px] font-bold transition-all
+                  ${rows.length === 0 ? "opacity-40 cursor-not-allowed" : "hover:shadow-md active:scale-95"}
+                  bg-white border-[#e8e4dc] text-[#0d0d0d]/70 hover:border-[#0d0d0d]/30 hover:text-[#0d0d0d]`}
+              >
+                {isLoading ? <RefreshCw size={13} className="animate-spin" /> : fmt.icon}
+                {fmt.label}
+                {!isLoading && (
+                  <span className="text-[9px] text-[#0d0d0d]/30 font-normal">.{fmt.ext}</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
 
-        {rows.length > 0 && (
-          <span className="ml-auto text-[11px] text-[#0d0d0d]/40 flex items-center gap-1.5">
-            <CheckCircle size={12} className="text-green-500" />
-            {rows.length.toLocaleString()} records loaded
-          </span>
-        )}
-        {!loading && rows.length === 0 && (
-          <span className="ml-auto text-[11px] text-[#0d0d0d]/40 flex items-center gap-1.5">
-            <AlertTriangle size={12} className="text-yellow-400" />
-            No data — select a report type
-          </span>
-        )}
+        <div className="relative min-w-[220px]">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#0d0d0d]/30" />
+          <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder={String(t("common.search") || "Search report rows…")} className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-[#e8e4dc] bg-white text-[#0d0d0d] placeholder:text-[#0d0d0d]/25 focus:outline-none focus:border-[#0d0d0d]" />
+        </div>
       </motion.div>
 
       {/* Preview table */}
@@ -254,19 +259,19 @@ export default function AdminReportsPage() {
         <div className="px-4 py-3 border-b border-[#e8e4dc] flex items-center justify-between">
           <div>
             <p className="text-[11px] font-black text-[#0d0d0d]/40 uppercase tracking-widest">Preview</p>
-            {rows.length > 0 && (
+            {filteredRows.length > 0 && (
               <p className="text-[10px] text-[#0d0d0d]/30 mt-0.5">
-                Showing first {Math.min(rows.length, 50)} of {rows.length.toLocaleString()} rows • {headers.length} columns
+                Showing first {Math.min(filteredRows.length, 50)} of {filteredRows.length.toLocaleString()} rows • {headers.length} columns
               </p>
             )}
           </div>
-          {rows.length > 0 && (
+          {filteredRows.length > 0 && (
             <span className="text-[10px] text-[#0d0d0d]/30 italic">Scroll right to see all columns →</span>
           )}
         </div>
         <div className="overflow-x-auto">
           <TanStackTable
-            data={rows.slice(0, 50)}
+            data={filteredRows.slice(0, 50)}
             columns={cols}
             isLoading={loading}
             emptyText={String(t("admin_reports.select_report")) || "Select a report type to preview data"}

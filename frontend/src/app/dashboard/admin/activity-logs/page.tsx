@@ -6,6 +6,7 @@ import { useActivityLogs } from "@/lib/hooks/useQueries";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { TanStackTable } from "@/components/ui/TanStackTable";
 import { ColumnDef } from "@tanstack/react-table";
+import { matchesMultiLangQuery } from "@/lib/multiLangSearch";
 import {
   Search,
   X,
@@ -146,11 +147,11 @@ export default function AdminActivityLogsPage() {
     return logs.filter((log) => {
       const matchesSearch =
         searchTerm === "" ||
-        log.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.admin?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.admin?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.entity_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.action.toLowerCase().includes(searchTerm.toLowerCase());
+        matchesMultiLangQuery(log.description, searchTerm) ||
+        matchesMultiLangQuery(log.admin?.name, searchTerm) ||
+        matchesMultiLangQuery(log.admin?.email, searchTerm) ||
+        matchesMultiLangQuery(log.entity_type, searchTerm) ||
+        matchesMultiLangQuery(log.action, searchTerm);
 
       const matchesAction = selectedAction === "ALL" || log.action === selectedAction;
       const matchesEntity = selectedEntity === "ALL" || log.entity_type === selectedEntity;

@@ -9,6 +9,8 @@ import { useLanguage } from "@/components/providers/LanguageProvider";
 import { TanStackTable } from "@/components/ui/TanStackTable";
 import { ColumnDef } from "@tanstack/react-table";
 
+import { matchesMultiLangQuery } from "@/lib/multiLangSearch";
+
 const fadeUp={hidden:{opacity:0,y:16},show:{opacity:1,y:0,transition:{duration:0.38,ease:[0.16,1,0.3,1]}}};
 const stagger={hidden:{},show:{transition:{staggerChildren:0.07}}};
 const ITEMS=10;
@@ -28,7 +30,7 @@ function BorrowingsContent() {
   const {data,isLoading,refetch}=useRentals(qp.toString()); const processReturn=useProcessReturn();
   const rentals:Rental[]=(data?.rentals||[]) as unknown as Rental[];
   const err=(e:unknown,fb:string)=>e instanceof Error&&e.message?e.message:fb;
-  const filtered=rentals.filter(r=>!search.trim()||r.user?.name?.toLowerCase().includes(search.toLowerCase())||r.user?.email?.toLowerCase().includes(search.toLowerCase())||r.physical_book?.title?.toLowerCase().includes(search.toLowerCase())||r.status?.toLowerCase().includes(search.toLowerCase()));
+  const filtered=rentals.filter(r=>!search.trim()||matchesMultiLangQuery(r.user?.name, search)||matchesMultiLangQuery(r.user?.email, search)||matchesMultiLangQuery(r.user?.student_id, search)||matchesMultiLangQuery(r.physical_book?.title, search)||matchesMultiLangQuery(r.status, search));
   const totalPages=Math.max(1,Math.ceil(filtered.length/ITEMS));
   const paginated=filtered.slice((page-1)*ITEMS,page*ITEMS);
   const handleReturn=async(id:string)=>{try{await processReturn.mutateAsync(id);toast.success(String(t("admin_borrowings.messages.return_success")));}catch(e){toast.error(err(e,String(t("admin_borrowings.messages.return_failed")||"Failed")));}};

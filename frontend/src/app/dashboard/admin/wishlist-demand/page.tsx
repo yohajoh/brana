@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { TanStackTable } from "@/components/ui/TanStackTable";
 import { ColumnDef } from "@tanstack/react-table";
 import { useLanguage } from "@/components/providers/LanguageProvider";
+import { matchesMultiLangQuery } from "@/lib/multiLangSearch";
 
 /* ── animation variants ─────────────────────────────────── */
 const fadeUp = {
@@ -136,12 +137,12 @@ export default function AdminWishlistDemandPage() {
   const filteredItems = useMemo(() => {
     if (!data?.procurementItems) return [];
     return data.procurementItems.filter((item) => {
-      const q = search.trim().toLowerCase();
       const matchesSearch =
-        !q ||
-        item.title.toLowerCase().includes(q) ||
-        item.author.toLowerCase().includes(q) ||
-        item.category.toLowerCase().includes(q);
+        !search.trim() ||
+        matchesMultiLangQuery(item.title, search) ||
+        matchesMultiLangQuery(item.author, search) ||
+        matchesMultiLangQuery(item.category, search) ||
+        matchesMultiLangQuery(item.recommendedAction, search);
 
       let matchesTab = true;
       if (tab === "urgent") matchesTab = item.decisionUrgency === "URGENT_PURCHASE";

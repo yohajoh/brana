@@ -13,6 +13,7 @@ import { usePersona } from "@/components/providers/PersonaProvider";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { TanStackTable, PortalDropdown } from "@/components/ui/TanStackTable";
 import { ColumnDef } from "@tanstack/react-table";
+import { matchesMultiLangQuery } from "@/lib/multiLangSearch";
 
 const fadeUp  = { hidden:{opacity:0,y:16}, show:{opacity:1,y:0,transition:{duration:0.38,ease:[0.16,1,0.3,1]}} };
 const stagger = { hidden:{}, show:{transition:{staggerChildren:0.07}} };
@@ -210,10 +211,13 @@ export default function AdminUsersPage() {
       : u.role === "STUDENT"
   );
 
-  const filtered = scopeFiltered.filter(u => {
-    const q = search.toLowerCase();
-    return u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q) || u.student_id?.toLowerCase().includes(q);
-  });
+  const filtered = scopeFiltered.filter(u =>
+    matchesMultiLangQuery(u.name, search) ||
+    matchesMultiLangQuery(u.email, search) ||
+    matchesMultiLangQuery(u.student_id, search) ||
+    matchesMultiLangQuery(u.phone, search) ||
+    matchesMultiLangQuery(u.role, search)
+  );
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS));
   const paginated  = filtered.slice((page-1)*ITEMS, page*ITEMS);

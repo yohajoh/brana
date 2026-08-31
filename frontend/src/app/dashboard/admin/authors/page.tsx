@@ -9,6 +9,8 @@ import { useLanguage } from "@/components/providers/LanguageProvider";
 import { TanStackTable, PortalDropdown, TruncatedCell } from "@/components/ui/TanStackTable";
 import { ColumnDef } from "@tanstack/react-table";
 
+import { matchesMultiLangQuery } from "@/lib/multiLangSearch";
+
 const fadeUp={hidden:{opacity:0,y:16},show:{opacity:1,y:0,transition:{duration:0.38,ease:[0.16,1,0.3,1]}}};
 const stagger={hidden:{},show:{transition:{staggerChildren:0.07}}};
 const IC="w-full px-4 py-3 rounded-xl border border-[#e8e4dc] bg-[#f5f4f0] text-sm text-[#0d0d0d] focus:outline-none focus:border-[#0d0d0d] focus:bg-white focus:shadow-[0_0_0_3px_rgba(245,197,24,0.2)] transition-all placeholder:text-[#0d0d0d]/25";
@@ -32,7 +34,7 @@ export default function AdminAuthorsPage() {
   const authors:Author[]=data?.authors||[];
   const err=(e:unknown,fb:string)=>e instanceof Error&&e.message?e.message:fb;
   useEffect(()=>{const h=()=>setMenu(null);window.addEventListener("click",h);return()=>window.removeEventListener("click",h);},[]);
-  const filtered=authors.filter(a=>a.name.toLowerCase().includes(search.toLowerCase())||(a.bio?.toLowerCase().includes(search.toLowerCase())??false));
+  const filtered=authors.filter(a=>matchesMultiLangQuery(a.name, search)||matchesMultiLangQuery(a.bio, search));
   const totalPages=Math.max(1,Math.ceil(filtered.length/ITEMS));
   const paginated=filtered.slice((page-1)*ITEMS,page*ITEMS);
   const openEdit=(a:Author)=>{setEditId(a.id);setForm({name:a.name||"",bio:a.bio||""});setUploadedImgUrl(a.image||null);setPreview(a.image||null);setModal(true);};

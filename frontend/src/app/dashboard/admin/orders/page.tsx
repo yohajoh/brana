@@ -5,6 +5,7 @@ import { Search, RefreshCcw } from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
 import { useDeliveryOrders, type DeliveryOrder } from "@/lib/hooks/useQueries";
 import { TanStackTable } from "@/components/ui/TanStackTable";
+import { matchesMultiLangQuery } from "@/lib/multiLangSearch";
 
 function AdminOrdersContent() {
   const [search, setSearch] = useState("");
@@ -13,10 +14,9 @@ function AdminOrdersContent() {
   const orders = useMemo(() => (data?.orders || []) as DeliveryOrder[], [data?.orders]);
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return orders;
+    if (!search.trim()) return orders;
     return orders.filter((order) => {
-      const fields = [
+      const values = [
         order.user?.name,
         order.user?.email,
         order.user?.student_id,
@@ -26,10 +26,8 @@ function AdminOrdersContent() {
         order.dorm_number,
         order.available_time,
         order.rental?.status,
-      ]
-        .filter(Boolean)
-        .map((value) => String(value).toLowerCase());
-      return fields.some((value) => value.includes(q));
+      ];
+      return values.some((val) => matchesMultiLangQuery(val, search));
     });
   }, [orders, search]);
 
