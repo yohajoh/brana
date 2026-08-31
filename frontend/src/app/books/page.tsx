@@ -12,6 +12,7 @@ import { useBooks, useDigitalBooks, useCategories, useAuthors } from "@/lib/hook
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { motion, AnimatePresence } from "framer-motion";
 import { SlidersHorizontal, X, ChevronDown } from "lucide-react";
+import { matchesMultiLangQuery } from "@/lib/multiLangSearch";
 
 export type CatalogBook = {
   id: string;
@@ -177,12 +178,23 @@ function BooksContent() {
     return [...physical, ...digital];
   }, [physicalData, digitalData, mode]);
 
+  const filteredBooks = useMemo(() => {
+    if (!searchQuery.trim()) return mergedBooks;
+    return mergedBooks.filter(
+      (book) =>
+        matchesMultiLangQuery(book.title, searchQuery) ||
+        matchesMultiLangQuery(book.author?.name, searchQuery) ||
+        matchesMultiLangQuery(book.category?.name, searchQuery) ||
+        matchesMultiLangQuery(book.description, searchQuery)
+    );
+  }, [mergedBooks, searchQuery]);
+
   const booksLoading  = physLoading || digLoading;
-  const total         = mergedBooks.length;
+  const total         = filteredBooks.length;
   const totalPages    = Math.max(1, Math.ceil(total / limit));
   const pageToRender  = Math.min(page, totalPages);
   const start         = (pageToRender - 1) * limit;
-  const books         = mergedBooks.slice(start, start + limit);
+  const books         = filteredBooks.slice(start, start + limit);
   const startIndex    = total === 0 ? 0 : start + 1;
   const endIndex      = Math.min(pageToRender * limit, total);
   const preservedQuery = searchParams.toString();

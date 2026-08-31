@@ -52,7 +52,7 @@ export const SearchBar = ({ onSearch }: Props) => {
           onChange={handleChange}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
-          placeholder={t("shared.search_placeholder") as string}
+          placeholder={String(t("common.search"))}
           className="flex-1 py-3.5 pr-2 text-sm text-[#0d0d0d] placeholder:text-[#b0afc0] bg-transparent outline-none"
         />
 
