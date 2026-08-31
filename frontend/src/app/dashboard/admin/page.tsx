@@ -20,7 +20,7 @@ import {
   useUpdateTargets,
 } from "@/lib/hooks/useQueries";
 import { useLanguage } from "@/components/providers/LanguageProvider";
-import { TrendingUp, Target, Heart, ArrowRight, ShoppingCart } from "lucide-react";
+import { TrendingUp, Target, Heart, ArrowRight, ShoppingCart, X } from "lucide-react";
 
 /* ── animation variants ─────────────────────────────────── */
 const fadeUp = {
@@ -302,6 +302,7 @@ function GoalRow({ label, item }: { label: string; item: GoalProgress }) {
 
 /* ── wishlist procurement banner component ──────────────── */
 function WishlistProcurementBanner() {
+  const [dismissed, setDismissed] = useState(false);
   const [wishlistData, setWishlistData] = useState<{
     kpis?: { urgentProcurementCount: number; totalWishlists: number };
     procurementItems?: Array<{
@@ -322,6 +323,8 @@ function WishlistProcurementBanner() {
       .catch(() => {});
   }, []);
 
+  if (dismissed) return null;
+
   const urgentItems =
     wishlistData?.procurementItems?.filter(
       (item) =>
@@ -329,63 +332,85 @@ function WishlistProcurementBanner() {
         item.decisionUrgency === "RESTOCK_NEEDED"
     ) || [];
 
+  const urgentCount = wishlistData?.kpis?.urgentProcurementCount || 0;
+  const totalWishlists = wishlistData?.kpis?.totalWishlists || 0;
+
   return (
     <motion.div
       variants={fadeUp}
-      className="bg-gradient-to-r from-slate-900 via-purple-950 to-slate-900 rounded-2xl p-5 border border-purple-800/40 text-white shadow-md"
+      className="group relative overflow-hidden rounded-2xl bg-[#0d0d0d] border border-[#2a2a2a] text-white shadow-lg transition-all duration-300 hover:border-[#f5c518]/40"
     >
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-400/30 flex items-center justify-center shrink-0">
-            <Heart className="w-5 h-5 text-rose-400 fill-rose-400/30" />
+      {/* Subtle gold accent background */}
+      <div className="pointer-events-none absolute -right-20 -top-20 h-40 w-40 rounded-full bg-[#f5c518]/10 blur-3xl" />
+
+      {/* Main Single-Line Bar */}
+      <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-5">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#f5c518]/15 border border-[#f5c518]/30">
+            <Heart className="h-3.5 w-3.5 text-[#f5c518] fill-[#f5c518]/30" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-purple-300">
-                Procurement Intelligence
+
+          <div className="flex items-center gap-2 min-w-0 flex-wrap">
+            <span className="text-[10px] font-black uppercase tracking-wider text-[#f5c518]">
+              Procurement Intelligence
+            </span>
+            {urgentCount > 0 && (
+              <span className="px-2 py-0.5 text-[9.5px] font-black bg-red-600 text-white rounded-full animate-pulse shrink-0">
+                {urgentCount} Urgent Restocks
               </span>
-              {(wishlistData?.kpis?.urgentProcurementCount || 0) > 0 && (
-                <span className="px-2 py-0.5 text-[10px] font-black bg-rose-500 text-white rounded-full animate-pulse">
-                  {wishlistData?.kpis?.urgentProcurementCount} Urgent Restocks
-                </span>
-              )}
-            </div>
-            <h3 className="text-base font-bold mt-0.5">
-              Student Wishlist Demand & Restock Recommendations
-            </h3>
-            <p className="text-xs text-purple-200/70 mt-0.5">
-              Students have wishlisted {wishlistData?.kpis?.totalWishlists || 0} items. View prioritized procurement decisions to restock high-demand catalog books.
-            </p>
+            )}
+            <span className="hidden sm:inline text-white/30">•</span>
+            <span className="text-xs font-bold text-white/90 truncate">
+              Student Wishlist Demand Restock Recommendations
+            </span>
+            <span className="hidden lg:inline text-xs text-white/45">
+              ({totalWishlists} item{totalWishlists === 1 ? "" : "s"} wishlisted)
+            </span>
           </div>
         </div>
 
-        <Link
-          href="/dashboard/admin/wishlist-demand"
-          className="shrink-0 px-4 py-2.5 rounded-xl bg-[#f5c518] hover:bg-[#e8a800] text-[#0d0d0d] text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 self-start md:self-center"
-        >
-          Open Wishlist Demand Insights
-          <ArrowRight className="w-4 h-4" />
-        </Link>
+        <div className="flex items-center gap-2 shrink-0">
+          <Link
+            href="/dashboard/admin/wishlist-demand"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#f5c518] hover:bg-[#e8a800] text-[#0d0d0d] text-[11px] font-extrabold transition-all shadow-sm active:scale-95"
+          >
+            <span className="hidden sm:inline">Open Wishlist Demand Insights</span>
+            <span className="sm:hidden">View Insights</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+
+          <button
+            type="button"
+            onClick={() => setDismissed(true)}
+            title="Dismiss notification"
+            className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
+      {/* Expanded Urgent Restocks on Hover */}
       {urgentItems.length > 0 && (
-        <div className="mt-4 pt-4 border-t border-purple-800/40 grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {urgentItems.slice(0, 3).map((item) => (
-            <div
-              key={item.bookId}
-              className="p-3 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between text-xs"
-            >
-              <div className="min-w-0 pr-2">
-                <p className="font-bold truncate text-white">{item.title}</p>
-                <p className="text-[10px] text-purple-300/80">
-                  {item.available === 0 ? "Out of Stock" : `${item.available} available`} • {item.wishlistCount} Wishlist(s)
-                </p>
+        <div className="max-h-0 opacity-0 group-hover:max-h-60 group-hover:opacity-100 transition-all duration-300 ease-in-out border-t border-white/10 px-4 py-0 group-hover:py-3 sm:px-5">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            {urgentItems.slice(0, 3).map((item) => (
+              <div
+                key={item.bookId}
+                className="p-2.5 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between text-xs transition-colors hover:bg-white/10"
+              >
+                <div className="min-w-0 pr-2">
+                  <p className="font-bold truncate text-white text-[11px]">{item.title}</p>
+                  <p className="text-[10px] text-white/50">
+                    {item.available === 0 ? "Out of Stock" : `${item.available} available`} • {item.wishlistCount} Wishlist(s)
+                  </p>
+                </div>
+                <span className="px-2 py-0.5 text-[9px] font-black rounded-md bg-red-600 text-white shrink-0">
+                  {item.decisionUrgency === "URGENT_PURCHASE" ? "URGENT BUY" : "RESTOCK"}
+                </span>
               </div>
-              <span className="px-2 py-0.5 text-[9px] font-black rounded-md bg-red-500/80 text-white shrink-0">
-                {item.decisionUrgency === "URGENT_PURCHASE" ? "URGENT BUY" : "RESTOCK"}
-              </span>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
     </motion.div>
@@ -451,7 +476,10 @@ export default function AdminDashboardPage() {
   ];
 
   return (
-    <motion.div variants={stagger} initial="hidden" animate="show" className="p-2 sm:p-4 lg:p-6 space-y-8">
+    <motion.div variants={stagger} initial="hidden" animate="show" className="p-2 sm:p-4 lg:p-6 space-y-6">
+
+      {/* Top Notification Badge Banner */}
+      <WishlistProcurementBanner />
 
       {/* Header */}
       <motion.div variants={fadeUp}>
@@ -466,9 +494,6 @@ export default function AdminDashboardPage() {
           <StatCard key={s.label} label={s.label} value={s.value} sub={s.sub} colorIdx={s.colorIdx} loading={isLoading} />
         ))}
       </motion.div>
-
-      {/* Wishlist Procurement Banner */}
-      <WishlistProcurementBanner />
 
       {/* Chart + goals */}
       <motion.div variants={stagger} className="grid grid-cols-1 xl:grid-cols-3 gap-5">
