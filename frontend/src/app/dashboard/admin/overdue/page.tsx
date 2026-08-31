@@ -52,7 +52,7 @@ export default function AdminOverduePage() {
         <div className="flex gap-3 flex-wrap items-center">
           <div className="relative min-w-[220px]">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#0d0d0d]/30" />
-            <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder={String(t("common.search") || "Search…")} className="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-[#e8e4dc] bg-white text-[#0d0d0d] placeholder:text-[#0d0d0d]/25 focus:outline-none focus:border-[#0d0d0d]" />
+            <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder={String(t("common.search"))} className="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-[#e8e4dc] bg-white text-[#0d0d0d] placeholder:text-[#0d0d0d]/30 focus:outline-none focus:border-[#0d0d0d]" />
           </div>
           <button onClick={handleSend} disabled={send.isPending||sel.size===0} className="px-5 py-2 rounded-xl bg-[#0d0d0d] text-white text-[12px] font-bold disabled:opacity-40 hover:bg-[#292524] transition-colors shrink-0">
             {send.isPending?String(t("admin_overdue.sending")):String(t("admin_overdue.send_reminder",{count:sel.size}))}

@@ -185,7 +185,7 @@ function PaymentsContent() {
         </div>
         <div className="relative min-w-[240px]">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#0d0d0d]/30" />
-          <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder={String(t("common.search") || "Search payment history…")} className="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-[#e8e4dc] bg-white text-[#0d0d0d] placeholder:text-[#0d0d0d]/25 focus:outline-none focus:border-[#0d0d0d]" />
+          <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder={String(t("common.search"))} className="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-[#e8e4dc] bg-white text-[#0d0d0d] placeholder:text-[#0d0d0d]/30 focus:outline-none focus:border-[#0d0d0d]" />
         </div>
       </motion.div>
 

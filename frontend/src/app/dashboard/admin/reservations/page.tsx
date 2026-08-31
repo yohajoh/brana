@@ -91,7 +91,7 @@ export default function AdminReservationsPage() {
           <div className="flex gap-3 flex-wrap items-center">
             <div className="relative min-w-[220px]">
               <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#0d0d0d]/30" />
-              <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder={String(t("common.search") || "Search…")} className="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-[#e8e4dc] bg-white placeholder:text-[#0d0d0d]/25 focus:outline-none focus:border-[#0d0d0d]" />
+              <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder={String(t("common.search"))} className="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-[#e8e4dc] bg-white placeholder:text-[#0d0d0d]/30 focus:outline-none focus:border-[#0d0d0d]" />
             </div>
             <button onClick={()=>window.location.reload()} className="flex items-center gap-2 px-4 py-2 rounded-xl border border-[#e8e4dc] bg-white text-[12px] font-bold text-[#0d0d0d] hover:bg-[#f5f4f0] transition-colors"><RefreshCcw size={14}/>{String(t("admin_reservations.refresh"))}</button>
             {selectedIds.size>0&&(<button onClick={handleCancel} disabled={expire.isPending} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600 text-white text-[12px] font-bold hover:bg-red-700 disabled:opacity-50 transition-colors">{expire.isPending?String(t("admin_reservations.cancelling")):String(t("admin_reservations.cancel_selected",{count:selectedIds.size}))}</button>)}

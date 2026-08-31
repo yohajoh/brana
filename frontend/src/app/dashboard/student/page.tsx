@@ -55,22 +55,9 @@ function StatCard({
   );
 }
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Search } from "lucide-react";
-
 export default function DashboardPage() {
   const { t }    = useLanguage();
   const { user } = usePersona();
-  const router   = useRouter();
-  const [catalogSearch, setCatalogSearch] = useState("");
-
-  const handleCatalogSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (catalogSearch.trim()) {
-      router.push(`/books?search=${encodeURIComponent(catalogSearch.trim())}`);
-    }
-  };
 
   const { data: rentalsData,          isLoading } = useMyRentals();
   const { data: configData }          = useSystemConfig();
@@ -148,7 +135,7 @@ export default function DashboardPage() {
             type="text"
             value={catalogSearch}
             onChange={e => setCatalogSearch(e.target.value)}
-            placeholder={String(t("common.search") || "Search books (EN/AM/OR)…")}
+            placeholder={String(t("common.search_books"))}
             className="w-full pl-10 pr-4 py-2.5 text-sm rounded-2xl border border-[#e8e4dc] bg-white text-[#0d0d0d] placeholder:text-[#0d0d0d]/30 focus:outline-none focus:border-[#0d0d0d] focus:shadow-[0_0_0_3px_rgba(245,197,24,0.2)] transition-all"
           />
         </form>
