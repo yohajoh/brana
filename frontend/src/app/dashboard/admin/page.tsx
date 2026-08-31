@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, type Variants } from "framer-motion";
 import { toast } from "sonner";
 import {
   AreaChart,
@@ -23,11 +23,11 @@ import { useLanguage } from "@/components/providers/LanguageProvider";
 import { TrendingUp, Target, Heart, ArrowRight, ShoppingCart, X } from "lucide-react";
 
 /* ── animation variants ─────────────────────────────────── */
-const fadeUp = {
+const fadeUp: Variants = {
   hidden: { opacity: 0, y: 16 },
   show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] } },
 };
-const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
+const stagger: Variants = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
 
 /* ── types ──────────────────────────────────────────────── */
 type WeeklyPoint = { week_start: string; count: number };
@@ -300,122 +300,7 @@ function GoalRow({ label, item }: { label: string; item: GoalProgress }) {
   );
 }
 
-/* ── wishlist procurement banner component ──────────────── */
-function WishlistProcurementBanner() {
-  const [dismissed, setDismissed] = useState(false);
-  const [wishlistData, setWishlistData] = useState<{
-    kpis?: { urgentProcurementCount: number; totalWishlists: number };
-    procurementItems?: Array<{
-      bookId: string;
-      title: string;
-      author: string;
-      category: string;
-      available: number | null;
-      wishlistCount: number;
-      reservationCount: number;
-      decisionUrgency: string;
-    }>;
-  } | null>(null);
-
-  useEffect(() => {
-    fetchApi("/stats/wishlist-demand")
-      .then((res) => setWishlistData(res.data))
-      .catch(() => {});
-  }, []);
-
-  if (dismissed) return null;
-
-  const urgentItems =
-    wishlistData?.procurementItems?.filter(
-      (item) =>
-        item.decisionUrgency === "URGENT_PURCHASE" ||
-        item.decisionUrgency === "RESTOCK_NEEDED"
-    ) || [];
-
-  const urgentCount = wishlistData?.kpis?.urgentProcurementCount || 0;
-  const totalWishlists = wishlistData?.kpis?.totalWishlists || 0;
-
-  return (
-    <motion.div
-      variants={fadeUp}
-      className="group relative overflow-hidden rounded-2xl bg-[#0d0d0d] border border-[#2a2a2a] text-white shadow-lg transition-all duration-300 hover:border-[#f5c518]/40"
-    >
-      {/* Subtle gold accent background */}
-      <div className="pointer-events-none absolute -right-20 -top-20 h-40 w-40 rounded-full bg-[#f5c518]/10 blur-3xl" />
-
-      {/* Main Single-Line Bar */}
-      <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-5">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#f5c518]/15 border border-[#f5c518]/30">
-            <Heart className="h-3.5 w-3.5 text-[#f5c518] fill-[#f5c518]/30" />
-          </div>
-
-          <div className="flex items-center gap-2 min-w-0 flex-wrap">
-            <span className="text-[10px] font-black uppercase tracking-wider text-[#f5c518]">
-              Procurement Intelligence
-            </span>
-            {urgentCount > 0 && (
-              <span className="px-2 py-0.5 text-[9.5px] font-black bg-red-600 text-white rounded-full animate-pulse shrink-0">
-                {urgentCount} Urgent Restocks
-              </span>
-            )}
-            <span className="hidden sm:inline text-white/30">•</span>
-            <span className="text-xs font-bold text-white/90 truncate">
-              Student Wishlist Demand Restock Recommendations
-            </span>
-            <span className="hidden lg:inline text-xs text-white/45">
-              ({totalWishlists} item{totalWishlists === 1 ? "" : "s"} wishlisted)
-            </span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 shrink-0">
-          <Link
-            href="/dashboard/admin/wishlist-demand"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#f5c518] hover:bg-[#e8a800] text-[#0d0d0d] text-[11px] font-extrabold transition-all shadow-sm active:scale-95"
-          >
-            <span className="hidden sm:inline">Open Wishlist Demand Insights</span>
-            <span className="sm:hidden">View Insights</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-
-          <button
-            type="button"
-            onClick={() => setDismissed(true)}
-            title="Dismiss notification"
-            className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-
-      {/* Expanded Urgent Restocks on Hover */}
-      {urgentItems.length > 0 && (
-        <div className="max-h-0 opacity-0 group-hover:max-h-60 group-hover:opacity-100 transition-all duration-300 ease-in-out border-t border-white/10 px-4 py-0 group-hover:py-3 sm:px-5">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-            {urgentItems.slice(0, 3).map((item) => (
-              <div
-                key={item.bookId}
-                className="p-2.5 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between text-xs transition-colors hover:bg-white/10"
-              >
-                <div className="min-w-0 pr-2">
-                  <p className="font-bold truncate text-white text-[11px]">{item.title}</p>
-                  <p className="text-[10px] text-white/50">
-                    {item.available === 0 ? "Out of Stock" : `${item.available} available`} • {item.wishlistCount} Wishlist(s)
-                  </p>
-                </div>
-                <span className="px-2 py-0.5 text-[9px] font-black rounded-md bg-red-600 text-white shrink-0">
-                  {item.decisionUrgency === "URGENT_PURCHASE" ? "URGENT BUY" : "RESTOCK"}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </motion.div>
-  );
-}
+/* ── page ────────────────────────────────────────────────── */
 
 /* ── page ────────────────────────────────────────────────── */
 export default function AdminDashboardPage() {
@@ -478,9 +363,6 @@ export default function AdminDashboardPage() {
   return (
     <motion.div variants={stagger} initial="hidden" animate="show" className="p-2 sm:p-4 lg:p-6 space-y-6">
 
-      {/* Top Notification Badge Banner */}
-      <WishlistProcurementBanner />
-
       {/* Header */}
       <motion.div variants={fadeUp}>
         <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.2em] mb-1">Admin</p>
@@ -529,10 +411,10 @@ export default function AdminDashboardPage() {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {([
-              ["target_rentals",         t("dashboard.targets.rentals")],
-              ["target_active_readers",  t("dashboard.targets.active_readers")],
-              ["target_on_time_returns", t("dashboard.targets.on_time_returns")],
-              ["target_new_books",       t("dashboard.targets.new_books")],
+              ["target_rentals",         String(t("dashboard.targets.rentals"))],
+              ["target_active_readers",  String(t("dashboard.targets.active_readers"))],
+              ["target_on_time_returns", String(t("dashboard.targets.on_time_returns"))],
+              ["target_new_books",       String(t("dashboard.targets.new_books"))],
             ] as const).map(([key, label]) => (
               <div key={key} className="space-y-1.5">
                 <label className="text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-wide">{label}</label>

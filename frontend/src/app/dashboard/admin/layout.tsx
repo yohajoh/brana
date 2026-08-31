@@ -4,6 +4,7 @@ import { SidebarOffset } from "@/components/SidebarOffset";
 import { AdminRouteGuard } from "@/components/guards/AdminRouteGuard";
 import { DashboardShellProvider } from "@/components/providers/DashboardShellProvider";
 import { DesktopNotificationBanner } from "@/components/notifications/DesktopNotificationBanner";
+import { WishlistProcurementBanner } from "@/components/notifications/WishlistProcurementBanner";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -15,6 +16,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <Navbar />
           <main className="pt-14 flex-1 min-h-screen overflow-x-hidden">
             <DesktopNotificationBanner />
+            <WishlistProcurementBanner />
             {children}
           </main>
         </SidebarOffset>
