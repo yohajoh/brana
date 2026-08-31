@@ -11,6 +11,8 @@
     "browse_all": "Hunda sakatta'i"
   },
   "common": {
+    "search": "Barbaadi...",
+    "search_books": "Kitaabota barbaadi...",
     "dashboard_redirect": "Gara daashboordii keessaniitti qajeelaa jira...",
     "error_occurred": "Rakkoon uumameera. Maaloo irra deebi'ii yaali.",
     "refresh": "Haaromsi",

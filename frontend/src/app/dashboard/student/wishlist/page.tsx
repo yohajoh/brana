@@ -21,10 +21,14 @@ type WishlistItem = {
   digital_book?:  { id:string; title:string; cover_image_url:string; author:{name:string}; category:{name:string} } | null;
 };
 
+import { Search } from "lucide-react";
+import { matchesMultiLangQuery } from "@/lib/multiLangSearch";
+
 export default function WishlistPage() {
   const { t }  = useLanguage();
   const [page, setPage]           = useState(1);
   const [filter, setFilter]       = useState<"all"|"physical"|"digital">("all");
+  const [search, setSearch]       = useState("");
   const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
   const [bulkRemoving, setBulkRemoving] = useState(false);
   const limit = 12;
@@ -38,6 +42,16 @@ export default function WishlistPage() {
   const wishlist: WishlistItem[] = (data?.wishlist || []) as unknown as WishlistItem[];
   const totalPages = data?.meta?.totalPages || 1;
   const available  = wishlist.filter(i => i.bookAvailable && !i.bookDeleted).length;
+
+  const filteredWishlist = wishlist.filter(item => {
+    const book = item.physical_book || item.digital_book;
+    if (!book) return false;
+    return (
+      matchesMultiLangQuery(book.title, search) ||
+      matchesMultiLangQuery(book.author?.name, search) ||
+      matchesMultiLangQuery(book.category?.name, search)
+    );
+  });
 
   const toggleBulk = (id: string) => setBulkSelected(p => { const n = new Set(p); if (n.has(id)) { n.delete(id); } else { n.add(id); } return n; });
   const allSelected = wishlist.length > 0 && wishlist.every(i => bulkSelected.has(i.id));
@@ -75,10 +89,16 @@ export default function WishlistPage() {
       className="p-2 sm:p-4 lg:p-6 space-y-6">
 
       {/* Header */}
-      <motion.div variants={fadeUp}>
-        <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.2em] mb-1">Collection</p>
-        <h1 className="text-[26px] font-serif font-black text-[#0d0d0d]">{String(t("student_wishlist.title"))}</h1>
-        <p className="text-sm text-[#0d0d0d]/45 mt-1">{String(t("student_wishlist.subtitle"))}</p>
+      <motion.div variants={fadeUp} className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.2em] mb-1">Collection</p>
+          <h1 className="text-[26px] font-serif font-black text-[#0d0d0d]">{String(t("student_wishlist.title"))}</h1>
+          <p className="text-sm text-[#0d0d0d]/45 mt-1">{String(t("student_wishlist.subtitle"))}</p>
+        </div>
+        <div className="relative min-w-[240px]">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#0d0d0d]/30" />
+          <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder={String(t("common.search") || "Search wishlist books…")} className="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-[#e8e4dc] bg-white text-[#0d0d0d] placeholder:text-[#0d0d0d]/25 focus:outline-none focus:border-[#0d0d0d]" />
+        </div>
       </motion.div>
 
       {/* Stats */}
@@ -150,7 +170,7 @@ export default function WishlistPage() {
             </div>
           ))}
         </div>
-      ) : wishlist.length === 0 ? (
+      ) : filteredWishlist.length === 0 ? (
         <motion.div variants={fadeUp}
           className="bg-white rounded-2xl border border-dashed border-[#e8e4dc] p-12 text-center space-y-4">
           <p className="text-sm text-[#0d0d0d]/35">{String(t("student_wishlist.empty_message"))}</p>
@@ -162,7 +182,7 @@ export default function WishlistPage() {
       ) : (
         <motion.div variants={stagger}
           className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {wishlist.map(item => {
+          {filteredWishlist.map(item => {
             const book = item.physical_book || item.digital_book;
             if (!book) return null;
             return (

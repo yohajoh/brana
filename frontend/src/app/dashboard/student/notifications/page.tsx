@@ -131,6 +131,7 @@ function NotificationsContent() {
 
   const list   = data?.notifications ?? [];
   const unread = data?.unreadCount ?? 0;
+
   const allSelected = list.length > 0 && list.every(n => bulkSelected.has(n.id));
 
   const toggleSelect = (id: string) =>

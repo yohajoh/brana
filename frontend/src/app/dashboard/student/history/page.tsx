@@ -21,9 +21,13 @@ export type SystemConfig = { id: number; max_loan_days: number; daily_fine: stri
 const fadeUp  = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.16,1,0.3,1] } } };
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.08 } } };
 
+import { Search } from "lucide-react";
+import { matchesMultiLangQuery } from "@/lib/multiLangSearch";
+
 export default function BorrowingHistoryPage() {
   const { t } = useLanguage();
   const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
   const limit = 10;
 
   const { data: rentalsData, isLoading } = useMyRentals(`page=${page}&limit=${limit}`);
@@ -31,20 +35,32 @@ export default function BorrowingHistoryPage() {
 
   const rentals: RentalItem[]     = (rentalsData?.rentals || []) as unknown as RentalItem[];
   const config:  SystemConfig|null = configData?.data?.config as unknown as SystemConfig | null;
+
+  const filteredRentals = rentals.filter(r =>
+    matchesMultiLangQuery(r.physical_book?.title || (r as any).book?.title, search) ||
+    matchesMultiLangQuery(r.status, search)
+  );
+
   const totalPages = Math.max(1, Math.ceil((rentalsData?.total ?? rentals.length) / limit));
 
   return (
     <motion.div variants={stagger} initial="hidden" animate="show"
       className="p-2 sm:p-4 lg:p-6 space-y-6">
 
-      <motion.div variants={fadeUp}>
-        <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.2em] mb-1">
-          {String(t("student_dashboard.history.title"))}
-        </p>
-        <h1 className="text-[26px] font-serif font-black text-[#0d0d0d]">
-          {String(t("student_history.title"))}
-        </h1>
-        <p className="text-sm text-[#0d0d0d]/45 mt-1">{String(t("student_history.subtitle"))}</p>
+      <motion.div variants={fadeUp} className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.2em] mb-1">
+            {String(t("student_dashboard.history.title"))}
+          </p>
+          <h1 className="text-[26px] font-serif font-black text-[#0d0d0d]">
+            {String(t("student_history.title"))}
+          </h1>
+          <p className="text-sm text-[#0d0d0d]/45 mt-1">{String(t("student_history.subtitle"))}</p>
+        </div>
+        <div className="relative min-w-[240px]">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#0d0d0d]/30" />
+          <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder={String(t("common.search"))} className="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-[#e8e4dc] bg-white text-[#0d0d0d] placeholder:text-[#0d0d0d]/30 focus:outline-none focus:border-[#0d0d0d]" />
+        </div>
       </motion.div>
 
       <motion.div variants={fadeUp}>
@@ -52,7 +68,7 @@ export default function BorrowingHistoryPage() {
       </motion.div>
 
       <motion.div variants={fadeUp} className="bg-white rounded-2xl border border-[#e8e4dc] overflow-hidden pb-2">
-        <DetailedHistoryTable rentals={rentals} config={config} loading={isLoading} />
+        <DetailedHistoryTable rentals={filteredRentals} config={config} loading={isLoading} />
       </motion.div>
 
       {totalPages > 1 && (

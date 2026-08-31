@@ -23,11 +23,15 @@ const fadeUp: Variants  = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y
 const stagger: Variants = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
 const cardVar: Variants = { hidden: { opacity: 0, y: 12, scale: 0.97 }, show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] } } };
 
+import { Search } from "lucide-react";
+import { matchesMultiLangQuery } from "@/lib/multiLangSearch";
+
 export default function StudentDigitalPage() {
   const { t }  = useLanguage();
   const router = useRouter();
   const [page, setPage]          = useState(1);
   const [downloadingId, setDlId] = useState<string | null>(null);
+  const [search, setSearch]      = useState("");
 
   const { data, isLoading, isFetching } = useQuery<ApiResponse>({
     queryKey: ["digital-books", page],
@@ -40,6 +44,12 @@ export default function StudentDigitalPage() {
 
   const books      = Array.isArray(data?.books) ? data.books : [];
   const totalPages = Math.max(1, Number(data?.meta?.totalPages || 1));
+
+  const filteredBooks = books.filter(book =>
+    matchesMultiLangQuery(book.title, search) ||
+    matchesMultiLangQuery(book.author?.name, search) ||
+    matchesMultiLangQuery(book.category?.name, search)
+  );
 
   const handleRead = (book: DigitalBook) => {
     router.push(`/read/${book.id}`);
@@ -73,10 +83,16 @@ export default function StudentDigitalPage() {
   return (
     <motion.div variants={stagger} initial="hidden" animate="show" className="p-2 sm:p-4 lg:p-6 space-y-6">
 
-      <motion.div variants={fadeUp}>
-        <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.2em] mb-1">Digital</p>
-        <h1 className="text-[26px] font-serif font-black text-[#0d0d0d]">{String(t("digital_library.title"))}</h1>
-        <p className="text-sm text-[#0d0d0d]/45 mt-1">{String(t("digital_library.subtitle"))}</p>
+      <motion.div variants={fadeUp} className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.2em] mb-1">Digital</p>
+          <h1 className="text-[26px] font-serif font-black text-[#0d0d0d]">{String(t("digital_library.title"))}</h1>
+          <p className="text-sm text-[#0d0d0d]/45 mt-1">{String(t("digital_library.subtitle"))}</p>
+        </div>
+        <div className="relative min-w-[240px]">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#0d0d0d]/30" />
+          <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder={String(t("common.search"))} className="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-[#e8e4dc] bg-white text-[#0d0d0d] placeholder:text-[#0d0d0d]/30 focus:outline-none focus:border-[#0d0d0d]" />
+        </div>
       </motion.div>
 
       {isLoading ? (
@@ -89,13 +105,13 @@ export default function StudentDigitalPage() {
             </div>
           ))}
         </div>
-      ) : books.length === 0 ? (
+      ) : filteredBooks.length === 0 ? (
         <motion.div variants={fadeUp} className="bg-white rounded-2xl border border-dashed border-[#e8e4dc] p-12 text-center">
           <p className="text-sm text-[#0d0d0d]/35">{String(t("digital_library.none"))}</p>
         </motion.div>
       ) : (
         <motion.div variants={stagger} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {books.map(book => (
+          {filteredBooks.map(book => (
             <motion.div key={book.id} variants={cardVar} className="group flex flex-col">
               <div className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-[#e8e4dc] mb-3">
                 <Image

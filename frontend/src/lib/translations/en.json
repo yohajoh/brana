@@ -11,6 +11,8 @@
     "browse_all": "Browse all"
   },
   "common": {
+    "search": "Search...",
+    "search_books": "Search books...",
     "dashboard_redirect": "Redirecting to your dashboard...",
     "error_occurred": "Something went wrong. Please try again.",
     "refresh": "Refresh",

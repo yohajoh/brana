@@ -42,11 +42,15 @@ function PayStat({ label, value, accent = false }: { label: string; value: strin
   );
 }
 
+import { Search } from "lucide-react";
+import { matchesMultiLangQuery } from "@/lib/multiLangSearch";
+
 function PaymentsContent() {
   const { t } = useLanguage();
   const [txRef, setTxRef]               = useState<string | null>(null);
   const [verifying, setVerifying]       = useState<string | null>(null);
   const [verifyMsg, setVerifyMsg]       = useState<string | null>(null);
+  const [search, setSearch]             = useState("");
   const hasVerified                     = useRef<string | null>(null);
 
   useEffect(() => {
@@ -62,6 +66,12 @@ function PaymentsContent() {
   const payments: Payment[]        = (paymentsData?.payments || []) as unknown as Payment[];
   const pendingFines: RentalFine[] = ((rentalsData?.rentals || []) as unknown as RentalFine[]).filter(r => Number(r.fine || 0) > 0);
   const debt = debtData?.data as DebtSummary | undefined;
+
+  const filteredPayments = payments.filter(p =>
+    matchesMultiLangQuery(p.rental?.physical_book?.title || (p as any).rental?.book?.title, search) ||
+    matchesMultiLangQuery(p.method, search) ||
+    matchesMultiLangQuery(p.status, search)
+  );
 
   const verify = useCallback(async (ref: string) => {
     if (hasVerified.current === ref) return;
@@ -152,25 +162,31 @@ function PaymentsContent() {
       className="p-2 sm:p-4 lg:p-6 space-y-6">
 
       {/* Header */}
-      <motion.div variants={fadeUp}>
-        <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.2em] mb-1">Finance</p>
-        <h1 className="text-[26px] font-serif font-black text-[#0d0d0d]">{String(t("student_payments.title"))}</h1>
-        <p className="text-sm text-[#0d0d0d]/45 mt-1">{String(t("student_payments.subtitle"))}</p>
+      <motion.div variants={fadeUp} className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.2em] mb-1">Finance</p>
+          <h1 className="text-[26px] font-serif font-black text-[#0d0d0d]">{String(t("student_payments.title"))}</h1>
+          <p className="text-sm text-[#0d0d0d]/45 mt-1">{String(t("student_payments.subtitle"))}</p>
 
-        <AnimatePresence>
-          {verifying && (
-            <motion.p initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
-              className="mt-2 text-xs text-[#0d0d0d]/40">
-              {String(t("student_payments.verifying", { ref: verifying }))}
-            </motion.p>
-          )}
-          {verifyMsg && (
-            <motion.div initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0 }}
-              className="mt-3 px-4 py-3 rounded-xl bg-[#fdf9e7] border border-[#f5c518]/40 text-sm font-medium text-[#0d0d0d]">
-              {verifyMsg}
-            </motion.div>
-          )}
-        </AnimatePresence>
+          <AnimatePresence>
+            {verifying && (
+              <motion.p initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
+                className="mt-2 text-xs text-[#0d0d0d]/40">
+                {String(t("student_payments.verifying", { ref: verifying }))}
+              </motion.p>
+            )}
+            {verifyMsg && (
+              <motion.div initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0 }}
+                className="mt-3 px-4 py-3 rounded-xl bg-[#fdf9e7] border border-[#f5c518]/40 text-sm font-medium text-[#0d0d0d]">
+                {verifyMsg}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+        <div className="relative min-w-[240px]">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#0d0d0d]/30" />
+          <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder={String(t("common.search") || "Search payment history…")} className="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-[#e8e4dc] bg-white text-[#0d0d0d] placeholder:text-[#0d0d0d]/25 focus:outline-none focus:border-[#0d0d0d]" />
+        </div>
       </motion.div>
 
       {/* Stat row */}
@@ -262,7 +278,7 @@ function PaymentsContent() {
         </p>
         <div className="bg-white rounded-2xl border border-[#e8e4dc] overflow-hidden">
           <TanStackTable
-            data={payments}
+            data={filteredPayments}
             columns={cols}
             isLoading={isLoading}
             emptyText={String(t("student_payments.no_history"))}

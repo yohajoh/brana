@@ -55,9 +55,22 @@ function StatCard({
   );
 }
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Search } from "lucide-react";
+
 export default function DashboardPage() {
   const { t }    = useLanguage();
   const { user } = usePersona();
+  const router   = useRouter();
+  const [catalogSearch, setCatalogSearch] = useState("");
+
+  const handleCatalogSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (catalogSearch.trim()) {
+      router.push(`/books?search=${encodeURIComponent(catalogSearch.trim())}`);
+    }
+  };
 
   const { data: rentalsData,          isLoading } = useMyRentals();
   const { data: configData }          = useSystemConfig();
@@ -120,13 +133,25 @@ export default function DashboardPage() {
       className="p-2 sm:p-4 lg:p-6 space-y-7"
     >
 
-      {/* ── Greeting ───────────────────────────────── */}
-      <motion.div variants={fadeUp}>
-        <p className="text-[10px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.2em] mb-1">{greeting}</p>
-        <h1 className="text-[26px] sm:text-[30px] font-serif font-black text-[#0d0d0d] leading-tight">
-          {isLoading ? "…" : (user?.name?.split(" ")[0] ?? "Student")}
-        </h1>
-        <p className="text-sm text-[#0d0d0d]/45 mt-1">{String(t("student_dashboard.subtitle"))}</p>
+      {/* ── Greeting + Quick Search ─────────────────── */}
+      <motion.div variants={fadeUp} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <p className="text-[10px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.2em] mb-1">{greeting}</p>
+          <h1 className="text-[26px] sm:text-[30px] font-serif font-black text-[#0d0d0d] leading-tight">
+            {isLoading ? "…" : (user?.name?.split(" ")[0] ?? "Student")}
+          </h1>
+          <p className="text-sm text-[#0d0d0d]/45 mt-1">{String(t("student_dashboard.subtitle"))}</p>
+        </div>
+        <form onSubmit={handleCatalogSearch} className="relative min-w-[260px] sm:min-w-[300px]">
+          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#0d0d0d]/30" />
+          <input
+            type="text"
+            value={catalogSearch}
+            onChange={e => setCatalogSearch(e.target.value)}
+            placeholder={String(t("common.search") || "Search books (EN/AM/OR)…")}
+            className="w-full pl-10 pr-4 py-2.5 text-sm rounded-2xl border border-[#e8e4dc] bg-white text-[#0d0d0d] placeholder:text-[#0d0d0d]/30 focus:outline-none focus:border-[#0d0d0d] focus:shadow-[0_0_0_3px_rgba(245,197,24,0.2)] transition-all"
+          />
+        </form>
       </motion.div>
 
       {/* ── Stats row ──────────────────────────────── */}

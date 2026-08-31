@@ -28,13 +28,23 @@ const statusStyle = (s: string) => {
   }
 };
 
+import { Search } from "lucide-react";
+import { matchesMultiLangQuery } from "@/lib/multiLangSearch";
+
 export default function StudentReservationsPage() {
   const { t }              = useLanguage();
   const { data, isLoading, refetch: refetchReservations } = useMyReservations();
   const cancel             = useCancelReservation();
+  const [search, setSearch] = useState("");
   const rows: Reservation[] = (data?.reservations || []) as unknown as Reservation[];
   const active   = rows.filter(r => ["QUEUED","NOTIFIED"].includes(r.status)).length;
   const notified = rows.filter(r => r.status === "NOTIFIED").length;
+
+  const filteredRows = rows.filter(r =>
+    matchesMultiLangQuery(r.book?.title, search) ||
+    matchesMultiLangQuery(r.book?.author?.name, search) ||
+    matchesMultiLangQuery(r.status, search)
+  );
 
   const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
   const [bulkCancelling, setBulkCancelling] = useState(false);
@@ -147,12 +157,18 @@ export default function StudentReservationsPage() {
     <motion.div variants={stagger} initial="hidden" animate="show"
       className="p-2 sm:p-4 lg:p-6 space-y-6">
 
-      <motion.div variants={fadeUp}>
-        <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.2em] mb-1">Queue</p>
-        <h1 className="text-[26px] font-serif font-black text-[#0d0d0d]">
-          {String(t("student_reservations.title"))}
-        </h1>
-        <p className="text-sm text-[#0d0d0d]/45 mt-1">{String(t("student_reservations.subtitle"))}</p>
+      <motion.div variants={fadeUp} className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.2em] mb-1">Queue</p>
+          <h1 className="text-[26px] font-serif font-black text-[#0d0d0d]">
+            {String(t("student_reservations.title"))}
+          </h1>
+          <p className="text-sm text-[#0d0d0d]/45 mt-1">{String(t("student_reservations.subtitle"))}</p>
+        </div>
+        <div className="relative min-w-[240px]">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#0d0d0d]/30" />
+          <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder={String(t("common.search") || "Search reservations…")} className="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-[#e8e4dc] bg-white text-[#0d0d0d] placeholder:text-[#0d0d0d]/25 focus:outline-none focus:border-[#0d0d0d]" />
+        </div>
       </motion.div>
 
       {/* Stats */}
@@ -188,7 +204,7 @@ export default function StudentReservationsPage() {
           </div>
         )}
         <TanStackTable
-          data={rows} columns={cols}
+          data={filteredRows} columns={cols}
           isLoading={isLoading}
           emptyText={String(t("student_reservations.no_reservations"))}
           skeletonRows={4}
