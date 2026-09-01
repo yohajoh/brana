@@ -157,7 +157,7 @@ export const getOverviewStats = async () => {
         TO_CHAR(DATE_TRUNC('week', loan_date), 'YYYY-MM-DD') AS week_start,
         COUNT(*)::int as count
       FROM "Rental"
-      WHERE loan_date >= ${startOfMonth}
+      WHERE loan_date >= NOW() - INTERVAL '30 days'
       GROUP BY DATE_TRUNC('week', loan_date)
       ORDER BY week_start ASC
     `,
