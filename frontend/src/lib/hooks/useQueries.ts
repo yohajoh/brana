@@ -294,6 +294,7 @@ export const queryKeys = {
   overview: ["stats", "overview"] as const,
   targets: ["stats", "targets"] as const,
   books: (params?: string) => ["books", params] as const,
+  bookDetail: (id: string) => ["books", id] as const,
   digitalBooks: (params?: string) => ["digital-books", params] as const,
   categories: (params?: string) => ["categories", params] as const,
   authors: (params?: string) => ["authors", params] as const,
@@ -1655,10 +1656,38 @@ export function useSettleRentalFine() {
   });
 }
 
+export function useVerifyPickupCode() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ rentalId, pickupCode }: { rentalId: string; pickupCode: string }) =>
+      api.patch<{ status: string; data: { rental: unknown } }>(`/rentals/${rentalId}/verify-pickup`, { pickup_code: pickupCode }),
+    onSuccess: () => {
+      invalidateBookRelatedQueries(queryClient);
+    },
+    onSettled: () => {
+      invalidateBookRelatedQueries(queryClient);
+    },
+  });
+}
+
+export function useCancelPendingPickup() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ rentalId, reason }: { rentalId: string; reason?: string }) =>
+      api.patch<{ status: string; data: { rental: unknown } }>(`/rentals/${rentalId}/cancel-pickup`, { reason }),
+    onSuccess: () => {
+      invalidateBookRelatedQueries(queryClient);
+    },
+    onSettled: () => {
+      invalidateBookRelatedQueries(queryClient);
+    },
+  });
+}
+
 export function useSendOverdueReminders() {
   return useMutation({
-    mutationFn: (rentalIds?: string[]) =>
-      api.post<{ status: string; data: { remindersSent: number } }>("/rentals/admin/send-reminders", { rentalIds }),
+    mutationFn: (rentalIds?: string[] | void) =>
+      api.post<{ status: string; data: { remindersSent: number } }>("/rentals/admin/send-reminders", { rentalIds: rentalIds || undefined }),
   });
 }
 

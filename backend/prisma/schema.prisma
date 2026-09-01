@@ -157,6 +157,7 @@ model Rental {
   status             Status           @default(BORROWED)
   fine               Decimal?
   copy_id            String?          @db.Uuid
+  pickup_code        String?
   outgoing_condition BookCondition    @default(GOOD)
   returned_condition BookCondition?
   payment            Payment?

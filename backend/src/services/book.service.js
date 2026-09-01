@@ -388,6 +388,7 @@ export const getBooks = async (query) => {
 
   // Sort – support -field for descending
   const ALLOWED_SORT_FIELDS = ["title", "available", "pages"];
+  /** @type {Record<string, "asc" | "desc">[]} */
   let orderBy = [{ title: "asc" }];
   if (query.sort) {
     const desc = query.sort.startsWith("-");
@@ -822,7 +823,7 @@ export const createBook = async (data, imageFile = null, galleryFiles = []) => {
 
         await calendar.events.insert({
           calendarId: "primary",
-          resource: event,
+          requestBody: event,
           sendUpdates: "all",
         });
       } catch (error) {
@@ -1353,6 +1354,7 @@ export const getAdminBooks = async (query) => {
   }
 
   const ALLOWED = ["title", "available", "copies"];
+  /** @type {Record<string, "asc" | "desc">[]} */
   let orderBy = [{ title: "asc" }];
   if (query.sort) {
     const desc = query.sort.startsWith("-");

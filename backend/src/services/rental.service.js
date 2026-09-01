@@ -76,7 +76,7 @@ const getConfig = async () => {
  * Calculate fine for an overdue return.
  * @param {Date} dueDate
  * @param {Date} returnDate
- * @param {number|import('@prisma/client').Decimal} dailyFine
+ * @param {number|string|any} dailyFine
  * @returns {number} fine amount (0 if not overdue)
  */
 const calculateFine = (dueDate, returnDate, dailyFine) => {
@@ -265,6 +265,7 @@ export const getAllRentals = async (query) => {
   }
 
   const ALLOWED = ["loan_date", "due_date", "return_date"];
+  /** @type {Record<string, "asc" | "desc">[]} */
   let orderBy = [{ loan_date: "desc" }];
   if (query.sort) {
     const desc = query.sort.startsWith("-");
@@ -562,7 +563,17 @@ export const borrowBook = async (userId, { book_id, loan_days, time_zone, overdu
   const copyDetail = await prisma.bookCopy.findUnique({ where: { id: copy.id } });
   const outgoingCondition = copyDetail?.condition || "GOOD";
 
-  // Atomic transaction: create rental + mark copy unavailable + decrement book.available
+  const generatePickupCode = () => {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    let code = "PK-";
+    for (let i = 0; i < 4; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+  };
+  const pickupCode = generatePickupCode();
+
+  // Atomic transaction: create rental + mark copy reserved + decrement book.available
   const [rental] = await prisma.$transaction([
     prisma.rental.create({
       data: {
@@ -573,7 +584,8 @@ export const borrowBook = async (userId, { book_id, loan_days, time_zone, overdu
         copy_id: copy.id,
         outgoing_condition: outgoingCondition,
         due_date: dueDate,
-        status: "BORROWED",
+        status: "PENDING",
+        pickup_code: pickupCode,
       },
       include: RENTAL_INCLUDE,
     }),
@@ -689,7 +701,7 @@ Birana Library`;
 
       await calendar.events.insert({
         calendarId: "primary",
-        resource: event,
+        requestBody: event,
         sendUpdates: "all",
       });
 
@@ -719,7 +731,7 @@ Birana Library`;
 
       await calendar.events.insert({
         calendarId: "primary",
-        resource: reminderEvent,
+        requestBody: reminderEvent,
         sendUpdates: "all",
       });
     } catch (error) {
@@ -759,12 +771,16 @@ const calculateDamagePenalty = (damageType, bookRentalPrice) => {
 
 /**
  * Advanced Two-Phase Return Handshake with Physical Copy Inspection & Damage Assessment
+ * @param {string} rentalId
+ * @param {{ inspectorId?: string; returnedCondition?: string; damageType?: string; notes?: string; evidenceUrl?: string; waivePenalty?: boolean }} [options]
+ * @param {any} [io]
  */
 export const returnBookWithInspection = async (
   rentalId,
-  { inspectorId, returnedCondition, damageType, notes, evidenceUrl, waivePenalty } = {},
+  options = {},
   io,
 ) => {
+  const { inspectorId, returnedCondition, damageType, notes, evidenceUrl, waivePenalty } = options || {};
   const rental = await prisma.rental.findUnique({
     where: { id: rentalId },
     include: {
@@ -1117,7 +1133,7 @@ export const sendOverdueReminders = async (io, rentalIds = []) => {
         };
         await calendar.events.insert({
           calendarId: "primary",
-          resource: event,
+          requestBody: event,
           sendUpdates: "all",
         });
       } catch (error) {
@@ -1179,8 +1195,13 @@ export const extendRental = async (rentalId, { extra_days }, io) => {
 
 /**
  * Admin: Settle a pending rental fine (CASH or WAIVE) directly at the library desk.
+ * @param {string} rentalId
+ * @param {{ method?: string; notes?: string }} [options]
+ * @param {string} [adminUserId]
+ * @param {any} [io]
  */
-export const settleRentalFine = async (rentalId, { method = "CASH", notes } = {}, adminUserId, io) => {
+export const settleRentalFine = async (rentalId, options = {}, adminUserId, io) => {
+  const { method = "CASH", notes } = options || {};
   const rental = await prisma.rental.findUnique({
     where: { id: rentalId },
     include: RENTAL_INCLUDE,
@@ -1246,5 +1267,111 @@ export const settleRentalFine = async (rentalId, { method = "CASH", notes } = {}
   });
 
   return result;
+};
+
+/**
+ * Verify Student Pickup Code at Desk
+ * Admin verifies the student's 6-character pickup code.
+ * If code matches: Status becomes BORROWED (Active Loan)
+ */
+export const verifyPickupCode = async (rentalId, { pickupCode }, adminUserId, io) => {
+  if (!pickupCode) throw new AppError("Pickup verification code is required", 400);
+
+  const rental = await prisma.rental.findUnique({
+    where: { id: rentalId },
+    include: RENTAL_INCLUDE,
+  });
+
+  if (!rental) throw new AppError("Rental not found", 404);
+  if (rental.status !== "PENDING") {
+    throw new AppError(`Rental status is currently ${rental.status}. Only PENDING pickups can be verified.`, 400);
+  }
+
+  const cleanInput = String(pickupCode).trim().toUpperCase();
+  const cleanTarget = String(rental.pickup_code || "").trim().toUpperCase();
+
+  if (cleanTarget && cleanInput !== cleanTarget) {
+    throw new AppError("Invalid pickup code. The code provided does not match borrower records.", 400);
+  }
+
+  const updatedRental = await prisma.$transaction(async (tx) => {
+    const updated = await tx.rental.update({
+      where: { id: rentalId },
+      data: {
+        status: "BORROWED",
+      },
+      include: RENTAL_INCLUDE,
+    });
+
+    if (rental.copy_id) {
+      await tx.bookCopy.update({
+        where: { id: rental.copy_id },
+        data: { status: "BORROWED", is_available: false },
+      });
+    }
+
+    return updated;
+  });
+
+  await createNotification({
+    userId: rental.user_id,
+    message: `✅ Pickup code verified by desk librarian! Your loan for "${rental.physical_book?.title || "Book"}" is now ACTIVE.`,
+    type: "INFO",
+    io,
+  });
+
+  return updatedRental;
+};
+
+/**
+ * Cancel Pending Pickup & Release Copy
+ * Admin manually cancels a pending pickup (e.g. invalid borrower code) and makes copy available for others.
+ */
+export const cancelPendingPickup = async (rentalId, { reason }, adminUserId, io) => {
+  const rental = await prisma.rental.findUnique({
+    where: { id: rentalId },
+    include: RENTAL_INCLUDE,
+  });
+
+  if (!rental) throw new AppError("Rental not found", 404);
+  if (rental.status !== "PENDING") {
+    throw new AppError(`Rental status is currently ${rental.status}. Only PENDING pickups can be cancelled.`, 400);
+  }
+
+  const updatedRental = await prisma.$transaction(async (tx) => {
+    const updated = await tx.rental.update({
+      where: { id: rentalId },
+      data: {
+        status: "COMPLETED",
+        fine: 0,
+      },
+      include: RENTAL_INCLUDE,
+    });
+
+    if (rental.copy_id) {
+      await tx.bookCopy.update({
+        where: { id: rental.copy_id },
+        data: { status: "AVAILABLE", is_available: true },
+      });
+    }
+
+    if (rental.book_id) {
+      await tx.book.update({
+        where: { id: rental.book_id },
+        data: { available: { increment: 1 } },
+      });
+    }
+
+    return updated;
+  });
+
+  await createNotification({
+    userId: rental.user_id,
+    message: `ℹ️ Your pending borrow request for "${rental.physical_book?.title || "Book"}" was cancelled by the librarian.${reason ? ` Reason: ${reason}` : ""} The copy was released to inventory.`,
+    type: "INFO",
+    io,
+  });
+
+  return updatedRental;
 };
 

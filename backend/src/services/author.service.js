@@ -34,6 +34,7 @@ export const getAuthors = async (query) => {
   }
 
   const ALLOWED = ['name', 'created_at'];
+  /** @type {Record<string, "asc" | "desc">[]} */
   let orderBy = [{ name: 'asc' }];
   if (query.sort) {
     const desc = query.sort.startsWith('-');

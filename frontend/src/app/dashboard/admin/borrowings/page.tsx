@@ -24,6 +24,8 @@ import {
   useRentals,
   useReturnRentalWithInspection,
   useSettleRentalFine,
+  useVerifyPickupCode,
+  useCancelPendingPickup,
   useSendOverdueReminders,
   useSystemConfig,
 } from "@/lib/hooks/useQueries";
@@ -32,7 +34,7 @@ import { TanStackTable } from "@/components/ui/TanStackTable";
 import { ColumnDef } from "@tanstack/react-table";
 import { matchesMultiLangQuery } from "@/lib/multiLangSearch";
 
-const fadeUp  = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.38, ease: [0.16, 1, 0.3, 1] } } };
+const fadeUp  = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.38, ease: [0.16, 1, 0.3, 1] as const } } };
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
 const ITEMS   = 10;
 
@@ -45,6 +47,7 @@ type Rental = {
   due_date: string;
   return_date?: string | null;
   fine?: number | null;
+  pickup_code?: string | null;
   outgoing_condition?: string;
   returned_condition?: string | null;
   user: { name: string; email: string; student_id?: string | null; trust_score?: number; standing?: string };
@@ -468,6 +471,164 @@ function SettleFineModal({
   );
 }
 
+/* ── Desk Pickup Verification Modal ─────────────────────────────────────── */
+function VerifyPickupModal({
+  rental,
+  onClose,
+  onSuccess,
+}: {
+  rental: Rental;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const verifyPickup = useVerifyPickupCode();
+  const cancelPickup = useCancelPendingPickup();
+  const [pickupCode, setPickupCode] = useState("");
+  const [reason, setReason] = useState("");
+  const [mode, setMode] = useState<"VERIFY" | "CANCEL">("VERIFY");
+
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await verifyPickup.mutateAsync({ rentalId: rental.id, pickupCode });
+      toast.success(`Verification successful! Physical book handed over.`);
+      onSuccess();
+      onClose();
+    } catch (err: any) {
+      toast.error(err?.message || "Invalid verification code. Please check code with student.");
+    }
+  };
+
+  const handleCancel = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await cancelPickup.mutateAsync({ rentalId: rental.id, reason });
+      toast.success(`Pending borrow cancelled. Copy returned to active inventory.`);
+      onSuccess();
+      onClose();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to cancel borrow request.");
+    }
+  };
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        className="fixed inset-0 z-[2147483647] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+        onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      >
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
+          className="bg-white rounded-2xl border border-[#e8e4dc] p-6 w-full max-w-md shadow-2xl space-y-5"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between border-b border-[#e8e4dc] pb-3">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-indigo-600" />
+              <div>
+                <h3 className="text-[16px] font-serif font-black text-[#0d0d0d]">Desk Handshake Authorization</h3>
+                <p className="text-[11px] text-[#0d0d0d]/50">Validate borrower verification code at desk before physical handover</p>
+              </div>
+            </div>
+            <button onClick={onClose} className="w-8 h-8 rounded-xl bg-[#f5f4f0] flex items-center justify-center text-[#0d0d0d]/40 hover:text-[#0d0d0d]">
+              <X size={15} />
+            </button>
+          </div>
+
+          <div className="p-3.5 bg-indigo-50/70 border border-indigo-100 rounded-xl space-y-1.5 text-xs text-indigo-950">
+            <p><strong>Student Borrower:</strong> {rental.user?.name} ({rental.user?.email})</p>
+            <p><strong>Book Title:</strong> {rental.physical_book?.title}</p>
+            <p><strong>Allocated Copy Code:</strong> <span className="font-mono font-bold text-indigo-800">{rental.copy?.copy_code || "N/A"}</span></p>
+          </div>
+
+          <div className="flex rounded-xl bg-[#f5f4f0] p-1 gap-1">
+            <button
+              type="button"
+              onClick={() => setMode("VERIFY")}
+              className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${mode === "VERIFY" ? "bg-white text-indigo-700 shadow-sm" : "text-[#0d0d0d]/60"}`}
+            >
+              🔑 Verify Authorization Code
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("CANCEL")}
+              className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${mode === "CANCEL" ? "bg-white text-rose-700 shadow-sm" : "text-[#0d0d0d]/60"}`}
+            >
+              ⚠️ Cancel & Release Copy
+            </button>
+          </div>
+
+          {mode === "VERIFY" ? (
+            <form onSubmit={handleVerify} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-black text-[#0d0d0d]/60 uppercase tracking-wider">
+                  Enter Handshake Verification Code Provided By Student
+                </label>
+                <input
+                  type="text"
+                  value={pickupCode}
+                  onChange={(e) => setPickupCode(e.target.value.toUpperCase())}
+                  placeholder="e.g. PK-7B9X"
+                  required
+                  autoFocus
+                  className="w-full px-3.5 py-2.5 font-mono text-sm font-bold text-[#0d0d0d] bg-[#faf9f6] border border-[#e8e4dc] rounded-xl focus:border-indigo-600 focus:outline-none tracking-widest uppercase"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button type="button" onClick={onClose} className="px-4 py-2.5 rounded-xl border border-[#e8e4dc] text-xs font-bold text-[#0d0d0d]/70">
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={verifyPickup.isPending || !pickupCode.trim()}
+                  className="px-5 py-2.5 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 disabled:opacity-50 transition-colors flex items-center gap-1.5"
+                >
+                  {verifyPickup.isPending ? "Verifying..." : "Authorize Physical Pickup"}
+                </button>
+              </div>
+            </form>
+          ) : (
+            <form onSubmit={handleCancel} className="space-y-4">
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-900 space-y-1">
+                <p className="font-bold">Release Copy to Inventory?</p>
+                <p className="text-[11px]">This will cancel the pending borrow request and make copy <strong className="font-mono">{rental.copy?.copy_code}</strong> available for other students to rent.</p>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-[#0d0d0d]/50 uppercase tracking-wider">
+                  Reason for Cancellation (Optional)
+                </label>
+                <textarea
+                  rows={2}
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  placeholder="Incorrect borrower code / student failed to show up..."
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-[#e8e4dc] bg-[#faf9f6] resize-none"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button type="button" onClick={onClose} className="px-4 py-2.5 rounded-xl border border-[#e8e4dc] text-xs font-bold text-[#0d0d0d]/70">
+                  Back
+                </button>
+                <button
+                  type="submit"
+                  disabled={cancelPickup.isPending}
+                  className="px-5 py-2.5 rounded-xl bg-rose-600 text-white text-xs font-bold disabled:opacity-50 hover:bg-rose-700 shadow-sm"
+                >
+                  {cancelPickup.isPending ? "Releasing..." : "Confirm Cancel & Release Copy"}
+                </button>
+              </div>
+            </form>
+          )}
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
 /* ── Main Borrowings Content ─────────────────────────────────────────────── */
 function BorrowingsContent() {
   const { t } = useLanguage();
@@ -478,21 +639,24 @@ function BorrowingsContent() {
 
   const [inspectingRental, setInspectingRental] = useState<Rental | null>(null);
   const [settlingRental, setSettlingRental] = useState<Rental | null>(null);
+  const [verifyingPickupRental, setVerifyingPickupRental] = useState<Rental | null>(null);
 
   const sendReminders = useSendOverdueReminders();
 
   const qp = new URLSearchParams();
   qp.set("limit", "250");
   const { data, isLoading, refetch } = useRentals(qp.toString());
-  const rentals: Rental[] = (data?.rentals || []) as unknown as Rental[];
+  const rawRentals = (data as any)?.rentals || (data as any)?.data?.rentals || (data as any)?.data || (Array.isArray(data) ? data : []);
+  const rentals: Rental[] = Array.isArray(rawRentals) ? (rawRentals as unknown as Rental[]) : [];
 
   /* Status Filter Logic */
   const filtered = rentals.filter((r) => {
-    const isOverdue = r.status === "BORROWED" && new Date(r.due_date) < new Date();
-    if (tab === "BORROWED" && (r.status !== "BORROWED" || isOverdue)) return false;
+    const statusUpper = (r.status || "").toUpperCase();
+    const isOverdue = statusUpper === "BORROWED" && new Date(r.due_date) < new Date();
+    if (tab === "BORROWED" && (statusUpper !== "BORROWED" || isOverdue)) return false;
     if (tab === "OVERDUE" && !isOverdue) return false;
-    if (tab === "PENDING" && r.status !== "PENDING") return false;
-    if (tab === "CLOSED" && r.status !== "RETURNED" && r.status !== "COMPLETED") return false;
+    if (tab === "PENDING" && statusUpper !== "PENDING") return false;
+    if (tab === "CLOSED" && statusUpper !== "RETURNED" && statusUpper !== "COMPLETED") return false;
 
     if (!search.trim()) return true;
     return (
@@ -501,6 +665,7 @@ function BorrowingsContent() {
       matchesMultiLangQuery(r.user?.student_id, search) ||
       matchesMultiLangQuery(r.physical_book?.title, search) ||
       matchesMultiLangQuery(r.copy?.copy_code, search) ||
+      matchesMultiLangQuery(r.pickup_code, search) ||
       matchesMultiLangQuery(r.status, search)
     );
   });
@@ -509,16 +674,16 @@ function BorrowingsContent() {
   const paginated = filtered.slice((page - 1) * ITEMS, page * ITEMS);
 
   /* Metric KPI Summaries */
-  const activeCount = rentals.filter((r) => r.status === "BORROWED" && new Date(r.due_date) >= new Date()).length;
-  const overdueCount = rentals.filter((r) => r.status === "BORROWED" && new Date(r.due_date) < new Date()).length;
-  const pendingDebtCount = rentals.filter((r) => r.status === "PENDING").length;
+  const activeCount = rentals.filter((r) => (r.status || "").toUpperCase() === "BORROWED" && new Date(r.due_date) >= new Date()).length;
+  const overdueCount = rentals.filter((r) => (r.status || "").toUpperCase() === "BORROWED" && new Date(r.due_date) < new Date()).length;
+  const pendingDebtCount = rentals.filter((r) => (r.status || "").toUpperCase() === "PENDING").length;
   const pendingDebtETB = rentals
-    .filter((r) => r.status === "PENDING")
+    .filter((r) => (r.status || "").toUpperCase() === "PENDING")
     .reduce((sum, r) => sum + Number(r.fine || 0), 0);
 
   const handleSendReminders = async () => {
     try {
-      const res = await sendReminders.mutateAsync();
+      const res = await sendReminders.mutateAsync(undefined);
       toast.success(`Dispatched ${res.data?.remindersSent || 0} overdue reminder notification(s)!`);
     } catch (err: any) {
       toast.error(err?.message || "Failed to send reminders.");
@@ -583,10 +748,22 @@ function BorrowingsContent() {
       header: String(t("admin_borrowings.table.status")),
       cell: ({ row }) => {
         const r = row.original;
-        const isOverdue = r.status === "BORROWED" && new Date(r.due_date) < new Date();
+        const statusUpper = (r.status || "").toUpperCase();
+        const isOverdue = statusUpper === "BORROWED" && new Date(r.due_date) < new Date();
+
+        if (statusUpper === "PENDING") {
+          return (
+            <div className="space-y-1">
+              <span className="inline-flex px-2.5 py-1 rounded-lg text-[10px] uppercase border bg-amber-50 text-amber-800 border-amber-200 font-bold">
+                Pending Desk Pickup
+              </span>
+            </div>
+          );
+        }
+
         return (
-          <span className={`inline-flex px-2.5 py-1 rounded-lg text-[10px] uppercase border ${statusStyle(r.status, isOverdue)}`}>
-            {isOverdue ? "OVERDUE" : STATUS_LABEL[r.status] ?? r.status}
+          <span className={`inline-flex px-2.5 py-1 rounded-lg text-[10px] uppercase border ${statusStyle(statusUpper, isOverdue)}`}>
+            {isOverdue ? "OVERDUE" : STATUS_LABEL[statusUpper] ?? statusUpper}
           </span>
         );
       },
@@ -608,20 +785,31 @@ function BorrowingsContent() {
       header: "",
       cell: ({ row }) => {
         const r = row.original;
-        const isOverdue = r.status === "BORROWED" && new Date(r.due_date) < new Date();
+        const statusUpper = (r.status || "").toUpperCase();
+        const isOverdue = statusUpper === "BORROWED" && new Date(r.due_date) < new Date();
 
-        if (r.status === "PENDING") {
+        if (statusUpper === "PENDING") {
           return (
-            <button
-              onClick={() => setSettlingRental(r)}
-              className="px-3.5 py-1.5 rounded-lg text-[11px] font-bold border border-emerald-600 bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white transition-colors"
-            >
-              💵 Settle Fine
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setVerifyingPickupRental(r)}
+                className="px-3 py-1.5 rounded-lg text-[11px] font-bold border border-indigo-600 bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white transition-colors flex items-center gap-1"
+              >
+                🔑 Verify Pickup
+              </button>
+              {Number(r.fine || 0) > 0 && (
+                <button
+                  onClick={() => setSettlingRental(r)}
+                  className="px-3 py-1.5 rounded-lg text-[11px] font-bold border border-emerald-600 bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white transition-colors"
+                >
+                  💵 Settle Fine
+                </button>
+              )}
+            </div>
           );
         }
 
-        if (r.status === "BORROWED") {
+        if (statusUpper === "BORROWED") {
           return (
             <button
               onClick={() => setInspectingRental(r)}
@@ -792,6 +980,15 @@ function BorrowingsContent() {
         <SettleFineModal
           rental={settlingRental}
           onClose={() => setSettlingRental(null)}
+          onSuccess={() => refetch()}
+        />
+      )}
+
+      {/* Desk Pickup Verification Modal */}
+      {verifyingPickupRental && (
+        <VerifyPickupModal
+          rental={verifyingPickupRental}
+          onClose={() => setVerifyingPickupRental(null)}
           onSuccess={() => refetch()}
         />
       )}

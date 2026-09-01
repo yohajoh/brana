@@ -100,6 +100,7 @@ export const getReviews = async (bookType, bookId, query) => {
   }
 
   // Sort
+  /** @type {Record<string, "asc" | "desc">[]} */
   let orderBy = [{ created_at: "desc" }];
   if (query.sort === "rating") orderBy = [{ rating: "asc" }];
   else if (query.sort === "-rating") orderBy = [{ rating: "desc" }];

@@ -19,7 +19,7 @@ type DebtEntry   = { rental_id: string; book_title: string; amount: number | str
 type DebtSummary = { hasDebt?: boolean; totalDebt?: number | string | null; overdueFines?: DebtEntry[] };
 
 /* ── animation variants ──────────────────────────────────────────── */
-const fadeUp  = { hidden: { opacity:0, y:16 }, show: { opacity:1, y:0, transition:{ duration:0.38, ease:[0.16,1,0.3,1] } } };
+const fadeUp  = { hidden: { opacity:0, y:16 }, show: { opacity:1, y:0, transition:{ duration:0.38, ease:[0.16,1,0.3,1] as const } } };
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
 
 /* ── status badge ────────────────────────────────────────────────── */
@@ -42,7 +42,7 @@ function PayStat({ label, value, accent = false }: { label: string; value: strin
   );
 }
 
-import { Search } from "lucide-react";
+import { Search, X, Copy, Check, KeyRound } from "lucide-react";
 import { matchesMultiLangQuery } from "@/lib/multiLangSearch";
 
 import { useQueryClient } from "@tanstack/react-query";
@@ -54,7 +54,11 @@ function PaymentsContent() {
   const [verifying, setVerifying]       = useState<string | null>(null);
   const [verifyMsg, setVerifyMsg]       = useState<string | null>(null);
   const [search, setSearch]             = useState("");
+  const [activePickupModal, setActivePickupModal] = useState<any | null>(null);
+  const [dismissedPickups, setDismissedPickups]   = useState<string[]>([]);
+  const [copiedCode, setCopiedCode]               = useState(false);
   const hasVerified                     = useRef<string | null>(null);
+  const autoOpenedRef                   = useRef<boolean>(false);
 
   useEffect(() => {
     const p   = new URLSearchParams(window.location.search);
@@ -84,6 +88,10 @@ function PaymentsContent() {
     }));
 
   const pendingFines: RentalFine[] = [...rentalsWithFine, ...debtEntriesFromSummary];
+
+  const pendingPickups = ((rentalsData?.rentals || []) as unknown as any[]).filter(
+    (r) => r.status === "PENDING" && r.pickup_code
+  );
 
   const filteredPayments = payments.filter(p =>
     matchesMultiLangQuery(p.rental?.physical_book?.title || (p as any).rental?.book?.title, search) ||
@@ -115,7 +123,29 @@ function PaymentsContent() {
     finally { setVerifying(null); }
   }, [refetch, t, queryClient]);
 
-  useEffect(() => { if (txRef && !hasVerified.current) verify(txRef); }, [txRef, verify]);
+  useEffect(() => {
+    if (pendingPickups.length > 0 && !autoOpenedRef.current) {
+      const latestUndismissed = pendingPickups.find((p) => !dismissedPickups.includes(p.id));
+      if (latestUndismissed) {
+        setActivePickupModal(latestUndismissed);
+        autoOpenedRef.current = true;
+      }
+    }
+  }, [pendingPickups, dismissedPickups]);
+
+  const handleClosePickupModal = () => {
+    if (activePickupModal) {
+      setDismissedPickups((prev) => [...prev, activePickupModal.id]);
+    }
+    setActivePickupModal(null);
+    setCopiedCode(false);
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedCode(true);
+    setTimeout(() => setCopiedCode(false), 2500);
+  };
 
   const payFine = async (rentalId: string) => {
     try {
@@ -222,6 +252,113 @@ function PaymentsContent() {
         <PayStat label={String(t("student_payments.pending_fines") || "Pending fines")} value={String(pendingFines.length)} accent={pendingFines.length > 0} />
         <PayStat label={String(t("student_payments.pending_payments") || "Pending tx")} value={String(totalPending)} accent={totalPending > 0} />
       </motion.div>
+
+      {/* Desk Pickup Verification Trigger Badge */}
+      <AnimatePresence>
+        {pendingPickups.length > 0 && (
+          <motion.div variants={fadeUp} className="flex flex-wrap gap-2">
+            {pendingPickups.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => {
+                  setActivePickupModal(p);
+                  setCopiedCode(false);
+                }}
+                className="px-4 py-2.5 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-900 text-xs font-bold hover:bg-indigo-100 transition-all flex items-center gap-2 shadow-sm"
+              >
+                <KeyRound size={15} className="text-indigo-600" />
+                <span>Handshake Authorization: <strong>{p.physical_book?.title || "Book"}</strong></span>
+                <span className="font-mono bg-indigo-600 text-white px-2 py-0.5 rounded-lg text-[11px] font-black">{p.pickup_code}</span>
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ONE-TIME HANDSHAKE CODE POPUP MODAL WINDOW */}
+      <AnimatePresence>
+        {activePickupModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={handleClosePickupModal}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full border border-[#e8e4dc] shadow-2xl relative overflow-hidden text-center"
+            >
+              {/* Close X Button */}
+              <button
+                onClick={handleClosePickupModal}
+                className="absolute top-4 right-4 p-2 rounded-full text-[#0d0d0d]/40 hover:text-[#0d0d0d] hover:bg-[#f5f3ef] transition-colors"
+                title="Close"
+              >
+                <X size={18} />
+              </button>
+
+              <div className="w-14 h-14 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center mx-auto mb-4 shadow-sm">
+                <KeyRound size={28} />
+              </div>
+
+              <h3 className="text-xl font-serif font-black text-[#0d0d0d]">
+                Handshake Verification Code
+              </h3>
+
+              <p className="text-xs text-[#0d0d0d]/60 mt-1 max-w-xs mx-auto">
+                Present this code to the circulation desk to collect your physical copy:
+              </p>
+              <p className="text-sm font-bold text-indigo-950 mt-1.5 line-clamp-2 px-2 py-1 bg-indigo-50/50 rounded-lg">
+                "{activePickupModal.physical_book?.title || "Book"}"
+              </p>
+
+              {/* Generated Code Display Box */}
+              <div className="my-6 p-4 rounded-2xl bg-[#0d0d0d] text-white flex items-center justify-between gap-3 shadow-inner">
+                <div className="text-left">
+                  <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">
+                    Verification Code
+                  </p>
+                  <p className="text-2xl font-mono font-black text-amber-400 tracking-wider">
+                    {activePickupModal.pickup_code}
+                  </p>
+                </div>
+                <button
+                  onClick={() => copyToClipboard(activePickupModal.pickup_code)}
+                  className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-all flex items-center gap-1.5 shrink-0"
+                >
+                  {copiedCode ? (
+                    <>
+                      <Check size={14} className="text-emerald-400" />
+                      <span className="text-emerald-400">Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={14} />
+                      <span>Copy</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              <p className="text-[11px] text-[#0d0d0d]/40 mb-6">
+                💡 Clicking <strong>X</strong> or anywhere outside will dismiss this popup.
+              </p>
+
+              <button
+                onClick={handleClosePickupModal}
+                className="w-full py-3 rounded-2xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 transition-colors shadow-sm"
+              >
+                Got It, Close Window
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Debt alert */}
       <AnimatePresence>

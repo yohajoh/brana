@@ -275,8 +275,8 @@ export const initiatePayment = async (rentalId, userId, { method = "CHAPA", cont
   let debtRentalIds;
 
   if (isBorrowPayment) {
-    if (rental.status !== "BORROWED") {
-      throw new AppError("Borrow payment can only be initiated for BORROWED rentals", 400);
+    if (rental.status !== "BORROWED" && rental.status !== "PENDING") {
+      throw new AppError("Borrow payment can only be initiated for PENDING or BORROWED rentals", 400);
     }
 
     rentalCharge = roundMoney(Number(rental.physical_book?.rental_price || 0));

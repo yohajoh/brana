@@ -117,3 +117,43 @@ export const settleRentalFine = async (req, res) => {
   res.json({ status: "success", data: { rental: result } });
 };
 
+export const verifyPickupCode = async (req, res) => {
+  const { pickup_code } = req.body || {};
+  const result = await rentalService.verifyPickupCode(
+    req.params.id,
+    { pickupCode: pickup_code },
+    req.user.id,
+    getIo(req),
+  );
+  await logAdminActivity({
+    adminUserId: req.user.id,
+    action: "VERIFY_PICKUP",
+    entityType: "RENTAL",
+    entityId: req.params.id,
+    description: `Verified pickup code (${result.pickup_code || pickup_code}) for "${result.user?.name}". Rental is now BORROWED.`,
+    metadata: { pickup_code: result.pickup_code },
+    req,
+  });
+  res.json({ status: "success", data: { rental: result } });
+};
+
+export const cancelPendingPickup = async (req, res) => {
+  const { reason } = req.body || {};
+  const result = await rentalService.cancelPendingPickup(
+    req.params.id,
+    { reason },
+    req.user.id,
+    getIo(req),
+  );
+  await logAdminActivity({
+    adminUserId: req.user.id,
+    action: "CANCEL_PICKUP",
+    entityType: "RENTAL",
+    entityId: req.params.id,
+    description: `Cancelled pending pickup for "${result.user?.name}". Released book copy back to inventory.`,
+    metadata: { reason },
+    req,
+  });
+  res.json({ status: "success", data: { rental: result } });
+};
+
