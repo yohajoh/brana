@@ -35,9 +35,9 @@ const statusBadge = (s: string) => {
 function PayStat({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) {
   return (
     <motion.div variants={fadeUp}
-      className={`rounded-2xl border p-4 ${accent ? "bg-[#0d0d0d] border-[#0d0d0d]" : "bg-white border-[#e8e4dc]"}`}>
-      <p className={`text-[22px] font-serif font-black leading-none ${accent ? "text-[#f5c518]" : "text-[#0d0d0d]"}`}>{value}</p>
-      <p className={`text-[9px] font-black uppercase tracking-[0.15em] mt-2 ${accent ? "text-white/40" : "text-[#0d0d0d]/35"}`}>{label}</p>
+      className="rounded-2xl border p-4 bg-white border-[#e8e4dc]">
+      <p className={`text-[22px] font-serif font-black leading-none ${accent ? "text-[#b88c00]" : "text-[#0d0d0d]"}`}>{value}</p>
+      <p className="text-[9px] font-black uppercase tracking-[0.15em] mt-2 text-[#0d0d0d]/35">{label}</p>
     </motion.div>
   );
 }
@@ -60,12 +60,27 @@ function PaymentsContent() {
   }, []);
 
   const { data: paymentsData, isLoading, refetch } = useMyPayments("limit=100");
-  const { data: rentalsData }    = useMyRentals("status=PENDING&limit=100");
+  const { data: rentalsData }    = useMyRentals("limit=100");
   const { data: debtData }       = useMyDebtSummary();
 
-  const payments: Payment[]        = (paymentsData?.payments || []) as unknown as Payment[];
-  const pendingFines: RentalFine[] = ((rentalsData?.rentals || []) as unknown as RentalFine[]).filter(r => Number(r.fine || 0) > 0);
+  const payments: Payment[] = (paymentsData?.payments || []) as unknown as Payment[];
   const debt = debtData?.data as DebtSummary | undefined;
+
+  // Include all pending fines / damage penalties across rentals
+  const rentalsWithFine = ((rentalsData?.rentals || []) as unknown as RentalFine[]).filter(
+    (r) => (r as any).status !== "COMPLETED" && Number(r.fine || 0) > 0
+  );
+
+  // Merge debt summary entries if any rental is not in rentalsWithFine
+  const debtEntriesFromSummary: RentalFine[] = (debt?.overdueFines || [])
+    .filter((entry) => !rentalsWithFine.some((r) => r.id === entry.rental_id))
+    .map((entry) => ({
+      id: entry.rental_id,
+      fine: Number(entry.amount || 0),
+      physical_book: { title: entry.book_title || "Book Damage Penalty" },
+    }));
+
+  const pendingFines: RentalFine[] = [...rentalsWithFine, ...debtEntriesFromSummary];
 
   const filteredPayments = payments.filter(p =>
     matchesMultiLangQuery(p.rental?.physical_book?.title || (p as any).rental?.book?.title, search) ||

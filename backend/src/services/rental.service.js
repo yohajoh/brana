@@ -519,7 +519,7 @@ export const borrowBook = async (userId, { book_id, loan_days, time_zone, overdu
     const total = unpaidDamagePenalties.reduce((sum, i) => sum + Number(i.penalty_amount), 0);
     const titles = [...new Set(unpaidDamagePenalties.map(i => i.copy?.book?.title).filter(Boolean))].slice(0, 2).join(", ");
     throw new AppError(
-      `You have ${unpaidDamagePenalties.length} unpaid damage penalty fee(s) totalling ${total.toFixed(2)} ETB (${titles || "book copy"}). Please settle damage fees at the library desk before borrowing again.`,
+      `You have ${unpaidDamagePenalties.length} unpaid damage penalty fee(s) totalling ${total.toFixed(2)} ETB (${titles || "book copy"}). Please settle damage fees at the library desk or in your payment page before borrowing again.`,
       403,
     );
   }

@@ -17,6 +17,7 @@ import { prisma } from "../prisma.js";
 import { AppError } from "../middlewares/error.middleware.js";
 import { paginationMeta } from "../utils/apiFeatures.js";
 import { createNotification, notifyAdmins } from "./notification.service.js";
+import { recalculateUserTrustScore } from "./trustScore.service.js";
 import crypto from "crypto";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -175,16 +176,36 @@ const getOutstandingFineRentals = async (userId, excludeRentalId = null) => {
 };
 
 export const getMyDebtSummary = async (userId) => {
-  const { rentals, total } = await getOutstandingFineRentals(userId);
+  const { rentals, total: fineTotal } = await getOutstandingFineRentals(userId);
+  const damageIncidents = await prisma.damageIncident.findMany({
+    where: { user_id: userId, penalty_status: "PENDING", penalty_amount: { gt: 0 } },
+    include: { copy: { include: { book: true } } },
+  });
+
+  const damageTotal = damageIncidents.reduce((sum, d) => sum + Number(d.penalty_amount || 0), 0);
+  const combinedTotal = roundMoney(fineTotal + damageTotal);
+
+  const overdueFines = rentals.map((item) => ({
+    rental_id: item.id,
+    amount: roundMoney(item.fine),
+    book_title: item.physical_book?.title || "Book",
+  }));
+
+  for (const d of damageIncidents) {
+    if (!overdueFines.some((f) => f.rental_id === d.rental_id)) {
+      overdueFines.push({
+        rental_id: d.rental_id,
+        amount: roundMoney(d.penalty_amount),
+        book_title: d.copy?.book?.title || "Damage Penalty Fee",
+      });
+    }
+  }
+
   return {
-    totalDebt: total,
-    hasDebt: total > 0,
-    count: rentals.length,
-    overdueFines: rentals.map((item) => ({
-      rental_id: item.id,
-      amount: roundMoney(item.fine),
-      book_title: item.physical_book?.title || "Book",
-    })),
+    totalDebt: combinedTotal,
+    hasDebt: combinedTotal > 0,
+    count: overdueFines.length,
+    overdueFines,
   };
 };
 
@@ -197,20 +218,34 @@ const settlePaymentSuccessEffects = async (tx, payment) => {
         data: { status: "COMPLETED" },
       });
     }
+    await tx.damageIncident.updateMany({
+      where: { rental_id: payment.rental_id, penalty_status: "PENDING" },
+      data: { penalty_status: "PAID" },
+    });
+    await tx.damageIncident.updateMany({
+      where: { user_id: payment.rental.user_id, penalty_status: "PENDING" },
+      data: { penalty_status: "PAID" },
+    });
+    await recalculateUserTrustScore(payment.rental.user_id, tx);
     return;
   }
 
   const debtIds = Array.isArray(payment.debt_rental_ids) ? payment.debt_rental_ids : [];
-  if (debtIds.length === 0) return;
-
-  await tx.rental.updateMany({
-    where: {
-      id: { in: debtIds },
-      user_id: payment.rental.user_id,
-      status: "PENDING",
-    },
-    data: { status: "COMPLETED" },
+  if (debtIds.length > 0) {
+    await tx.rental.updateMany({
+      where: {
+        id: { in: debtIds },
+        user_id: payment.rental.user_id,
+        status: "PENDING",
+      },
+      data: { status: "COMPLETED" },
+    });
+  }
+  await tx.damageIncident.updateMany({
+    where: { user_id: payment.rental.user_id, penalty_status: "PENDING" },
+    data: { penalty_status: "PAID" },
   });
+  await recalculateUserTrustScore(payment.rental.user_id, tx);
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -258,13 +293,18 @@ export const initiatePayment = async (rentalId, userId, { method = "CHAPA", cont
     debtRentalIds = outstandingDebt.rentals.map((entry) => entry.id);
     payableAmount = roundMoney(rentalCharge + debtAmount);
   } else {
-    if (rental.status !== "PENDING") {
-      throw new AppError("Payment can only be initiated for rentals with a pending fine (PENDING status)", 400);
+    const damageIncidents = await prisma.damageIncident.findMany({
+      where: { rental_id: rentalId, penalty_status: "PENDING" },
+    });
+    const damagePenaltyTotal = damageIncidents.reduce((sum, d) => sum + Number(d.penalty_amount || 0), 0);
+    const fineTotal = Number(rental.fine || 0);
+
+    const totalPenalty = roundMoney(fineTotal > 0 ? fineTotal : damagePenaltyTotal);
+
+    if (totalPenalty <= 0) {
+      throw new AppError("No fine or damage penalty is due for this rental", 400);
     }
-    if (!rental.fine || Number(rental.fine) <= 0) {
-      throw new AppError("No fine is due for this rental", 400);
-    }
-    payableAmount = roundMoney(Number(rental.fine));
+    payableAmount = totalPenalty;
     debtAmount = 0;
     debtRentalIds = [];
   }

@@ -179,9 +179,9 @@ export default function StudentReservationsPage() {
           { label: "Ready to collect", value: notified, hi: notified > 0 },
         ].map(s => (
           <motion.div key={s.label} variants={fadeUp}
-            className={`rounded-2xl border p-4 ${s.hi ? "bg-[#0d0d0d] border-[#0d0d0d]" : "bg-white border-[#e8e4dc]"}`}>
-            <p className={`text-[24px] font-serif font-black leading-none ${s.hi ? "text-[#f5c518]" : "text-[#0d0d0d]"}`}>{s.value}</p>
-            <p className={`text-[9px] font-black uppercase tracking-[0.15em] mt-2 ${s.hi ? "text-white/40" : "text-[#0d0d0d]/35"}`}>{s.label}</p>
+            className="rounded-2xl border p-4 bg-white border-[#e8e4dc]">
+            <p className={`text-[24px] font-serif font-black leading-none ${s.hi ? "text-[#b88c00]" : "text-[#0d0d0d]"}`}>{s.value}</p>
+            <p className="text-[9px] font-black uppercase tracking-[0.15em] mt-2 text-[#0d0d0d]/35">{s.label}</p>
           </motion.div>
         ))}
       </motion.div>
