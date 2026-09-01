@@ -90,28 +90,61 @@ export const moderateUserStanding = async (adminUserId, targetUserId, { standing
     throw new AppError(`Invalid standing tier: ${standing}`, 400);
   }
 
-  const updatedUser = await prisma.user.update({
+  const currentUser = await prisma.user.findUnique({
     where: { id: targetUserId },
-    data: {
-      ...(standing ? { standing } : {}),
-      ...(standing_note ? { standing_note: standing_note.trim() } : {}),
-      ...(typeof is_blocked === "boolean" ? { is_blocked } : {}),
-      ...(typeof max_concurrent_loans_override !== "undefined"
-        ? { max_concurrent_loans_override: max_concurrent_loans_override ? Number(max_concurrent_loans_override) : null }
-        : {}),
-      standing_updated_at: new Date(),
-    },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      trust_score: true,
-      standing: true,
-      standing_note: true,
-      standing_updated_at: true,
-      is_blocked: true,
-      max_concurrent_loans_override: true,
-    },
+    select: { trust_score: true, standing: true },
+  });
+  if (!currentUser) throw new AppError("User not found", 404);
+
+  // Synchronize numerical trust score based on admin standing selection
+  let nextTrustScore = currentUser.trust_score ?? 100;
+  if (standing === "GOOD_STANDING") {
+    nextTrustScore = Math.max(nextTrustScore, 90);
+  } else if (standing === "YELLOW_FLAG") {
+    nextTrustScore = 60;
+  } else if (standing === "RED_FLAG") {
+    nextTrustScore = 35;
+  } else if (standing === "SUSPENDED") {
+    nextTrustScore = 15;
+  }
+
+  const updatedUser = await prisma.$transaction(async (tx) => {
+    // If admin resets student to GOOD_STANDING, waive pending damage penalty incidents so old incidents don't re-suspend them
+    if (standing === "GOOD_STANDING") {
+      await tx.damageIncident.updateMany({
+        where: { user_id: targetUserId, penalty_status: "PENDING" },
+        data: {
+          penalty_status: "WAIVED",
+          notes: `Penalty waived by admin desk reset: ${standing_note.trim()}`,
+        },
+      });
+    }
+
+    const updated = await tx.user.update({
+      where: { id: targetUserId },
+      data: {
+        ...(standing ? { standing, trust_score: nextTrustScore } : {}),
+        ...(standing_note ? { standing_note: standing_note.trim() } : {}),
+        ...(typeof is_blocked === "boolean" ? { is_blocked } : {}),
+        ...(typeof max_concurrent_loans_override !== "undefined"
+          ? { max_concurrent_loans_override: max_concurrent_loans_override ? Number(max_concurrent_loans_override) : null }
+          : {}),
+        standing_updated_at: new Date(),
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        trust_score: true,
+        standing: true,
+        standing_note: true,
+        standing_updated_at: true,
+        is_blocked: true,
+        max_concurrent_loans_override: true,
+      },
+    });
+
+    return updated;
   });
 
   // Log admin activity
@@ -121,8 +154,8 @@ export const moderateUserStanding = async (adminUserId, targetUserId, { standing
       action: "USER_MODERATION",
       entity_type: "USER",
       entity_id: targetUserId,
-      description: `Updated standing for ${updatedUser.name} (${updatedUser.email}) to ${standing || updatedUser.standing}. Note: ${standing_note.trim()}`,
-      metadata: { standing, is_blocked, max_concurrent_loans_override, standing_note: standing_note.trim() },
+      description: `Updated standing for ${updatedUser.name} (${updatedUser.email}) to ${standing || updatedUser.standing} (Trust Score: ${updatedUser.trust_score}). Note: ${standing_note.trim()}`,
+      metadata: { standing, trust_score: updatedUser.trust_score, is_blocked, max_concurrent_loans_override, standing_note: standing_note.trim() },
     },
   });
 

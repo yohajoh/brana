@@ -1208,14 +1208,37 @@ export function useConditionHistory(copyId: string) {
   });
 }
 
+const invalidateBookRelatedQueries = (queryClient: ReturnType<typeof useQueryClient>, bookId?: string, copyId?: string) => {
+  queryClient.invalidateQueries({ queryKey: ["books"] });
+  queryClient.invalidateQueries({ queryKey: ["digitalBooks"] });
+  queryClient.invalidateQueries({ queryKey: ["borrowings"] });
+  queryClient.invalidateQueries({ queryKey: ["rentals"] });
+  queryClient.invalidateQueries({ queryKey: ["reservations"] });
+  queryClient.invalidateQueries({ queryKey: ["categories"] });
+  queryClient.invalidateQueries({ queryKey: ["wishlist"] });
+  queryClient.invalidateQueries({ queryKey: ["overview"] });
+  queryClient.invalidateQueries({ queryKey: ["admin-stats"] });
+  queryClient.invalidateQueries({ queryKey: ["user-stats"] });
+  queryClient.invalidateQueries({ queryKey: ["trending-books"] });
+  queryClient.invalidateQueries({ queryKey: ["search"] });
+  if (bookId) {
+    queryClient.invalidateQueries({ queryKey: queryKeys.bookDetail(bookId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.bookCopies(bookId) });
+    queryClient.invalidateQueries({ queryKey: ["book-availability", bookId] });
+  }
+  if (copyId) {
+    queryClient.invalidateQueries({ queryKey: queryKeys.conditionHistory(copyId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.bookCopies(copyId) });
+  }
+};
+
 export function useAddBookCopy() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ bookId, data }: { bookId: string; data: { copy_code?: string; condition?: string; status?: string; notes?: string } }) =>
       api.post<{ data: { copy: BookCopy } }>(`/books/${bookId}/copies`, data),
     onSuccess: (_, { bookId }) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.bookCopies(bookId) });
-      queryClient.invalidateQueries({ queryKey: ["books"] });
+      invalidateBookRelatedQueries(queryClient, bookId);
     },
   });
 }
@@ -1225,9 +1248,8 @@ export function useDeleteBookCopy() {
   return useMutation({
     mutationFn: ({ copyId, bookId }: { copyId: string; bookId: string }) =>
       api.delete<{ message: string }>(`/books/copies/${copyId}`),
-    onSuccess: (_, { bookId }) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.bookCopies(bookId) });
-      queryClient.invalidateQueries({ queryKey: ["books"] });
+    onSuccess: (_, { bookId, copyId }) => {
+      invalidateBookRelatedQueries(queryClient, bookId, copyId);
     },
   });
 }
@@ -1235,55 +1257,16 @@ export function useDeleteBookCopy() {
 export function useUpdateCondition() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ copyId, data }: { copyId: string; data: { condition?: string; status?: string; notes?: string } }) =>
+    mutationFn: ({ copyId, data }: { copyId: string; data: { condition?: string; status?: string; notes?: string; copy_code?: string } }) =>
       api.patch<{ data: unknown }>(`/books/copies/${copyId}/condition`, data),
-    onMutate: async ({ copyId, data }) => {
-      await queryClient.cancelQueries({ queryKey: ["books"] });
-      await queryClient.cancelQueries({ queryKey: queryKeys.conditionHistory(copyId) });
-
-      const previousCopiesQueries = queryClient.getQueriesData<{ data: { copies: BookCopy[] } }>({
-        queryKey: ["books"],
-      });
-      const previousHistory = queryClient.getQueryData<{ data: { history: ConditionHistoryEntry[] } }>(
-        queryKeys.conditionHistory(copyId),
-      );
-
-      queryClient.setQueriesData<{ data: { copies: BookCopy[] } }>({ queryKey: ["books"] }, (old) => {
-        if (!old || !old.data?.copies || !Array.isArray(old.data.copies)) return old;
-        return {
-          ...old,
-          data: {
-            ...old.data,
-            copies: old.data.copies.map((c) =>
-              c.id === copyId
-                ? {
-                    ...c,
-                    condition: data.condition as BookCopy["condition"],
-                    last_condition_update: new Date().toISOString(),
-                    notes: data.notes,
-                  }
-                : c,
-            ),
-          },
-        };
-      });
-
-      return { previousCopiesQueries, previousHistory };
-    },
-    onError: (_err, _variables, context) => {
-      if (context?.previousCopiesQueries) {
-        context.previousCopiesQueries.forEach(([key, data]) => {
-          queryClient.setQueryData(key, data);
-        });
-      }
-      if (context?.previousHistory) {
-        queryClient.setQueryData(queryKeys.conditionHistory(_variables.copyId), context.previousHistory);
+    onSuccess: (_data, variables) => {
+      if (variables) {
+        invalidateBookRelatedQueries(queryClient, undefined, variables.copyId);
       }
     },
     onSettled: (_data, _error, variables) => {
       if (variables) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.bookCopies(variables.copyId) });
-        queryClient.invalidateQueries({ queryKey: queryKeys.conditionHistory(variables.copyId) });
+        invalidateBookRelatedQueries(queryClient, undefined, variables.copyId);
       }
     },
   });

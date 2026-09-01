@@ -45,7 +45,10 @@ function PayStat({ label, value, accent = false }: { label: string; value: strin
 import { Search } from "lucide-react";
 import { matchesMultiLangQuery } from "@/lib/multiLangSearch";
 
+import { useQueryClient } from "@tanstack/react-query";
+
 function PaymentsContent() {
+  const queryClient = useQueryClient();
   const { t } = useLanguage();
   const [txRef, setTxRef]               = useState<string | null>(null);
   const [verifying, setVerifying]       = useState<string | null>(null);
@@ -94,6 +97,15 @@ function PaymentsContent() {
       setVerifying(ref); setVerifyMsg(null); hasVerified.current = ref;
       const res = await api.get<{ data: { payment: { status: string } } }>(`/payments/verify/${encodeURIComponent(ref)}`);
       await refetch();
+
+      // Invalidate all related financial & rental queries so banners and fine lists update immediately
+      queryClient.invalidateQueries({ queryKey: ["my-payments"] });
+      queryClient.invalidateQueries({ queryKey: ["my-rentals"] });
+      queryClient.invalidateQueries({ queryKey: ["my-debt-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["me"] });
+      queryClient.invalidateQueries({ queryKey: ["student-overview"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-stats"] });
+
       const st = res?.data?.payment?.status;
       setVerifyMsg(st === "SUCCESS" ? String(t("student_payments.success_verify"))
         : st === "PENDING"          ? String(t("student_payments.pending_verify"))
@@ -101,7 +113,7 @@ function PaymentsContent() {
                                     : String(t("student_payments.status_updated")));
     } catch (e) { setVerifyMsg(e instanceof Error ? e.message : String(t("common.error_occurred"))); }
     finally { setVerifying(null); }
-  }, [refetch, t]);
+  }, [refetch, t, queryClient]);
 
   useEffect(() => { if (txRef && !hasVerified.current) verify(txRef); }, [txRef, verify]);
 

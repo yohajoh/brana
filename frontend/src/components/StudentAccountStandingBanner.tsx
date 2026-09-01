@@ -1,14 +1,18 @@
 "use client";
 
+import { useState } from "react";
 import { usePersona } from "@/components/providers/PersonaProvider";
 import { useCurrentUser, useMyRentals, useMyDebtSummary } from "@/lib/hooks/useQueries";
-import { AlertTriangle, ShieldAlert, Ban, DollarSign, ArrowRight } from "lucide-react";
+import { AlertTriangle, ShieldAlert, Ban, DollarSign, ArrowRight, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 export function StudentAccountStandingBanner() {
   const pathname = usePathname();
+  const [dismissedStanding, setDismissedStanding] = useState(false);
+  const [dismissedFinancial, setDismissedFinancial] = useState(false);
+
   const { user: personaUser } = usePersona();
   const { data: userData } = useCurrentUser();
   const { data: rentalsData } = useMyRentals("limit=50");
@@ -43,8 +47,11 @@ export function StudentAccountStandingBanner() {
   const isRedFlag = standing === "RED_FLAG";
   const isYellowFlag = standing === "YELLOW_FLAG";
 
-  // Hide banner only if account is in Good Standing AND has zero pending fine debt
-  if (standing === "GOOD_STANDING" && !isBlocked && pendingFineTotal <= 0) return null;
+  const showStanding = !dismissedStanding && (standing !== "GOOD_STANDING" || isBlocked);
+  const showFinancial = !dismissedFinancial && pendingFineTotal > 0;
+
+  // Hide container if both banners are invisible or dismissed
+  if (!showStanding && !showFinancial) return null;
 
   return (
     <AnimatePresence>
@@ -56,8 +63,8 @@ export function StudentAccountStandingBanner() {
         className="relative z-40 overflow-hidden shadow-md"
       >
         <div className="space-y-0.5">
-          {/* ── 1. SUSPENDED / BLOCKED BANNER (Vibrant Solid Red Theme) ── */}
-          {isSuspendedOrBlocked && (
+          {/* ── 1. SUSPENDED / BLOCKED BANNER ── */}
+          {showStanding && isSuspendedOrBlocked && (
             <div className="bg-rose-600 text-white px-4 py-2.5 sm:px-6 flex items-center justify-between gap-3 border-b border-rose-700">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/20 border border-white/30 text-white">
@@ -88,12 +95,20 @@ export function StudentAccountStandingBanner() {
                   <span className="sm:hidden">Details</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
+                <button
+                  type="button"
+                  onClick={() => setDismissedStanding(true)}
+                  title="Dismiss banner"
+                  className="p-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white transition-colors flex items-center justify-center"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
           )}
 
-          {/* ── 2. RED FLAG BANNER (Vibrant Crimson-Orange Gradient Theme) ── */}
-          {isRedFlag && !isSuspendedOrBlocked && (
+          {/* ── 2. RED FLAG BANNER ── */}
+          {showStanding && isRedFlag && !isSuspendedOrBlocked && (
             <div className="bg-gradient-to-r from-orange-600 via-rose-600 to-red-600 text-white px-4 py-2.5 sm:px-6 flex items-center justify-between gap-3 border-b border-rose-700">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/20 border border-white/30 text-white">
@@ -124,12 +139,20 @@ export function StudentAccountStandingBanner() {
                   <span className="sm:hidden">Details</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
+                <button
+                  type="button"
+                  onClick={() => setDismissedStanding(true)}
+                  title="Dismiss banner"
+                  className="p-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white transition-colors flex items-center justify-center"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
           )}
 
-          {/* ── 3. YELLOW FLAG BANNER (Vibrant Brana Gold Theme) ── */}
-          {isYellowFlag && !isSuspendedOrBlocked && (
+          {/* ── 3. YELLOW FLAG BANNER ── */}
+          {showStanding && isYellowFlag && !isSuspendedOrBlocked && (
             <div className="bg-[#f5c518] text-[#0d0d0d] px-4 py-2.5 sm:px-6 flex items-center justify-between gap-3 border-b border-amber-400">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-black/10 border border-black/15 text-[#0d0d0d]">
@@ -160,12 +183,20 @@ export function StudentAccountStandingBanner() {
                   <span className="sm:hidden">Details</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
+                <button
+                  type="button"
+                  onClick={() => setDismissedStanding(true)}
+                  title="Dismiss banner"
+                  className="p-1.5 rounded-xl bg-black/10 hover:bg-black/20 text-[#0d0d0d] transition-colors flex items-center justify-center"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
           )}
 
-          {/* ── 4. FINANCIAL STANDING BANNER (Vibrant Golden Amber Debt Theme) ── */}
-          {pendingFineTotal > 0 && (
+          {/* ── 4. FINANCIAL STANDING BANNER ── */}
+          {showFinancial && (
             <div className="bg-amber-500 text-amber-950 px-4 py-2.5 sm:px-6 flex items-center justify-between gap-3 border-b border-amber-600">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-950/15 border border-amber-950/20 text-amber-950">
@@ -193,6 +224,14 @@ export function StudentAccountStandingBanner() {
                   <span className="sm:hidden">Pay Fines</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
+                <button
+                  type="button"
+                  onClick={() => setDismissedFinancial(true)}
+                  title="Dismiss banner"
+                  className="p-1.5 rounded-xl bg-amber-950/15 hover:bg-amber-950/25 text-amber-950 transition-colors flex items-center justify-center"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
           )}

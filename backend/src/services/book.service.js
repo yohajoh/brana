@@ -1133,21 +1133,29 @@ export const getBookCopies = async (bookId) => {
   return copies;
 };
 
-export const updateBookCopyCondition = async (copyId, { condition, status, notes }, adminUserId) => {
+export const updateBookCopyCondition = async (copyId, { condition, status, notes, copy_code }, adminUserId) => {
   const validConditions = ["NEW", "GOOD", "WORN", "DAMAGED", "LOST"];
   const validStatuses = ["AVAILABLE", "BORROWED", "UNDER_INSPECTION", "DAMAGED_REPAIR", "DECOMMISSIONED", "LOST"];
   
   const nextCond = condition ? String(condition).toUpperCase() : undefined;
   const nextStatus = status ? String(status).toUpperCase() : undefined;
+  const newCopyCode = copy_code?.trim();
 
   if (nextCond && !validConditions.includes(nextCond)) throw new AppError("Invalid condition value", 400);
   if (nextStatus && !validStatuses.includes(nextStatus)) throw new AppError("Invalid status value", 400);
 
   const copy = await prisma.bookCopy.findUnique({
     where: { id: copyId },
-    select: { id: true, condition: true, status: true, notes: true, book_id: true, is_available: true },
+    select: { id: true, copy_code: true, condition: true, status: true, notes: true, book_id: true, is_available: true },
   });
   if (!copy) throw new AppError("Book copy not found", 404);
+
+  if (newCopyCode && newCopyCode !== copy.copy_code) {
+    const existing = await prisma.bookCopy.findFirst({
+      where: { copy_code: newCopyCode, deleted_at: null, id: { not: copyId } },
+    });
+    if (existing) throw new AppError("Copy code already exists. Please choose a unique code.", 400);
+  }
 
   const targetCond = nextCond || copy.condition;
   let targetStatus = nextStatus || copy.status;
@@ -1164,6 +1172,7 @@ export const updateBookCopyCondition = async (copyId, { condition, status, notes
     const updatedCopy = await tx.bookCopy.update({
       where: { id: copyId },
       data: {
+        copy_code: newCopyCode || copy.copy_code,
         condition: targetCond,
         status: targetStatus,
         is_available: isAvailable,
@@ -1189,14 +1198,14 @@ export const updateBookCopyCondition = async (copyId, { condition, status, notes
         new_condition: targetCond,
         old_status: copy.status,
         new_status: targetStatus,
-        notes: notes ?? `Status/condition updated by admin ${adminUserId}`,
+        notes: notes ?? (newCopyCode && newCopyCode !== copy.copy_code ? `Renamed copy code from ${copy.copy_code} to ${newCopyCode}` : `Status/condition updated by admin ${adminUserId}`),
         updated_by_user_id: adminUserId,
       },
     });
 
     // Update parent book available count if availability changed
     const totalCopies = await tx.bookCopy.count({ where: { book_id: copy.book_id, deleted_at: null } });
-    const availCopies = await tx.bookCopy.count({ where: { book_id: copy.book_id, deleted_at: null, is_available: true } });
+    const availCopies = await tx.bookCopy.count({ where: { book_id: copy.book_id, deleted_at: null, is_available: true, status: "AVAILABLE" } });
 
     await tx.book.update({
       where: { id: copy.book_id },

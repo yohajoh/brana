@@ -176,14 +176,11 @@ const getOutstandingFineRentals = async (userId, excludeRentalId = null) => {
 };
 
 export const getMyDebtSummary = async (userId) => {
-  const { rentals, total: fineTotal } = await getOutstandingFineRentals(userId);
+  const { rentals } = await getOutstandingFineRentals(userId);
   const damageIncidents = await prisma.damageIncident.findMany({
     where: { user_id: userId, penalty_status: "PENDING", penalty_amount: { gt: 0 } },
     include: { copy: { include: { book: true } } },
   });
-
-  const damageTotal = damageIncidents.reduce((sum, d) => sum + Number(d.penalty_amount || 0), 0);
-  const combinedTotal = roundMoney(fineTotal + damageTotal);
 
   const overdueFines = rentals.map((item) => ({
     rental_id: item.id,
@@ -201,6 +198,8 @@ export const getMyDebtSummary = async (userId) => {
     }
   }
 
+  const combinedTotal = roundMoney(overdueFines.reduce((sum, f) => sum + Number(f.amount || 0), 0));
+
   return {
     totalDebt: combinedTotal,
     hasDebt: combinedTotal > 0,
@@ -212,12 +211,10 @@ export const getMyDebtSummary = async (userId) => {
 const settlePaymentSuccessEffects = async (tx, payment) => {
   const context = payment.context || "FINE";
   if (context === "FINE") {
-    if (payment.rental.status === "PENDING" && Number(payment.rental.fine || 0) > 0) {
-      await tx.rental.update({
-        where: { id: payment.rental_id },
-        data: { status: "COMPLETED" },
-      });
-    }
+    await tx.rental.update({
+      where: { id: payment.rental_id },
+      data: { status: "COMPLETED", fine: 0 },
+    });
     await tx.damageIncident.updateMany({
       where: { rental_id: payment.rental_id, penalty_status: "PENDING" },
       data: { penalty_status: "PAID" },
@@ -236,9 +233,8 @@ const settlePaymentSuccessEffects = async (tx, payment) => {
       where: {
         id: { in: debtIds },
         user_id: payment.rental.user_id,
-        status: "PENDING",
       },
-      data: { status: "COMPLETED" },
+      data: { status: "COMPLETED", fine: 0 },
     });
   }
   await tx.damageIncident.updateMany({

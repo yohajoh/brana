@@ -800,6 +800,7 @@ function BookModal({ onClose, authors, categories, editingBook, onSubmit, submit
 function ConditionModal({ bookId, title, onClose }: { bookId: string; title: string; onClose: () => void }) {
   const { t } = useLanguage();
   const [selectedCopy, setSelectedCopy] = useState<BookCopy | null>(null);
+  const [newCopyCode, setNewCopyCode] = useState("");
   const [newCond, setNewCond] = useState("");
   const [newStatus, setNewStatus] = useState("");
   const [notes, setNotes] = useState("");
@@ -824,14 +825,20 @@ function ConditionModal({ bookId, title, onClose }: { bookId: string; title: str
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedCopy || (!newCond && !newStatus)) return;
+    if (!selectedCopy || (!newCond && !newStatus && !newCopyCode)) return;
     try {
       await update.mutateAsync({
         copyId: selectedCopy.id,
-        data: { condition: newCond || undefined, status: newStatus || undefined, notes: notes || undefined },
+        data: {
+          copy_code: newCopyCode.trim() || undefined,
+          condition: newCond || undefined,
+          status: newStatus || undefined,
+          notes: notes || undefined,
+        },
       });
-      toast.success("Copy condition & status updated");
+      toast.success("Physical copy details & condition updated");
       setSelectedCopy(null);
+      setNewCopyCode("");
       setNewCond("");
       setNewStatus("");
       setNotes("");
@@ -987,177 +994,218 @@ function ConditionModal({ bookId, title, onClose }: { bookId: string; title: str
           )}
 
           {/* Physical Copies Matrix */}
-          <div className="space-y-2">
+          <div className="space-y-3">
             {copies.length === 0 ? (
               <p className="text-sm text-[#0d0d0d]/35">No copies logged for this book.</p>
             ) : (
               copies.map((c: any) => {
                 const activeRental = c.rentals?.[0];
+                const isSelected = selectedCopy?.id === c.id;
+
                 return (
-                  <div
-                    key={c.id}
-                    className={`w-full flex flex-col p-4 rounded-xl border transition-all ${
-                      selectedCopy?.id === c.id
-                        ? "border-[#142b6f] bg-[#f0f4ff] shadow-sm"
-                        : "border-[#e8e4dc] bg-white hover:border-[#0d0d0d]/30"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between w-full">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedCopy(c);
-                          setNewCond(c.condition);
-                          setNewStatus(c.status || (c.is_available ? "AVAILABLE" : "BORROWED"));
-                          setNotes(c.notes || "");
-                        }}
-                        className="flex items-center gap-2 text-left"
-                      >
-                        <span className="text-[14px] font-extrabold text-[#0d0d0d] font-mono">{c.copy_code}</span>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#f5f4f0] text-[#0d0d0d]/70">
-                          {c.condition}
-                        </span>
-                      </button>
-                      
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border uppercase tracking-wider ${getStatusBadgeClass(
-                            c.status || (c.is_available ? "AVAILABLE" : "BORROWED"),
-                          )}`}
+                  <div key={c.id} className="space-y-2">
+                    <div
+                      className={`w-full flex flex-col p-4 rounded-xl border transition-all ${
+                        isSelected
+                          ? "border-[#142b6f] bg-[#f0f4ff] shadow-sm"
+                          : "border-[#e8e4dc] bg-white hover:border-[#0d0d0d]/30"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (isSelected) {
+                              setSelectedCopy(null);
+                            } else {
+                              setSelectedCopy(c);
+                              setNewCopyCode(c.copy_code);
+                              setNewCond(c.condition);
+                              setNewStatus(c.status || (c.is_available ? "AVAILABLE" : "BORROWED"));
+                              setNotes(c.notes || "");
+                            }
+                          }}
+                          className="flex items-center gap-2 text-left flex-1"
                         >
-                          {c.status || (c.is_available ? "AVAILABLE" : "BORROWED")}
-                        </span>
-                        
-                        {!activeRental && (
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteCopy(c.id, c.copy_code)}
-                            title="Delete physical copy"
-                            className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors"
+                          <span className="text-[14px] font-extrabold text-[#0d0d0d] font-mono">{c.copy_code}</span>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#f5f4f0] text-[#0d0d0d]/70">
+                            {c.condition}
+                          </span>
+                          <span className="text-[10px] text-[#142b6f] font-semibold underline ml-1">
+                            {isSelected ? "Hide Details" : "Manage & History"}
+                          </span>
+                        </button>
+
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border uppercase tracking-wider ${getStatusBadgeClass(
+                              c.status || (c.is_available ? "AVAILABLE" : "BORROWED"),
+                            )}`}
                           >
-                            <Trash2 size={14} />
-                          </button>
-                        )}
+                            {c.status || (c.is_available ? "AVAILABLE" : "BORROWED")}
+                          </span>
+
+                          {!activeRental && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteCopy(c.id, c.copy_code)}
+                              title="Delete physical copy"
+                              className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
+                        </div>
                       </div>
+
+                      {/* Custody Info */}
+                      {activeRental && activeRental.user && (
+                        <div className="mt-2 pt-2 border-t border-black/5 flex items-center justify-between text-[11px] text-[#0d0d0d]/60">
+                          <span>
+                            Current Custody: <strong>{activeRental.user.name}</strong> ({activeRental.user.email})
+                          </span>
+                          <span>Due: {new Date(activeRental.due_date).toLocaleDateString()}</span>
+                        </div>
+                      )}
                     </div>
 
-                    {/* Custody Info */}
-                    {activeRental && activeRental.user && (
-                      <div className="mt-2 pt-2 border-t border-black/5 flex items-center justify-between text-[11px] text-[#0d0d0d]/60">
-                        <span>
-                          Current Custody: <strong>{activeRental.user.name}</strong> ({activeRental.user.email})
-                        </span>
-                        <span>Due: {new Date(activeRental.due_date).toLocaleDateString()}</span>
-                      </div>
-                    )}
+                    {/* Inline Edit Form & History trace rendered right below this clicked copy */}
+                    <AnimatePresence>
+                      {isSelected && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="pl-3 pr-1 space-y-3 overflow-hidden"
+                        >
+                          <form onSubmit={handleUpdate} className="space-y-4 bg-[#f8f7f4] rounded-xl p-4 border border-[#e8e4dc]">
+                            <div className="flex items-center justify-between border-b border-[#e8e4dc] pb-2">
+                              <p className="text-[11px] font-black text-[#142b6f] uppercase tracking-wider">
+                                Manage & Edit Copy Code: <span className="font-mono">{c.copy_code}</span>
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedCopy(null)}
+                                className="text-[11px] font-bold text-[#0d0d0d]/40 hover:text-[#0d0d0d]"
+                              >
+                                Close
+                              </button>
+                            </div>
+
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] font-black text-[#0d0d0d]/50 uppercase tracking-wider">
+                                Copy Code / Registration Identifier (Rename Copy)
+                              </label>
+                              <input
+                                type="text"
+                                value={newCopyCode}
+                                onChange={(e) => setNewCopyCode(e.target.value)}
+                                placeholder="e.g. BC-0001"
+                                required
+                                className={IC}
+                              />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="space-y-1.5">
+                                <label className="text-[10px] font-black text-[#0d0d0d]/50 uppercase tracking-wider">
+                                  Physical Condition
+                                </label>
+                                <select value={newCond} onChange={(e) => setNewCond(e.target.value)} required className={IC}>
+                                  {CONDITIONS.map((cond) => (
+                                    <option key={cond} value={cond}>
+                                      {cond}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div className="space-y-1.5">
+                                <label className="text-[10px] font-black text-[#0d0d0d]/50 uppercase tracking-wider">
+                                  Inventory Status
+                                </label>
+                                <select value={newStatus} onChange={(e) => setNewStatus(e.target.value)} required className={IC}>
+                                  {STATUSES.map((st) => (
+                                    <option key={st} value={st}>
+                                      {st}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] font-black text-[#0d0d0d]/50 uppercase tracking-wider">
+                                Audit Notes & Maintenance Reason
+                              </label>
+                              <textarea
+                                rows={2}
+                                value={notes}
+                                onChange={(e) => setNotes(e.target.value)}
+                                placeholder="Reason for status change, copy rename, or condition audit..."
+                                className={`${IC} resize-none`}
+                              />
+                            </div>
+
+                            <div className="flex justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedCopy(null)}
+                                className="px-4 py-2 rounded-xl bg-white border border-[#e8e4dc] text-[12px] font-bold text-[#0d0d0d]/70 hover:bg-[#f5f4f0]"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                type="submit"
+                                disabled={update.isPending}
+                                className="px-5 py-2 rounded-xl bg-[#142b6f] text-white text-[12px] font-bold disabled:opacity-50 hover:bg-[#0e1f52] transition-colors"
+                              >
+                                {update.isPending ? "Saving..." : "Save Copy Changes"}
+                              </button>
+                            </div>
+                          </form>
+
+                          {/* Condition History Trace for this selected copy */}
+                          {history.length > 0 && (
+                            <div className="bg-white rounded-xl border border-[#e8e4dc] p-3.5 space-y-2">
+                              <p className="text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-[0.18em]">
+                                Copy History ({c.copy_code})
+                              </p>
+                              <div className="space-y-2 max-h-48 overflow-y-auto">
+                                {history.slice(0, 10).map((h: any) => (
+                                  <div
+                                    key={h.id}
+                                    className="flex items-start justify-between p-2.5 bg-[#faf9f6] rounded-lg border border-[#e8e4dc]/60"
+                                  >
+                                    <div className="space-y-0.5">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-[11px] font-bold text-[#0d0d0d]">
+                                          {h.old_condition || "N/A"} → {h.new_condition}
+                                        </span>
+                                        {h.old_status && h.new_status && (
+                                          <span className="text-[9px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">
+                                            {h.old_status} → {h.new_status}
+                                          </span>
+                                        )}
+                                      </div>
+                                      {h.notes && <p className="text-[10.5px] text-[#0d0d0d]/60">{h.notes}</p>}
+                                      <p className="text-[9.5px] text-[#0d0d0d]/40">
+                                        By: {h.updated_by_user?.name || "System"} • {new Date(h.created_at).toLocaleString()}
+                                      </p>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 );
               })
             )}
           </div>
-
-          {/* Edit Selected Copy Form */}
-          {selectedCopy && (
-            <form onSubmit={handleUpdate} className="space-y-4 bg-[#f8f7f4] rounded-xl p-5 border border-[#e8e4dc]">
-              <div className="flex items-center justify-between border-b border-[#e8e4dc] pb-2">
-                <p className="text-[11px] font-black text-[#142b6f] uppercase tracking-wider">
-                  Update Copy Status & Condition: <span className="font-mono">{selectedCopy.copy_code}</span>
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-[#0d0d0d]/50 uppercase tracking-wider">
-                    Physical Condition
-                  </label>
-                  <select value={newCond} onChange={(e) => setNewCond(e.target.value)} required className={IC}>
-                    {CONDITIONS.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-[#0d0d0d]/50 uppercase tracking-wider">
-                    Inventory Status
-                  </label>
-                  <select value={newStatus} onChange={(e) => setNewStatus(e.target.value)} required className={IC}>
-                    {STATUSES.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-[#0d0d0d]/50 uppercase tracking-wider">
-                  Audit Notes & Maintenance Reason
-                </label>
-                <textarea
-                  rows={2}
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Reason for status change or condition audit..."
-                  className={`${IC} resize-none`}
-                />
-              </div>
-
-              <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setSelectedCopy(null)}
-                  className="px-4 py-2 rounded-xl bg-white border border-[#e8e4dc] text-[12px] font-bold text-[#0d0d0d]/70 hover:bg-[#f5f4f0]"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={update.isPending}
-                  className="px-5 py-2 rounded-xl bg-[#142b6f] text-white text-[12px] font-bold disabled:opacity-50 hover:bg-[#0e1f52] transition-colors"
-                >
-                  {update.isPending ? "Saving..." : "Save Audit Record"}
-                </button>
-              </div>
-            </form>
-          )}
-
-          {/* Condition History Trace */}
-          {history.length > 0 && (
-            <div>
-              <p className="text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-[0.18em] mb-3">
-                Condition & Custody Audit History ({selectedCopy?.copy_code})
-              </p>
-              <div className="space-y-2">
-                {history.slice(0, 15).map((h: any) => (
-                  <div
-                    key={h.id}
-                    className="flex items-start justify-between p-3.5 bg-white rounded-xl border border-[#e8e4dc]"
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[12px] font-bold text-[#0d0d0d]">
-                          {h.old_condition || "N/A"} → {h.new_condition}
-                        </span>
-                        {h.old_status && h.new_status && (
-                          <span className="text-[10px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">
-                            {h.old_status} → {h.new_status}
-                          </span>
-                        )}
-                      </div>
-                      {h.notes && <p className="text-[11px] text-[#0d0d0d]/60">{h.notes}</p>}
-                      <p className="text-[10px] text-[#0d0d0d]/40">
-                        Logged by: {h.updated_by_user?.name || "System"} •{" "}
-                        {new Date(h.created_at).toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </motion.div>
     </motion.div>
