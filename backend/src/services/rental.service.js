@@ -27,6 +27,7 @@ import { prisma } from "../prisma.js";
 import { AppError } from "../middlewares/error.middleware.js";
 import { paginationMeta } from "../utils/apiFeatures.js";
 import { createNotification, notifyAdmins } from "./notification.service.js";
+import { applyTrustScoreDelta, recalculateUserTrustScore } from "./trustScore.service.js";
 import { notifyNextInQueue, markReservationFulfilledForBorrow } from "./reservation.service.js";
 import { syncLowStockAlertForBook } from "./inventoryAlert.service.js";
 import { sendEmail } from "./mail.service.js";
@@ -88,7 +89,17 @@ const calculateFine = (dueDate, returnDate, dailyFine) => {
 
 /** Full include for a rental record */
 const RENTAL_INCLUDE = {
-  user: { select: { id: true, name: true, email: true, student_id: true } },
+  user: {
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      student_id: true,
+      trust_score: true,
+      standing: true,
+      max_concurrent_loans_override: true,
+    },
+  },
   physical_book: {
     select: {
       id: true,
@@ -100,7 +111,7 @@ const RENTAL_INCLUDE = {
     },
   },
   copy: {
-    select: { id: true, copy_code: true, condition: true, is_available: true },
+    select: { id: true, copy_code: true, condition: true, status: true, is_available: true },
   },
   payment: {
     select: {
@@ -110,6 +121,17 @@ const RENTAL_INCLUDE = {
       method: true,
       status: true,
       paid_at: true,
+    },
+  },
+  damage_incidents: {
+    select: {
+      id: true,
+      damage_type: true,
+      notes: true,
+      evidence_url: true,
+      penalty_amount: true,
+      penalty_status: true,
+      created_at: true,
     },
   },
 };
@@ -377,17 +399,6 @@ export const getRentalById = async (id, user) => {
 /**
  * Borrow a physical book.
  * Body: { book_id, loan_days? (optional override) }
- *
- * Checks:
- *   1. Book exists and not soft deleted
- *   2. Book has available copies
- *   3. User hasn't exceeded max_books_per_user
- *   4. User doesn't already have this book borrowed
- *
- * Effects:
- *   - Decrements book.available atomically
- *   - Notifies student (INFO)
- *   - Notifies admins (INFO)
  */
 export const borrowBook = async (userId, { book_id, loan_days, time_zone, overdue_time }, io, options = {}) => {
   if (!book_id) throw new AppError("book_id is required", 400);
@@ -407,13 +418,28 @@ export const borrowBook = async (userId, { book_id, loan_days, time_zone, overdu
     }),
     prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, name: true, email: true, is_blocked: true, google_refresh_token: true },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        is_blocked: true,
+        google_refresh_token: true,
+        trust_score: true,
+        standing: true,
+        max_concurrent_loans_override: true,
+      },
     }),
   ]);
 
   if (!book) throw new AppError("Book not found", 404);
   if (!user) throw new AppError("User not found", 404);
-  if (user.is_blocked) throw new AppError("Your account is blocked. Contact the library.", 403);
+  if (user.is_blocked || user.standing === "SUSPENDED") {
+    throw new AppError(
+      `Borrowing is disabled for your account (${user.is_blocked ? "BLOCKED" : "SUSPENDED"}). Please contact library administration.`,
+      403,
+    );
+  }
+
   if (book.available <= 0) {
     throw new AppError(
       `"${book.title}" has no available copies. Please check back later or add to your wishlist.`,
@@ -421,17 +447,51 @@ export const borrowBook = async (userId, { book_id, loan_days, time_zone, overdu
     );
   }
 
-  // Check per-user active rental limit
-  const activeRentals = await prisma.rental.count({
-    where: {
-      user_id: userId,
-      ...(options.studentProfileId ? { student_profile_id: options.studentProfileId } : {}),
-      status: { in: ["BORROWED", "PENDING"] },
-    },
-  });
-  if (activeRentals >= config.max_books_per_user) {
+  // Check standing-dependent max active rental limit
+  const [activeRentals, pendingFineCount] = await Promise.all([
+    prisma.rental.count({
+      where: {
+        user_id: userId,
+        ...(options.studentProfileId ? { student_profile_id: options.studentProfileId } : {}),
+        status: { in: ["BORROWED", "PENDING"] },
+      },
+    }),
+    prisma.rental.count({
+      where: {
+        user_id: userId,
+        ...(options.studentProfileId ? { student_profile_id: options.studentProfileId } : {}),
+        status: "PENDING",
+        fine: { gt: 0 },
+      },
+    }),
+  ]);
+
+  const defaultCap = user.standing === "RED_FLAG" || user.standing === "YELLOW_FLAG" ? 1 : config.max_books_per_user;
+  const effectiveMaxLoans = user.max_concurrent_loans_override ?? defaultCap;
+
+  if (activeRentals >= effectiveMaxLoans) {
+    // Give the student a meaningful message depending on what's blocking them
+    const pendingFineTotal = pendingFineCount > 0
+      ? await prisma.rental.aggregate({
+          where: {
+            user_id: userId,
+            ...(options.studentProfileId ? { student_profile_id: options.studentProfileId } : {}),
+            status: "PENDING",
+            fine: { gt: 0 },
+          },
+          _sum: { fine: true },
+        }).then((r) => Number(r._sum.fine ?? 0))
+      : 0;
+
+    if (pendingFineTotal > 0) {
+      throw new AppError(
+        `You have ${pendingFineCount} unpaid fine(s) totalling ${pendingFineTotal.toFixed(2)} ETB. Please settle your outstanding fines at the library desk before borrowing again.`,
+        400,
+      );
+    }
+
     throw new AppError(
-      `You have reached your maximum of ${config.max_books_per_user} active rental(s). Return a book first.`,
+      `You have reached your maximum of ${effectiveMaxLoans} active rental(s) for your current account tier (${user.standing.replace(/_/g, " ")}). Return a book first.`,
       400,
     );
   }
@@ -484,6 +544,9 @@ export const borrowBook = async (userId, { book_id, loan_days, time_zone, overdu
     throw new AppError(`No available copy record found for "${book.title}". Please contact admin.`, 409);
   }
 
+  const copyDetail = await prisma.bookCopy.findUnique({ where: { id: copy.id } });
+  const outgoingCondition = copyDetail?.condition || "GOOD";
+
   // Atomic transaction: create rental + mark copy unavailable + decrement book.available
   const [rental] = await prisma.$transaction([
     prisma.rental.create({
@@ -493,6 +556,7 @@ export const borrowBook = async (userId, { book_id, loan_days, time_zone, overdu
         student_profile_id: options.studentProfileId || null,
         book_id,
         copy_id: copy.id,
+        outgoing_condition: outgoingCondition,
         due_date: dueDate,
         status: "BORROWED",
       },
@@ -500,13 +564,28 @@ export const borrowBook = async (userId, { book_id, loan_days, time_zone, overdu
     }),
     prisma.bookCopy.update({
       where: { id: copy.id },
-      data: { is_available: false },
+      data: { is_available: false, status: "BORROWED" },
     }),
     prisma.book.update({
       where: { id: book_id },
       data: { available: { decrement: 1 } },
     }),
   ]);
+
+  // Log Condition History Audit
+  await prisma.bookConditionHistory.create({
+    data: {
+      copy_id: copy.id,
+      rental_id: rental.id,
+      custody_user_id: userId,
+      old_condition: outgoingCondition,
+      new_condition: outgoingCondition,
+      old_status: "AVAILABLE",
+      new_status: "BORROWED",
+      notes: `Checked out to borrower ${user.name}`,
+      updated_by_user_id: options.actorUserId || userId,
+    },
+  });
 
   await Promise.all([
     markReservationFulfilledForBorrow(userId, book_id, {
@@ -642,61 +721,183 @@ Birana Library`;
 
 /**
  * Process book return. Admin only.
- * Computes fine automatically.
- *
- * Return statuses after return:
- *   - No fine → status = RETURNED
- *   - Fine > 0 → status = PENDING (awaiting payment)
- *
- * Notifies student and admins.
  */
 export const returnBook = async (rentalId, io) => {
+  return returnBookWithInspection(rentalId, {}, io);
+};
+
+const DAMAGE_PENALTY_RATES = {
+  TORN_COVER: 50,
+  HEAVY_ANNOTATION: 50,
+  BROKEN_BINDING: 100,
+  WATER_DAMAGE: 150,
+  MISSING_PAGES: 150,
+  LOST: 300,
+  OTHER: 75,
+};
+
+const calculateDamagePenalty = (damageType, bookRentalPrice) => {
+  const baseRate = DAMAGE_PENALTY_RATES[damageType] || 50;
+  const price = Number(bookRentalPrice || 10);
+  return parseFloat((baseRate + price * 2).toFixed(2));
+};
+
+/**
+ * Advanced Two-Phase Return Handshake with Physical Copy Inspection & Damage Assessment
+ */
+export const returnBookWithInspection = async (
+  rentalId,
+  { inspectorId, returnedCondition, damageType, notes, evidenceUrl, waivePenalty } = {},
+  io,
+) => {
   const rental = await prisma.rental.findUnique({
     where: { id: rentalId },
     include: {
-      physical_book: { select: { id: true, title: true } },
-      user: { select: { id: true, name: true, email: true } },
+      physical_book: { select: { id: true, title: true, rental_price: true } },
+      user: { select: { id: true, name: true, email: true, trust_score: true } },
+      copy: true,
     },
   });
+
   if (!rental) throw new AppError("Rental not found", 404);
   if (rental.status === "RETURNED" || rental.status === "COMPLETED") {
-    throw new AppError("This book has already been returned", 400);
+    throw new AppError("This book rental has already been closed/returned.", 400);
   }
 
   const config = await getConfig();
   const returnDate = new Date();
-  const fine = calculateFine(rental.due_date, returnDate, config.daily_fine);
-  const newStatus = fine > 0 ? "PENDING" : "RETURNED";
+  const outgoingCondition = rental.outgoing_condition || rental.copy?.condition || "GOOD";
+  const finalReturnedCondition = returnedCondition || outgoingCondition;
 
-  // Atomic: update rental + restore available
-  const txOps = [
-    prisma.rental.update({
+  // Overdue fine calculation
+  const overdueFine = calculateFine(rental.due_date, returnDate, config.daily_fine);
+  const overdueDays = Math.ceil((returnDate.getTime() - new Date(rental.due_date).getTime()) / (1000 * 60 * 60 * 24));
+
+  // Condition degradation check
+  const conditionOrder = { NEW: 4, GOOD: 3, WORN: 2, DAMAGED: 1, LOST: 0 };
+  const isConditionDegraded = conditionOrder[finalReturnedCondition] < conditionOrder[outgoingCondition];
+  const isLostOrDamaged = finalReturnedCondition === "DAMAGED" || finalReturnedCondition === "LOST" || isConditionDegraded;
+
+  let damagePenalty = 0;
+
+  if (isLostOrDamaged) {
+    const selectedDamageType = damageType || (finalReturnedCondition === "LOST" ? "LOST" : "OTHER");
+    if (!waivePenalty) {
+      damagePenalty = calculateDamagePenalty(selectedDamageType, rental.physical_book?.rental_price);
+    }
+  }
+
+  const totalFine = parseFloat((overdueFine + damagePenalty).toFixed(2));
+  const newStatus = totalFine > 0 ? "PENDING" : "RETURNED";
+
+  let newCopyStatus = "AVAILABLE";
+  let copyIsAvailable = true;
+
+  if (finalReturnedCondition === "DAMAGED") {
+    newCopyStatus = "DAMAGED_REPAIR";
+    copyIsAvailable = false;
+  } else if (finalReturnedCondition === "LOST") {
+    newCopyStatus = "LOST";
+    copyIsAvailable = false;
+  }
+
+  const result = await prisma.$transaction(async (tx) => {
+    // 1. Update Rental
+    const updatedRental = await tx.rental.update({
       where: { id: rentalId },
       data: {
-        status: /** @type {any} */ (newStatus),
+        status: newStatus,
         return_date: returnDate,
-        fine: fine > 0 ? fine : null,
+        returned_condition: finalReturnedCondition,
+        fine: totalFine > 0 ? totalFine : null,
       },
       include: RENTAL_INCLUDE,
-    }),
-    prisma.book.update({
-      where: { id: rental.book_id },
-      data: { available: { increment: 1 } },
-    }),
-  ];
-  if (rental.copy_id) {
-    txOps.push(
-      prisma.bookCopy.update({
+    });
+
+    // 2. Update Copy
+    if (rental.copy_id) {
+      await tx.bookCopy.update({
         where: { id: rental.copy_id },
-        data: { is_available: true, last_condition_update: returnDate },
-      }),
-    );
+        data: {
+          condition: finalReturnedCondition,
+          status: newCopyStatus,
+          is_available: copyIsAvailable,
+          last_condition_update: returnDate,
+          ...(notes ? { notes } : {}),
+        },
+      });
+
+      // Log Condition Audit
+      await tx.bookConditionHistory.create({
+        data: {
+          copy_id: rental.copy_id,
+          rental_id: rentalId,
+          custody_user_id: rental.user_id,
+          old_condition: outgoingCondition,
+          new_condition: finalReturnedCondition,
+          old_status: "BORROWED",
+          new_status: newCopyStatus,
+          notes: notes || `Return inspection completed by inspector ${inspectorId || "admin"}`,
+          updated_by_user_id: inspectorId || rental.user_id,
+        },
+      });
+    }
+
+    // 3. Update Book stock
+    if (copyIsAvailable && rental.book_id) {
+      await tx.book.update({
+        where: { id: rental.book_id },
+        data: { available: { increment: 1 } },
+      });
+    }
+
+    // 4. Create Damage Incident if damaged or lost
+    let createdIncident = null;
+    if (isLostOrDamaged && rental.copy_id) {
+      const selectedDamageType = damageType || (finalReturnedCondition === "LOST" ? "LOST" : "OTHER");
+      createdIncident = await tx.damageIncident.create({
+        data: {
+          copy_id: rental.copy_id,
+          rental_id: rentalId,
+          user_id: rental.user_id,
+          inspector_id: inspectorId || rental.user_id,
+          outgoing_condition: outgoingCondition,
+          returned_condition: finalReturnedCondition,
+          damage_type: selectedDamageType,
+          notes: notes || "Degraded condition detected during return inspection",
+          evidence_url: evidenceUrl || null,
+          penalty_amount: damagePenalty,
+          penalty_status: damagePenalty > 0 ? "PENDING" : "WAIVED",
+        },
+      });
+    }
+
+    // 5. Calculate Trust Score Adjustments
+    let trustDelta = 0;
+    if (overdueDays > 0) {
+      trustDelta -= overdueDays * 2;
+    }
+    if (isLostOrDamaged) {
+      if (finalReturnedCondition === "LOST") trustDelta -= 50;
+      else if (damageType === "BROKEN_BINDING" || damageType === "WATER_DAMAGE" || damageType === "MISSING_PAGES") trustDelta -= 40;
+      else trustDelta -= 25;
+    }
+    if (overdueDays <= 0 && !isLostOrDamaged) {
+      trustDelta += 2;
+    }
+
+    if (trustDelta !== 0) {
+      await applyTrustScoreDelta(rental.user_id, trustDelta, "Return inspection completed", tx);
+    } else {
+      await recalculateUserTrustScore(rental.user_id, tx);
+    }
+
+    return { updatedRental, createdIncident, totalFine, overdueFine, damagePenalty };
+  });
+
+  if (copyIsAvailable && rental.book_id) {
+    await Promise.all([notifyNextInQueue(rental.book_id, io), syncLowStockAlertForBook(rental.book_id)]);
   }
-  const [updated] = await prisma.$transaction(txOps);
-
-  await Promise.all([notifyNextInQueue(rental.book_id, io), syncLowStockAlertForBook(rental.book_id)]);
-
-  // ── Notifications ──────────────────────────────────────────────────────────
 
   const returnDateStr = returnDate.toLocaleDateString("en-US", {
     weekday: "long",
@@ -705,41 +906,40 @@ export const returnBook = async (rentalId, io) => {
     day: "numeric",
   });
 
-  if (fine > 0) {
-    const overdueDays = Math.ceil((returnDate.getTime() - new Date(rental.due_date).getTime()) / (1000 * 60 * 60 * 24));
-
-    // Student: fine applied
+  if (result.totalFine > 0) {
     await createNotification({
       userId: rental.user_id,
-      message: `⚠️ You returned "${rental.physical_book.title}" ${overdueDays} day(s) late. A fine of ${fine.toFixed(2)} ETB has been applied. Please pay to complete the return.`,
+      message: `⚠️ Return Inspection Completed: "${rental.physical_book.title}". Total fine: ${result.totalFine.toFixed(2)} ETB (Overdue: ${result.overdueFine.toFixed(2)} ETB, Damage penalty: ${result.damagePenalty.toFixed(2)} ETB).`,
       type: "ALERT",
       io,
     });
-
-    // Admins
     await notifyAdmins({
-      message: `📋 ${rental.user.name} returned "${rental.physical_book.title}" ${overdueDays} day(s) late. Fine: ${fine.toFixed(2)} ETB. Awaiting payment.`,
+      message: `📋 ${rental.user.name} returned "${rental.physical_book.title}". Total fine: ${result.totalFine.toFixed(2)} ETB (Damage: ${result.damagePenalty.toFixed(2)} ETB). Awaiting payment.`,
       type: "INFO",
       io,
     });
   } else {
-    // Student: clean return
     await createNotification({
       userId: rental.user_id,
-      message: `✅ You have successfully returned "${rental.physical_book.title}" on ${returnDateStr}. Thank you!`,
+      message: `✅ Return Inspection Passed: "${rental.physical_book.title}" returned on ${returnDateStr} in ${finalReturnedCondition} condition. Thank you!`,
       type: "INFO",
       io,
     });
-
-    // Admins
     await notifyAdmins({
-      message: `✅ ${rental.user.name} returned "${rental.physical_book.title}" on time on ${returnDateStr}.`,
+      message: `✅ ${rental.user.name} returned "${rental.physical_book.title}" in ${finalReturnedCondition} condition.`,
       type: "INFO",
       io,
     });
   }
 
-  return { ...updated, fine, newStatus };
+  return {
+    ...result.updatedRental,
+    fine: result.totalFine,
+    overdueFine: result.overdueFine,
+    damagePenalty: result.damagePenalty,
+    incident: result.createdIncident,
+    newStatus,
+  };
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

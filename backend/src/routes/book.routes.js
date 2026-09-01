@@ -40,6 +40,8 @@ router.patch(
   bookController.updateBook,
 );
 router.delete('/:id', bookController.deleteBook);
+router.post('/:id/copies', bookController.addBookCopy);
+router.delete('/copies/:copyId', bookController.deleteBookCopy);
 router.patch('/copies/:copyId/condition', bookController.updateBookCopyCondition);
 router.get('/copies/:copyId/condition-history', bookController.getBookCopyConditionHistory);
 

@@ -1,6 +1,8 @@
 import * as adminActivityService from '../services/adminActivity.service.js';
 import * as inventoryAlertService from '../services/inventoryAlert.service.js';
 import * as reportService from '../services/report.service.js';
+import { invalidateAuthUserCache } from '../middlewares/auth.middleware.js';
+import * as authService from '../services/auth.service.js';
 import { AppError } from '../middlewares/error.middleware.js';
 import { prisma } from '../prisma.js';
 
@@ -102,6 +104,8 @@ export const exportReport = async (req, res) => {
   return res.status(200).json({ status: 'success', data: report.body });
 };
 
+import * as trustScoreService from '../services/trustScore.service.js';
+
 export const getUserInsights = async (req, res) => {
   const userId = req.params.id;
 
@@ -117,12 +121,17 @@ export const getUserInsights = async (req, res) => {
       created_at: true,
       is_blocked: true,
       is_confirmed: true,
+      trust_score: true,
+      standing: true,
+      standing_note: true,
+      standing_updated_at: true,
+      max_concurrent_loans_override: true,
     },
   });
 
   if (!user) throw new AppError('User not found', 404);
 
-  const [rentals, wishlistCount, reviewCount] = await Promise.all([
+  const [rentals, wishlistCount, reviewCount, damageIncidents] = await Promise.all([
     prisma.rental.findMany({
       where: { user_id: userId },
       include: {
@@ -130,15 +139,40 @@ export const getUserInsights = async (req, res) => {
           select: {
             id: true,
             title: true,
+            cover_image_url: true,
             category: { select: { name: true } },
           },
         },
+        copy: {
+          select: {
+            id: true,
+            copy_code: true,
+            condition: true,
+            status: true,
+          },
+        },
+        damage_incidents: true,
       },
       orderBy: { loan_date: 'desc' },
       take: 50,
     }),
     prisma.wishlist.count({ where: { user_id: userId } }),
     prisma.review.count({ where: { user_id: userId } }),
+    prisma.damageIncident.findMany({
+      where: { user_id: userId },
+      include: {
+        copy: {
+          select: {
+            copy_code: true,
+            book: { select: { title: true } },
+          },
+        },
+        inspector: {
+          select: { name: true, email: true },
+        },
+      },
+      orderBy: { created_at: 'desc' },
+    }),
   ]);
 
   const statusSummary = rentals.reduce((acc, r) => {
@@ -179,14 +213,23 @@ export const getUserInsights = async (req, res) => {
       id: r.id,
       status: r.status,
       bookTitle: r.physical_book?.title ?? 'Unknown',
+      copyCode: r.copy?.copy_code ?? 'N/A',
+      outgoingCondition: r.outgoing_condition || 'GOOD',
+      returnedCondition: r.returned_condition || (r.status === 'RETURNED' ? 'GOOD' : null),
       loanDate: r.loan_date,
       dueDate: r.due_date,
       returnDate: r.return_date,
       fine: Number(r.fine ?? 0),
       isLate,
       daysLate,
+      hasDamageIncident: (r.damage_incidents && r.damage_incidents.length > 0) || false,
     };
   });
+
+  const totalDamagePenalty = damageIncidents.reduce((sum, inc) => sum + Number(inc.penalty_amount || 0), 0);
+  const pendingDamagePenalty = damageIncidents
+    .filter((inc) => inc.penalty_status === 'PENDING')
+    .reduce((sum, inc) => sum + Number(inc.penalty_amount || 0), 0);
 
   return res.json({
     status: 'success',
@@ -200,9 +243,29 @@ export const getUserInsights = async (req, res) => {
         wishlistCount,
         reviewCount,
         statusSummary,
+        totalDamagePenalty,
+        pendingDamagePenalty,
+        incidentCount: damageIncidents.length,
       },
       favoriteCategories,
       history,
+      damageIncidents,
     },
   });
+};
+
+export const moderateUserStanding = async (req, res) => {
+  const targetUserId = req.params.id;
+  const adminUserId = req.user.id;
+  const result = await trustScoreService.moderateUserStanding(adminUserId, targetUserId, req.body);
+  invalidateAuthUserCache(targetUserId);
+  authService.invalidateSessionContextCache(targetUserId);
+  res.json({ status: 'success', data: { user: result } });
+};
+
+export const updateDamagePenalty = async (req, res) => {
+  const incidentId = req.params.incidentId;
+  const adminUserId = req.user.id;
+  const result = await trustScoreService.updateDamagePenaltyStatus(adminUserId, incidentId, req.body);
+  res.json({ status: 'success', data: { incident: result } });
 };

@@ -16,5 +16,7 @@ router.patch('/inventory-alerts/:id/resolve', adminController.resolveInventoryAl
 router.delete('/inventory-alerts/:id', adminController.deleteInventoryAlert);
 router.get('/reports/export', adminController.exportReport);
 router.get('/users/:id/insights', adminController.getUserInsights);
+router.patch('/users/:id/standing', adminController.moderateUserStanding);
+router.patch('/damage-incidents/:incidentId', adminController.updateDamagePenalty);
 
 export default router;

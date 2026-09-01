@@ -120,3 +120,29 @@ export const deleteBook = async (req, res) => {
   });
   res.json({ status: 'success', message: 'Book soft-deleted successfully' });
 };
+
+export const addBookCopy = async (req, res) => {
+  const copy = await bookService.addBookCopy(req.params.id, req.body, req.user.id);
+  await logAdminActivity({
+    adminUserId: req.user.id,
+    action: 'CREATE_COPY',
+    entityType: 'BOOK_COPY',
+    entityId: copy.id,
+    description: `Added physical copy ${copy.copy_code}`,
+    req,
+  });
+  res.status(201).json({ status: 'success', data: { copy } });
+};
+
+export const deleteBookCopy = async (req, res) => {
+  await bookService.deleteBookCopy(req.params.copyId, req.user.id);
+  await logAdminActivity({
+    adminUserId: req.user.id,
+    action: 'DELETE_COPY',
+    entityType: 'BOOK_COPY',
+    entityId: req.params.copyId,
+    description: `Deleted physical copy`,
+    req,
+  });
+  res.json({ status: 'success', message: 'Book copy deleted successfully' });
+};

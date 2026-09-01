@@ -1106,63 +1106,196 @@ export const getBookCopies = async (bookId) => {
       id: true,
       copy_code: true,
       condition: true,
+      status: true,
       is_available: true,
       last_condition_update: true,
       notes: true,
       rentals: {
         where: { status: { in: ["BORROWED", "PENDING"] } },
-        select: { id: true, user: { select: { id: true, name: true, email: true } } },
+        select: { id: true, status: true, due_date: true, user: { select: { id: true, name: true, email: true, standing: true } } },
         take: 1,
+      },
+      damage_incidents: {
+        orderBy: { created_at: "desc" },
+        take: 3,
+        select: {
+          id: true,
+          damage_type: true,
+          penalty_amount: true,
+          penalty_status: true,
+          created_at: true,
+          user: { select: { name: true, email: true } },
+          inspector: { select: { name: true } },
+        },
       },
     },
   });
   return copies;
 };
 
-export const updateBookCopyCondition = async (copyId, { condition, notes }, adminUserId) => {
-  const valid = ["NEW", "GOOD", "WORN", "DAMAGED", "LOST"];
-  const next = String(condition || "").toUpperCase();
-  if (!valid.includes(next)) throw new AppError("Invalid condition value", 400);
+export const updateBookCopyCondition = async (copyId, { condition, status, notes }, adminUserId) => {
+  const validConditions = ["NEW", "GOOD", "WORN", "DAMAGED", "LOST"];
+  const validStatuses = ["AVAILABLE", "BORROWED", "UNDER_INSPECTION", "DAMAGED_REPAIR", "DECOMMISSIONED", "LOST"];
+  
+  const nextCond = condition ? String(condition).toUpperCase() : undefined;
+  const nextStatus = status ? String(status).toUpperCase() : undefined;
+
+  if (nextCond && !validConditions.includes(nextCond)) throw new AppError("Invalid condition value", 400);
+  if (nextStatus && !validStatuses.includes(nextStatus)) throw new AppError("Invalid status value", 400);
 
   const copy = await prisma.bookCopy.findUnique({
     where: { id: copyId },
-    select: { id: true, condition: true, notes: true },
+    select: { id: true, condition: true, status: true, notes: true, book_id: true, is_available: true },
   });
   if (!copy) throw new AppError("Book copy not found", 404);
-  if (copy.condition === next && (notes ?? copy.notes) === copy.notes) return copy;
+
+  const targetCond = nextCond || copy.condition;
+  let targetStatus = nextStatus || copy.status;
+
+  if (!nextStatus) {
+    if (targetCond === "DAMAGED") targetStatus = "DAMAGED_REPAIR";
+    else if (targetCond === "LOST") targetStatus = "LOST";
+    else if (copy.status === "DAMAGED_REPAIR" || copy.status === "LOST") targetStatus = "AVAILABLE";
+  }
+
+  const isAvailable = targetStatus === "AVAILABLE";
 
   const updated = await prisma.$transaction(async (tx) => {
     const updatedCopy = await tx.bookCopy.update({
       where: { id: copyId },
       data: {
-        condition: next,
+        condition: targetCond,
+        status: targetStatus,
+        is_available: isAvailable,
         notes: notes ?? copy.notes,
         last_condition_update: new Date(),
-        ...(next === "LOST" ? { is_available: false } : {}),
       },
       select: {
         id: true,
         book_id: true,
         copy_code: true,
         condition: true,
+        status: true,
         notes: true,
         is_available: true,
         last_condition_update: true,
       },
     });
+
     await tx.bookConditionHistory.create({
       data: {
         copy_id: copyId,
         old_condition: copy.condition,
-        new_condition: next,
-        notes: notes ?? null,
+        new_condition: targetCond,
+        old_status: copy.status,
+        new_status: targetStatus,
+        notes: notes ?? `Status/condition updated by admin ${adminUserId}`,
         updated_by_user_id: adminUserId,
       },
     });
+
+    // Update parent book available count if availability changed
+    const totalCopies = await tx.bookCopy.count({ where: { book_id: copy.book_id, deleted_at: null } });
+    const availCopies = await tx.bookCopy.count({ where: { book_id: copy.book_id, deleted_at: null, is_available: true } });
+
+    await tx.book.update({
+      where: { id: copy.book_id },
+      data: {
+        available: availCopies,
+        copies: totalCopies,
+      },
+    });
+
     return updatedCopy;
   });
 
   return updated;
+};
+
+export const addBookCopy = async (bookId, { copy_code, condition, status, notes }, adminUserId) => {
+  const book = await prisma.book.findUnique({ where: { id: bookId, deleted_at: null }, select: { id: true, title: true } });
+  if (!book) throw new AppError("Book not found", 404);
+
+  const existingCount = await prisma.bookCopy.count({ where: { book_id: bookId } });
+  const code = copy_code?.trim() || buildCopyCode(bookId, existingCount + 1);
+  const initialCond = condition ? String(condition).toUpperCase() : "NEW";
+  const initialStatus = status ? String(status).toUpperCase() : "AVAILABLE";
+  const isAvail = initialStatus === "AVAILABLE";
+
+  const newCopy = await prisma.$transaction(async (tx) => {
+    const created = await tx.bookCopy.create({
+      data: {
+        book_id: bookId,
+        copy_code: code,
+        condition: initialCond,
+        status: initialStatus,
+        is_available: isAvail,
+        notes: notes?.trim() || null,
+        last_condition_update: new Date(),
+      },
+    });
+
+    await tx.bookConditionHistory.create({
+      data: {
+        copy_id: created.id,
+        updated_by_user_id: adminUserId,
+        old_condition: "NEW",
+        new_condition: initialCond,
+        old_status: "AVAILABLE",
+        new_status: initialStatus,
+        notes: "Individual physical copy commissioned into inventory.",
+      },
+    });
+
+    const totalCopies = await tx.bookCopy.count({ where: { book_id: bookId, deleted_at: null } });
+    const availCopies = await tx.bookCopy.count({ where: { book_id: bookId, deleted_at: null, is_available: true, status: "AVAILABLE" } });
+
+    await tx.book.update({
+      where: { id: bookId },
+      data: { copies: totalCopies, available: availCopies },
+    });
+
+    return created;
+  });
+
+  return newCopy;
+};
+
+export const deleteBookCopy = async (copyId, adminUserId) => {
+  const copy = await prisma.bookCopy.findUnique({
+    where: { id: copyId, deleted_at: null },
+    select: {
+      id: true,
+      copy_code: true,
+      book_id: true,
+      rentals: {
+        where: { status: { in: ["BORROWED", "PENDING"] } },
+        select: { id: true },
+      },
+    },
+  });
+
+  if (!copy) throw new AppError("Book copy not found", 404);
+  if (copy.rentals.length > 0) {
+    throw new AppError("Cannot delete copy while it is active on loan.", 400);
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.bookCopy.update({
+      where: { id: copyId },
+      data: { deleted_at: new Date() },
+    });
+
+    const totalCopies = await tx.bookCopy.count({ where: { book_id: copy.book_id, deleted_at: null } });
+    const availCopies = await tx.bookCopy.count({ where: { book_id: copy.book_id, deleted_at: null, is_available: true, status: "AVAILABLE" } });
+
+    await tx.book.update({
+      where: { id: copy.book_id },
+      data: { copies: totalCopies, available: availCopies },
+    });
+  });
+
+  return { message: "Copy deleted successfully" };
 };
 
 export const getBookConditionHistory = async (copyId) => {
@@ -1172,6 +1305,12 @@ export const getBookConditionHistory = async (copyId) => {
     include: {
       updated_by_user: {
         select: { id: true, name: true, email: true },
+      },
+      custody_user: {
+        select: { id: true, name: true, email: true },
+      },
+      rental: {
+        select: { id: true, status: true, due_date: true },
       },
     },
   });

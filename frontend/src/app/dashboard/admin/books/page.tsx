@@ -2,13 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Plus, X, Upload, MoreHorizontal, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
+import { Search, Plus, X, Upload, MoreHorizontal, ChevronLeft, ChevronRight, ChevronDown, ShieldCheck, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   useBooks, useDigitalBooks, useCategories, useAuthors,
   useCreateBook, useUpdateBook, useDeleteBook,
   useCreateCategory, useUpdateCategory, useDeleteCategory,
   useCreateAuthor, useBookCopies, useConditionHistory, useUpdateCondition,
+  useAddBookCopy, useDeleteBookCopy,
 } from "@/lib/hooks/useQueries";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { TanStackTable, PortalDropdown } from "@/components/ui/TanStackTable";
@@ -796,95 +797,362 @@ function BookModal({ onClose, authors, categories, editingBook, onSubmit, submit
 }
 
 /* ── Condition Modal ────────────────────────────────────── */
-function ConditionModal({ bookId, title, onClose }:{ bookId:string; title:string; onClose:()=>void }) {
+function ConditionModal({ bookId, title, onClose }: { bookId: string; title: string; onClose: () => void }) {
   const { t } = useLanguage();
-  const [selectedCopy, setSelectedCopy] = useState<BookCopy|null>(null);
-  const [newCond, setNewCond]           = useState("");
-  const [notes, setNotes]               = useState("");
-  const { data: copiesData }  = useBookCopies(bookId);
-  const { data: historyData } = useConditionHistory(bookId);
-  const update = useUpdateCondition();
-  const copies:BookCopy[]  = copiesData?.data?.copies||[];
-  const history:CondHist[] = historyData?.data?.history||[];
-  const CONDITIONS = ["NEW","GOOD","WORN","DAMAGED","LOST"];
+  const [selectedCopy, setSelectedCopy] = useState<BookCopy | null>(null);
+  const [newCond, setNewCond] = useState("");
+  const [newStatus, setNewStatus] = useState("");
+  const [notes, setNotes] = useState("");
 
-  const handleUpdate = async (e:React.FormEvent) => {
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [addCopyCode, setAddCopyCode] = useState("");
+  const [addCond, setAddCond] = useState("NEW");
+  const [addStatus, setAddStatus] = useState("AVAILABLE");
+  const [addNotes, setAddNotes] = useState("");
+
+  const { data: copiesData } = useBookCopies(bookId);
+  const { data: historyData } = useConditionHistory(selectedCopy?.id || "");
+  const update = useUpdateCondition();
+  const addCopy = useAddBookCopy();
+  const deleteCopy = useDeleteBookCopy();
+
+  const copies: BookCopy[] = copiesData?.data?.copies || [];
+  const history: CondHist[] = historyData?.data?.history || [];
+
+  const CONDITIONS = ["NEW", "GOOD", "WORN", "DAMAGED", "LOST"];
+  const STATUSES = ["AVAILABLE", "BORROWED", "UNDER_INSPECTION", "DAMAGED_REPAIR", "DECOMMISSIONED", "LOST"];
+
+  const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedCopy||!newCond) return;
+    if (!selectedCopy || (!newCond && !newStatus)) return;
     try {
-      await update.mutateAsync({ copyId:selectedCopy.id, data:{ condition:newCond, notes:notes||undefined } });
-      toast.success("Condition updated");
-      setSelectedCopy(null); setNewCond(""); setNotes("");
-    } catch(e) { toast.error(e instanceof Error?e.message:"Failed to update"); }
+      await update.mutateAsync({
+        copyId: selectedCopy.id,
+        data: { condition: newCond || undefined, status: newStatus || undefined, notes: notes || undefined },
+      });
+      toast.success("Copy condition & status updated");
+      setSelectedCopy(null);
+      setNewCond("");
+      setNewStatus("");
+      setNotes("");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to update copy");
+    }
+  };
+
+  const handleAddCopySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await addCopy.mutateAsync({
+        bookId,
+        data: {
+          copy_code: addCopyCode || undefined,
+          condition: addCond,
+          status: addStatus,
+          notes: addNotes || undefined,
+        },
+      });
+      toast.success("New physical book copy registered");
+      setShowAddForm(false);
+      setAddCopyCode("");
+      setAddCond("NEW");
+      setAddStatus("AVAILABLE");
+      setAddNotes("");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to add copy");
+    }
+  };
+
+  const handleDeleteCopy = async (copyId: string, copyCode: string) => {
+    if (!confirm(`Are you sure you want to decommission/delete physical copy "${copyCode}"?`)) return;
+    try {
+      await deleteCopy.mutateAsync({ copyId, bookId });
+      toast.success(`Copy ${copyCode} removed from active inventory`);
+      if (selectedCopy?.id === copyId) setSelectedCopy(null);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to delete copy");
+    }
+  };
+
+  const getStatusBadgeClass = (st?: string) => {
+    switch (st) {
+      case "AVAILABLE":
+        return "bg-emerald-50 text-emerald-700 border-emerald-200";
+      case "BORROWED":
+        return "bg-blue-50 text-blue-700 border-blue-200";
+      case "UNDER_INSPECTION":
+        return "bg-amber-50 text-amber-700 border-amber-200";
+      case "DAMAGED_REPAIR":
+        return "bg-orange-50 text-orange-700 border-orange-200";
+      case "LOST":
+      case "DECOMMISSIONED":
+        return "bg-rose-50 text-rose-700 border-rose-200";
+      default:
+        return "bg-gray-50 text-gray-700 border-gray-200";
+    }
   };
 
   return (
-    <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
       className="fixed inset-0 z-[2147483647] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4"
-      onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
-      <motion.div initial={{opacity:0,y:40}} animate={{opacity:1,y:0}} exit={{opacity:0,y:40}}
-        transition={{duration:0.3,ease:[0.16,1,0.3,1]}}
-        className="bg-white w-full sm:rounded-2xl sm:max-w-xl max-h-[92dvh] flex flex-col shadow-2xl overflow-hidden"
-        onClick={e=>e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[#e8e4dc] shrink-0">
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <motion.div
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 40 }}
+        transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+        className="bg-white w-full sm:rounded-2xl sm:max-w-2xl max-h-[92dvh] flex flex-col shadow-2xl overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#e8e4dc] shrink-0 bg-[#faf9f6]">
           <div>
-            <h2 className="text-[15px] font-serif font-black text-[#0d0d0d]">{String(t("admin_books.condition_modal.title"))}</h2>
-            <p className="text-[12px] text-[#0d0d0d]/45 truncate">{title}</p>
-          </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-xl bg-[#f5f4f0] flex items-center justify-center text-[#0d0d0d]/40 hover:text-[#0d0d0d] transition-colors"><X size={15}/></button>
-        </div>
-        <div className="flex-1 overflow-y-auto p-5 space-y-5">
-          {/* Copies list */}
-          <div>
-            <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.18em] mb-2">{String(t("admin_books.condition_modal.all_copies"))}</p>
-            <div className="space-y-1.5">
-              {copies.length===0 ? <p className="text-sm text-[#0d0d0d]/35">{String(t("admin_books.condition_modal.no_copies"))}</p>
-                : copies.map(c=>(
-                  <button key={c.id} type="button" onClick={()=>{setSelectedCopy(c);setNewCond(c.condition);setNotes("");}}
-                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-left transition-all ${selectedCopy?.id===c.id?"border-[#0d0d0d] bg-[#f5f4f0]":"border-[#e8e4dc] bg-white hover:border-[#0d0d0d]/30"}`}>
-                    <div>
-                      <p className="text-[13px] font-bold text-[#0d0d0d]">{c.copy_code}</p>
-                      <p className="text-[11px] text-[#0d0d0d]/40">{c.condition} · {c.is_available?String(t("admin_books.condition_modal.status.available")):String(t("admin_books.condition_modal.status.checked_out"))}</p>
-                    </div>
-                    {selectedCopy?.id===c.id && <span className="w-2 h-2 rounded-full bg-[#f5c518]"/>}
-                  </button>
-                ))}
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-[#142b6f]" />
+              <h2 className="text-[16px] font-serif font-black text-[#0d0d0d]">Physical Copy Inventory Management</h2>
             </div>
+            <p className="text-[12px] text-[#0d0d0d]/50 truncate max-w-md">{title}</p>
           </div>
-          {/* Update form */}
-          {selectedCopy && (
-            <form onSubmit={handleUpdate} className="space-y-3 bg-[#f5f4f0] rounded-xl p-4">
-              <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.18em]">{String(t("admin_books.condition_modal.update_title"))}</p>
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-wider">{String(t("admin_books.condition_modal.new_condition"))}</label>
-                <select value={newCond} onChange={e=>setNewCond(e.target.value)} required className={IC}>
-                  <option value="">Select…</option>
-                  {CONDITIONS.map(c=><option key={c} value={c}>{c}</option>)}
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-xl bg-[#f5f4f0] flex items-center justify-center text-[#0d0d0d]/40 hover:text-[#0d0d0d] transition-colors"
+          >
+            <X size={15} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          {/* Header & Add Copy Action */}
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-[0.18em]">
+              Physical Copies Matrix ({copies.length})
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowAddForm(!showAddForm)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#142b6f] text-white text-[11px] font-bold hover:bg-[#0e1f52] transition-colors"
+            >
+              <Plus size={13} />
+              {showAddForm ? "Cancel Add" : "Add Physical Copy"}
+            </button>
+          </div>
+
+          {/* New Copy Form */}
+          {showAddForm && (
+            <form onSubmit={handleAddCopySubmit} className="p-4 bg-[#f0f4ff] rounded-xl border border-[#142b6f]/20 space-y-3">
+              <p className="text-[11px] font-extrabold text-[#142b6f] uppercase tracking-wider">
+                Register New Copy
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                <input
+                  type="text"
+                  placeholder="Code (Auto e.g. BC-001)"
+                  value={addCopyCode}
+                  onChange={(e) => setAddCopyCode(e.target.value)}
+                  className={IC}
+                />
+                <select value={addCond} onChange={(e) => setAddCond(e.target.value)} className={IC}>
+                  {CONDITIONS.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+                <select value={addStatus} onChange={(e) => setAddStatus(e.target.value)} className={IC}>
+                  {STATUSES.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
                 </select>
               </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-wider">{String(t("admin_books.condition_modal.notes_label"))}</label>
-                <textarea rows={2} value={notes} onChange={e=>setNotes(e.target.value)}
-                  placeholder={String(t("admin_books.condition_modal.notes_placeholder"))} className={`${IC} resize-none`}/>
+              <input
+                type="text"
+                placeholder="Initial notes / shelf location..."
+                value={addNotes}
+                onChange={(e) => setAddNotes(e.target.value)}
+                className={IC}
+              />
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={addCopy.isPending}
+                  className="px-4 py-2 bg-[#142b6f] text-white rounded-xl text-xs font-bold hover:bg-[#0e1f52] transition-colors"
+                >
+                  {addCopy.isPending ? "Creating..." : "Save Copy"}
+                </button>
               </div>
-              <button type="submit" disabled={update.isPending}
-                className="px-4 py-2.5 rounded-xl bg-[#0d0d0d] text-white text-[12px] font-bold disabled:opacity-50 hover:bg-[#292524] transition-colors">
-                {update.isPending ? String(t("admin_books.condition_modal.saving")) : String(t("admin_books.condition_modal.submit_update"))}
-              </button>
             </form>
           )}
-          {/* History */}
-          {history.length>0 && (
-            <div>
-              <p className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-[0.18em] mb-2">{String(t("admin_books.condition_modal.history_title"))}</p>
-              <div className="space-y-1.5">
-                {history.slice(0,10).map(h=>(
-                  <div key={h.id} className="flex items-center gap-3 px-4 py-3 bg-white rounded-xl border border-[#e8e4dc]">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[12px] font-semibold text-[#0d0d0d]">{h.old_condition} → {h.new_condition}</p>
-                      {h.notes && <p className="text-[11px] text-[#0d0d0d]/40 truncate">{h.notes}</p>}
+
+          {/* Physical Copies Matrix */}
+          <div className="space-y-2">
+            {copies.length === 0 ? (
+              <p className="text-sm text-[#0d0d0d]/35">No copies logged for this book.</p>
+            ) : (
+              copies.map((c: any) => {
+                const activeRental = c.rentals?.[0];
+                return (
+                  <div
+                    key={c.id}
+                    className={`w-full flex flex-col p-4 rounded-xl border transition-all ${
+                      selectedCopy?.id === c.id
+                        ? "border-[#142b6f] bg-[#f0f4ff] shadow-sm"
+                        : "border-[#e8e4dc] bg-white hover:border-[#0d0d0d]/30"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedCopy(c);
+                          setNewCond(c.condition);
+                          setNewStatus(c.status || (c.is_available ? "AVAILABLE" : "BORROWED"));
+                          setNotes(c.notes || "");
+                        }}
+                        className="flex items-center gap-2 text-left"
+                      >
+                        <span className="text-[14px] font-extrabold text-[#0d0d0d] font-mono">{c.copy_code}</span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#f5f4f0] text-[#0d0d0d]/70">
+                          {c.condition}
+                        </span>
+                      </button>
+                      
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border uppercase tracking-wider ${getStatusBadgeClass(
+                            c.status || (c.is_available ? "AVAILABLE" : "BORROWED"),
+                          )}`}
+                        >
+                          {c.status || (c.is_available ? "AVAILABLE" : "BORROWED")}
+                        </span>
+                        
+                        {!activeRental && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteCopy(c.id, c.copy_code)}
+                            title="Delete physical copy"
+                            className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <p className="text-[10px] text-[#0d0d0d]/30 shrink-0">{new Date(h.created_at).toLocaleDateString()}</p>
+
+                    {/* Custody Info */}
+                    {activeRental && activeRental.user && (
+                      <div className="mt-2 pt-2 border-t border-black/5 flex items-center justify-between text-[11px] text-[#0d0d0d]/60">
+                        <span>
+                          Current Custody: <strong>{activeRental.user.name}</strong> ({activeRental.user.email})
+                        </span>
+                        <span>Due: {new Date(activeRental.due_date).toLocaleDateString()}</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Edit Selected Copy Form */}
+          {selectedCopy && (
+            <form onSubmit={handleUpdate} className="space-y-4 bg-[#f8f7f4] rounded-xl p-5 border border-[#e8e4dc]">
+              <div className="flex items-center justify-between border-b border-[#e8e4dc] pb-2">
+                <p className="text-[11px] font-black text-[#142b6f] uppercase tracking-wider">
+                  Update Copy Status & Condition: <span className="font-mono">{selectedCopy.copy_code}</span>
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-[#0d0d0d]/50 uppercase tracking-wider">
+                    Physical Condition
+                  </label>
+                  <select value={newCond} onChange={(e) => setNewCond(e.target.value)} required className={IC}>
+                    {CONDITIONS.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-[#0d0d0d]/50 uppercase tracking-wider">
+                    Inventory Status
+                  </label>
+                  <select value={newStatus} onChange={(e) => setNewStatus(e.target.value)} required className={IC}>
+                    {STATUSES.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-[#0d0d0d]/50 uppercase tracking-wider">
+                  Audit Notes & Maintenance Reason
+                </label>
+                <textarea
+                  rows={2}
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Reason for status change or condition audit..."
+                  className={`${IC} resize-none`}
+                />
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedCopy(null)}
+                  className="px-4 py-2 rounded-xl bg-white border border-[#e8e4dc] text-[12px] font-bold text-[#0d0d0d]/70 hover:bg-[#f5f4f0]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={update.isPending}
+                  className="px-5 py-2 rounded-xl bg-[#142b6f] text-white text-[12px] font-bold disabled:opacity-50 hover:bg-[#0e1f52] transition-colors"
+                >
+                  {update.isPending ? "Saving..." : "Save Audit Record"}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Condition History Trace */}
+          {history.length > 0 && (
+            <div>
+              <p className="text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-[0.18em] mb-3">
+                Condition & Custody Audit History ({selectedCopy?.copy_code})
+              </p>
+              <div className="space-y-2">
+                {history.slice(0, 15).map((h: any) => (
+                  <div
+                    key={h.id}
+                    className="flex items-start justify-between p-3.5 bg-white rounded-xl border border-[#e8e4dc]"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[12px] font-bold text-[#0d0d0d]">
+                          {h.old_condition || "N/A"} → {h.new_condition}
+                        </span>
+                        {h.old_status && h.new_status && (
+                          <span className="text-[10px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">
+                            {h.old_status} → {h.new_status}
+                          </span>
+                        )}
+                      </div>
+                      {h.notes && <p className="text-[11px] text-[#0d0d0d]/60">{h.notes}</p>}
+                      <p className="text-[10px] text-[#0d0d0d]/40">
+                        Logged by: {h.updated_by_user?.name || "System"} •{" "}
+                        {new Date(h.created_at).toLocaleString()}
+                      </p>
+                    </div>
                   </div>
                 ))}
               </div>

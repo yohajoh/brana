@@ -35,14 +35,26 @@ export const borrowBook = async (req, res) => {
 };
 
 export const returnBook = async (req, res) => {
-  const result = await rentalService.returnBook(req.params.id, getIo(req));
+  const { returned_condition, damage_type, notes, evidence_url, waive_penalty } = req.body || {};
+  const result = await rentalService.returnBookWithInspection(
+    req.params.id,
+    {
+      inspectorId: req.user.id,
+      returnedCondition: returned_condition,
+      damageType: damage_type,
+      notes,
+      evidenceUrl: evidence_url,
+      waivePenalty: waive_penalty,
+    },
+    getIo(req),
+  );
   await logAdminActivity({
     adminUserId: req.user.id,
-    action: "RETURN",
+    action: "RETURN_INSPECTION",
     entityType: "RENTAL",
     entityId: req.params.id,
-    description: `Processed return for "${result.user.name}" - Book: "${result.physical_book.title}"`,
-    metadata: { status: result.newStatus, fine: result.fine ?? 0 },
+    description: `Processed inspection return for "${result.user?.name || "Student"}" - Book: "${result.physical_book?.title || "Book"}" (Condition: ${result.returned_condition || "GOOD"})`,
+    metadata: { status: result.newStatus, fine: result.fine ?? 0, damagePenalty: result.damagePenalty ?? 0 },
     req,
   });
   res.json({ status: "success", data: result });

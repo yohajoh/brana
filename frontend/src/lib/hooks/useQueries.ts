@@ -55,6 +55,11 @@ export type User = {
   is_super_admin?: boolean;
   is_blocked?: boolean;
   created_at?: string;
+  trust_score?: number;
+  standing?: "GOOD_STANDING" | "YELLOW_FLAG" | "RED_FLAG" | "SUSPENDED";
+  standing_note?: string | null;
+  standing_updated_at?: string | null;
+  max_concurrent_loans_override?: number | null;
 };
 
 export type Rental = {
@@ -1197,10 +1202,34 @@ export function useConditionHistory(copyId: string) {
   });
 }
 
+export function useAddBookCopy() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ bookId, data }: { bookId: string; data: { copy_code?: string; condition?: string; status?: string; notes?: string } }) =>
+      api.post<{ data: { copy: BookCopy } }>(`/books/${bookId}/copies`, data),
+    onSuccess: (_, { bookId }) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.bookCopies(bookId) });
+      queryClient.invalidateQueries({ queryKey: ["books"] });
+    },
+  });
+}
+
+export function useDeleteBookCopy() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ copyId, bookId }: { copyId: string; bookId: string }) =>
+      api.delete<{ message: string }>(`/books/copies/${copyId}`),
+    onSuccess: (_, { bookId }) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.bookCopies(bookId) });
+      queryClient.invalidateQueries({ queryKey: ["books"] });
+    },
+  });
+}
+
 export function useUpdateCondition() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ copyId, data }: { copyId: string; data: { condition: string; notes?: string } }) =>
+    mutationFn: ({ copyId, data }: { copyId: string; data: { condition?: string; status?: string; notes?: string } }) =>
       api.patch<{ data: unknown }>(`/books/copies/${copyId}/condition`, data),
     onMutate: async ({ copyId, data }) => {
       await queryClient.cancelQueries({ queryKey: ["books"] });
@@ -1534,6 +1563,142 @@ export function useUpdateTargets() {
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.overview });
       queryClient.invalidateQueries({ queryKey: queryKeys.targets });
+    },
+  });
+}
+
+export type DamageIncident = {
+  id: string;
+  copy_id: string;
+  rental_id: string;
+  user_id: string;
+  inspector_id: string;
+  outgoing_condition: string;
+  returned_condition: string;
+  damage_type: string;
+  notes: string;
+  evidence_url?: string | null;
+  penalty_amount: number;
+  penalty_status: "PENDING" | "PAID" | "WAIVED";
+  created_at: string;
+  copy?: { copy_code: string; book?: { title: string } };
+  inspector?: { name: string; email: string };
+};
+
+export type UserStanding = "GOOD_STANDING" | "YELLOW_FLAG" | "RED_FLAG" | "SUSPENDED";
+
+export function useReturnRentalWithInspection() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      rentalId,
+      returnedCondition,
+      damageType,
+      notes,
+      evidenceUrl,
+      waivePenalty,
+    }: {
+      rentalId: string;
+      returnedCondition?: string;
+      damageType?: string;
+      notes?: string;
+      evidenceUrl?: string;
+      waivePenalty?: boolean;
+    }) =>
+      api.patch<{ status: string; data: unknown }>(`/rentals/${rentalId}/return`, {
+        returned_condition: returnedCondition,
+        damage_type: damageType,
+        notes,
+        evidence_url: evidenceUrl,
+        waive_penalty: waivePenalty,
+      }),
+    onMutate: async ({ rentalId }) => {
+      // Cancel any in-flight rental queries so they don't overwrite the optimistic update
+      await queryClient.cancelQueries({ queryKey: ["rentals"] });
+
+      // Snapshot all cached rental query data for rollback on error
+      const previousQueries = queryClient.getQueriesData<RentalsResponse>({ queryKey: ["rentals"] });
+
+      // Optimistically flip the rental status to RETURNED immediately
+      queryClient.setQueriesData<RentalsResponse>({ queryKey: ["rentals"] }, (old) => {
+        if (!old || !Array.isArray(old.rentals)) return old;
+        return {
+          ...old,
+          rentals: old.rentals.map((r) =>
+            r.id === rentalId
+              ? { ...r, status: "RETURNED", return_date: new Date().toISOString() }
+              : r,
+          ),
+        };
+      });
+
+      return { previousQueries };
+    },
+    onError: (_err, _variables, context) => {
+      // Roll back on failure
+      if (context?.previousQueries) {
+        context.previousQueries.forEach(([key, data]) => {
+          queryClient.setQueryData(key, data);
+        });
+      }
+    },
+    onSettled: () => {
+      // Sync with server truth after mutation settles (success or error)
+      queryClient.invalidateQueries({ queryKey: ["rentals"] });
+      queryClient.invalidateQueries({ queryKey: ["books"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+    },
+  });
+}
+
+export function useModerateUserStanding() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      userId,
+      standing,
+      standing_note,
+      is_blocked,
+      max_concurrent_loans_override,
+    }: {
+      userId: string;
+      standing?: UserStanding;
+      standing_note: string;
+      is_blocked?: boolean;
+      max_concurrent_loans_override?: number | null;
+    }) =>
+      api.patch<{ status: string; data: { user: User } }>(`/admin/users/${userId}/standing`, {
+        standing,
+        standing_note,
+        is_blocked,
+        max_concurrent_loans_override,
+      }),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-user-insights", variables.userId] });
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+    },
+  });
+}
+
+export function useUpdateDamagePenalty() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      incidentId,
+      penalty_status,
+      notes,
+    }: {
+      incidentId: string;
+      penalty_status: "PENDING" | "PAID" | "WAIVED";
+      notes?: string;
+    }) =>
+      api.patch<{ status: string; data: { incident: DamageIncident } }>(`/admin/damage-incidents/${incidentId}`, {
+        penalty_status,
+        notes,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-user-insights"] });
+      queryClient.invalidateQueries({ queryKey: ["rentals"] });
     },
   });
 }
