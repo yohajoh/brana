@@ -159,7 +159,7 @@ export default function BookDetailPage() {
     if (!currentUser) { router.push("/auth/login"); return; }
     if (!user) setUser(currentUser);
 
-    if (currentUser.is_blocked || currentUser.standing === "SUSPENDED") {
+    if ((currentUser as any)?.is_blocked || (currentUser as any)?.standing === "SUSPENDED") {
       toast.error("Your borrowing privileges are suspended. Contact library administration.");
       return;
     }

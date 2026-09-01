@@ -35,18 +35,18 @@ function StatCard({
 }: { label: string; value: string | number; hi?: boolean; loading?: boolean }) {
   return (
     <motion.div variants={fadeUp}
-      className={`rounded-2xl border p-4 ${hi ? "bg-[#0d0d0d] border-[#0d0d0d]" : "bg-white border-[#e8e4dc]"}`}>
+      className="rounded-2xl border p-4 bg-white border-[#e8e4dc]">
       {loading ? (
         <div className="animate-pulse space-y-2">
-          <div className={`h-7 w-8 rounded ${hi ? "bg-white/10" : "bg-[#f0eeea]"}`} />
-          <div className={`h-2.5 w-20 rounded ${hi ? "bg-white/10" : "bg-[#f0eeea]"}`} />
+          <div className="h-7 w-8 rounded bg-[#f0eeea]" />
+          <div className="h-2.5 w-20 rounded bg-[#f0eeea]" />
         </div>
       ) : (
         <>
           <p className={`text-[26px] font-serif font-black leading-none ${hi ? "text-[#f5c518]" : "text-[#0d0d0d]"}`}>
             {value}
           </p>
-          <p className={`text-[9px] font-bold uppercase tracking-wider mt-2 ${hi ? "text-white/40" : "text-[#0d0d0d]/40"}`}>
+          <p className="text-[9px] font-bold uppercase tracking-wider mt-2 text-[#0d0d0d]/40">
             {label}
           </p>
         </>

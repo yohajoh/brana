@@ -108,7 +108,7 @@ function StatCard({
   colorIdx?: number; loading?: boolean;
 }) {
   const palettes = [
-    { bg: "bg-[#142b6f]", val: "text-white", lab: "text-white/50", sub: "text-white/40", border: "" },
+    { bg: "bg-white", val: "text-[#0d0d0d]", lab: "text-[#0d0d0d]/40", sub: "text-[#0d0d0d]/30", border: "border border-[#e8e4dc]" },
     { bg: "bg-white", val: "text-[#0d0d0d]", lab: "text-[#0d0d0d]/40", sub: "text-[#0d0d0d]/30", border: "border border-[#e8e4dc]" },
     { bg: "bg-white", val: "text-[#0d0d0d]", lab: "text-[#0d0d0d]/40", sub: "text-[#0d0d0d]/30", border: "border border-[#e8e4dc]" },
     { bg: "bg-[#fef2f2]", val: "text-red-700", lab: "text-red-400/80", sub: "text-red-300", border: "border border-red-100" },
