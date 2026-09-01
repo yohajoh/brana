@@ -1609,8 +1609,6 @@ export function useReturnRentalWithInspection() {
       const previousQueries = queryClient.getQueriesData<RentalsResponse>({ queryKey: ["rentals"] });
 
       // Optimistically mark as PROCESSING so the button disables immediately.
-      // We do NOT try to guess RETURNED vs PENDING (depends on fine amount) —
-      // the onSettled refetch will show the correct final status.
       queryClient.setQueriesData<RentalsResponse>({ queryKey: ["rentals"] }, (old) => {
         if (!old || !Array.isArray(old.rentals)) return old;
         return {
@@ -1633,13 +1631,12 @@ export function useReturnRentalWithInspection() {
         });
       }
     },
+    onSuccess: () => {
+      invalidateBookRelatedQueries(queryClient);
+    },
     onSettled: () => {
-      // Sync with server truth after mutation settles (success or error)
-      queryClient.invalidateQueries({ queryKey: ["rentals"] });
-      queryClient.invalidateQueries({ queryKey: ["books"] });
-      queryClient.invalidateQueries({ queryKey: queryKeys.users });
-      // Trust scores change on every return — refresh all open insights panels
-      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      // Complete global sync across borrowings, books, users, debt summary, stats
+      invalidateBookRelatedQueries(queryClient);
     },
   });
 }
@@ -1650,9 +1647,10 @@ export function useSettleRentalFine() {
     mutationFn: ({ rentalId, method, notes }: { rentalId: string; method: "CASH" | "WAIVE"; notes?: string }) =>
       api.patch<{ status: string; data: unknown }>(`/rentals/${rentalId}/settle-fine`, { method, notes }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["rentals"] });
-      queryClient.invalidateQueries({ queryKey: queryKeys.users });
-      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      invalidateBookRelatedQueries(queryClient);
+    },
+    onSettled: () => {
+      invalidateBookRelatedQueries(queryClient);
     },
   });
 }

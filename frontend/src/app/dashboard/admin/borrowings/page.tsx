@@ -551,7 +551,7 @@ function BorrowingsContent() {
                 {row.original.copy.copy_code}
               </span>
             )}
-            <ConditionPill cond={row.original.outgoing_condition || row.original.copy?.condition} />
+            <ConditionPill cond={row.original.copy?.condition || row.original.returned_condition || row.original.outgoing_condition} />
           </div>
         </div>
       ),
