@@ -605,7 +605,11 @@ export const getMe = async (userId) => {
         is_super_admin: true,
         student_id: true,
         is_confirmed: true,
+        is_blocked: true,
         created_at: true,
+        trust_score: true,
+        standing: true,
+        standing_note: true,
       },
     });
   } catch (error) {
@@ -625,7 +629,11 @@ export const getMe = async (userId) => {
         role: true,
         student_id: true,
         is_confirmed: true,
+        is_blocked: true,
         created_at: true,
+        trust_score: true,
+        standing: true,
+        standing_note: true,
       },
     });
 
@@ -800,6 +808,9 @@ export const getAllUsers = async (actorUserId) => {
         is_confirmed: true,
         is_blocked: true,
         created_at: true,
+        trust_score: true,
+        standing: true,
+        standing_note: true,
       },
       orderBy: { created_at: "desc" },
     });
@@ -822,6 +833,9 @@ export const getAllUsers = async (actorUserId) => {
         is_confirmed: true,
         is_blocked: true,
         created_at: true,
+        trust_score: true,
+        standing: true,
+        standing_note: true,
       },
       orderBy: { created_at: "desc" },
     });

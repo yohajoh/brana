@@ -314,19 +314,21 @@ function ReturnInspectionModal({
 // ── Status display helpers ────────────────────────────────────────────────────
 
 const STATUS_LABEL: Record<string, string> = {
-  BORROWED:  "Borrowed",
-  PENDING:   "Awaiting Payment",
-  RETURNED:  "Returned",
-  COMPLETED: "Completed",
+  BORROWED:    "Borrowed",
+  PENDING:     "Awaiting Payment",
+  RETURNED:    "Returned",
+  COMPLETED:   "Completed",
+  PROCESSING:  "Processing…",
 };
 
 const statusStyle = (status: string) => {
   switch (status) {
-    case "BORROWED":   return "bg-blue-50 text-blue-700";
-    case "PENDING":    return "bg-amber-50 text-amber-800";
-    case "RETURNED":   return "bg-emerald-50 text-emerald-700";
-    case "COMPLETED":  return "bg-[#f5f4f0] text-[#0d0d0d]/60";
-    default:           return "bg-[#f5f4f0] text-[#0d0d0d]/50";
+    case "BORROWED":    return "bg-blue-50 text-blue-700";
+    case "PENDING":     return "bg-amber-50 text-amber-800";
+    case "RETURNED":    return "bg-emerald-50 text-emerald-700";
+    case "COMPLETED":   return "bg-[#f5f4f0] text-[#0d0d0d]/60";
+    case "PROCESSING":  return "bg-slate-50 text-slate-500 animate-pulse";
+    default:            return "bg-[#f5f4f0] text-[#0d0d0d]/50";
   }
 };
 
@@ -407,9 +409,12 @@ function BorrowingsContent() {
       cell: ({ row }) => {
         const r = row.original;
         // PENDING = book already physically returned, just fine unpaid — no re-inspection needed
-        const done = r.status === "RETURNED" || r.status === "COMPLETED" || r.status === "PENDING";
+        // PROCESSING = optimistic in-flight state, disable while waiting for server
+        const done = r.status === "RETURNED" || r.status === "COMPLETED" || r.status === "PENDING" || r.status === "PROCESSING";
         const label = r.status === "PENDING"
           ? "Awaiting Payment"
+          : r.status === "PROCESSING"
+          ? "Processing…"
           : done
           ? "Returned"
           : "Inspect & Return";

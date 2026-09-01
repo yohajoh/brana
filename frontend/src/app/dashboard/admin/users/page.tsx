@@ -27,6 +27,7 @@ interface User {
   phone?: string | null; is_blocked?: boolean; is_super_admin?: boolean;
   trust_score?: number | null;
   standing?: "GOOD_STANDING" | "YELLOW_FLAG" | "RED_FLAG" | "SUSPENDED" | null;
+  standing_note?: string | null;
 }
 interface UserInsights {
   user: User & { department?: string; is_confirmed?: boolean; created_at?: string; max_concurrent_loans_override?: number | null; standing_note?: string | null };
@@ -46,6 +47,43 @@ const standingMeta: Record<Standing, { label: string; chip: string; dot: string 
   RED_FLAG:      { label: "Red Flag",  chip: "bg-orange-50 text-orange-700 border-orange-200",    dot: "bg-orange-500" },
   SUSPENDED:     { label: "Suspended", chip: "bg-rose-50 text-rose-700 border-rose-200",           dot: "bg-rose-600"   },
 };
+
+/* ── Flag icon with hover tooltip ──────────────────────────── */
+function FlagIcon({ standing, note }: { standing?: Standing | null; note?: string | null }) {
+  if (!standing || standing === "GOOD_STANDING") return null;
+  const m = standingMeta[standing];
+  const flagColors: Record<Standing, string> = {
+    GOOD_STANDING: "",
+    YELLOW_FLAG:   "text-amber-500",
+    RED_FLAG:      "text-orange-600",
+    SUSPENDED:     "text-rose-600",
+  };
+  const reason = note?.trim() || `Account standing: ${m.label}`;
+  return (
+    <span className="relative group/flag shrink-0 inline-flex">
+      {/* flag icon */}
+      <svg
+        width="11" height="11" viewBox="0 0 24 24" fill="currentColor"
+        className={`${flagColors[standing]} cursor-default`}
+      >
+        <path d="M4 15V3h1v12H4zm1-12h11l-2.5 4.5L16 12H5V3z"/>
+      </svg>
+      {/* tooltip */}
+      <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 z-50
+        w-max max-w-[220px] px-2.5 py-1.5 rounded-lg text-[11px] font-semibold leading-snug
+        bg-[#0d0d0d] text-white shadow-xl
+        opacity-0 scale-95 group-hover/flag:opacity-100 group-hover/flag:scale-100
+        transition-all duration-150 whitespace-pre-wrap text-center">
+        <span className={`block text-[9px] font-black uppercase tracking-wider mb-0.5 ${flagColors[standing]}`}>
+          {m.label}
+        </span>
+        {reason}
+        {/* arrow */}
+        <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#0d0d0d]" />
+      </span>
+    </span>
+  );
+}
 
 function StandingBadge({ standing }: { standing?: Standing | null }) {
   if (!standing) return <span className="text-[11px] text-[#0d0d0d]/30">—</span>;
@@ -435,7 +473,18 @@ export default function AdminUsersPage() {
     { id:"sel", header:()=><input type="checkbox" checked={allPageSelected} onChange={e=>selectAllBulk(e.target.checked)} className="w-4 h-4 rounded border-[#e8e4dc] accent-[#142b6f]" onClick={e=>e.stopPropagation()}/>,
       cell:({row})=>{ const canDel=actions(row.original).some(a=>a.key==="delete"); return canDel?<input type="checkbox" checked={bulkSelected.has(row.original.id)} onChange={()=>toggleBulk(row.original.id)} className="w-4 h-4 rounded border-[#e8e4dc] accent-[#142b6f]" onClick={e=>e.stopPropagation()}/>:null; },
     },
-    { id:"name",    header:String(t("admin_users.table.name")),     cell:({row})=><div><p className="text-[13px] font-bold text-[#0d0d0d] truncate">{row.original.name}</p><p className="text-[11px] text-[#0d0d0d]/40 truncate">{row.original.email}</p></div> },
+    { id:"name",    header:String(t("admin_users.table.name")),     cell:({row})=>{
+      const u = row.original;
+      return (
+        <div className="flex items-start gap-1.5 min-w-0">
+          <div className="min-w-0">
+            <p className="text-[13px] font-bold text-[#0d0d0d] truncate">{u.name}</p>
+            <p className="text-[11px] text-[#0d0d0d]/40 truncate">{u.email}</p>
+          </div>
+          <FlagIcon standing={u.standing as Standing|null|undefined} note={u.standing_note} />
+        </div>
+      );
+    }},
     { id:"id_no",   header:String(t("admin_users.table.id_no")),    cell:({row})=><span className="text-[12px] text-[#0d0d0d]/50">{row.original.student_id||"—"}</span> },
     { id:"year",    header:String(t("admin_users.table.year")),     cell:({row})=><span className="text-[12px] text-[#0d0d0d]/50">{row.original.year||"—"}</span> },
     { id:"trust",   header:"Trust",    cell:({row})=><TrustMeter score={row.original.trust_score}/> },

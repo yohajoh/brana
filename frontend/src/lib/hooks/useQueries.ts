@@ -1619,14 +1619,16 @@ export function useReturnRentalWithInspection() {
       // Snapshot all cached rental query data for rollback on error
       const previousQueries = queryClient.getQueriesData<RentalsResponse>({ queryKey: ["rentals"] });
 
-      // Optimistically flip the rental status to RETURNED immediately
+      // Optimistically mark as PROCESSING so the button disables immediately.
+      // We do NOT try to guess RETURNED vs PENDING (depends on fine amount) —
+      // the onSettled refetch will show the correct final status.
       queryClient.setQueriesData<RentalsResponse>({ queryKey: ["rentals"] }, (old) => {
         if (!old || !Array.isArray(old.rentals)) return old;
         return {
           ...old,
           rentals: old.rentals.map((r) =>
             r.id === rentalId
-              ? { ...r, status: "RETURNED", return_date: new Date().toISOString() }
+              ? { ...r, status: "PROCESSING", return_date: new Date().toISOString() }
               : r,
           ),
         };
@@ -1646,6 +1648,8 @@ export function useReturnRentalWithInspection() {
       // Sync with server truth after mutation settles (success or error)
       queryClient.invalidateQueries({ queryKey: ["rentals"] });
       queryClient.invalidateQueries({ queryKey: ["books"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.users });
+      // Trust scores change on every return — refresh all open insights panels
       queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
     },
   });
@@ -1674,8 +1678,10 @@ export function useModerateUserStanding() {
         max_concurrent_loans_override,
       }),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["admin-user-insights", variables.userId] });
-      queryClient.invalidateQueries({ queryKey: ["users"] });
+      // Invalidate the insights panel for this specific user
+      queryClient.invalidateQueries({ queryKey: queryKeys.userInsights(variables.userId) });
+      // Refresh the main users table so Trust/Standing columns update
+      queryClient.invalidateQueries({ queryKey: queryKeys.users });
     },
   });
 }
@@ -1696,8 +1702,10 @@ export function useUpdateDamagePenalty() {
         penalty_status,
         notes,
       }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-user-insights"] });
+    onSuccess: (data, variables) => {
+      // The damage incident is linked to a specific user — we don't have the userId here
+      // so we invalidate all user insight queries broadly.
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
       queryClient.invalidateQueries({ queryKey: ["rentals"] });
     },
   });

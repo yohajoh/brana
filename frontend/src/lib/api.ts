@@ -19,6 +19,10 @@ type CurrentUser = {
   year?: string | null;
   department?: string | null;
   student_id?: string | null;
+  is_blocked?: boolean;
+  trust_score?: number | null;
+  standing?: "GOOD_STANDING" | "YELLOW_FLAG" | "RED_FLAG" | "SUSPENDED" | null;
+  standing_note?: string | null;
 } | null;
 
 let currentUserCache: { value: CurrentUser; expiresAt: number } | null = null;

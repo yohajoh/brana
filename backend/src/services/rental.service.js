@@ -509,6 +509,21 @@ export const borrowBook = async (userId, { book_id, loan_days, time_zone, overdu
     throw new AppError("You already have this book. Return it before borrowing again.", 409);
   }
 
+  // Block on unpaid DAMAGE PENALTIES (DamageIncident records with penalty_status PENDING)
+  // These are separate from overdue fines and must be cleared before any new borrow.
+  const unpaidDamagePenalties = await prisma.damageIncident.findMany({
+    where: { user_id: userId, penalty_status: "PENDING", penalty_amount: { gt: 0 } },
+    select: { id: true, penalty_amount: true, copy: { select: { book: { select: { title: true } } } } },
+  });
+  if (unpaidDamagePenalties.length > 0) {
+    const total = unpaidDamagePenalties.reduce((sum, i) => sum + Number(i.penalty_amount), 0);
+    const titles = [...new Set(unpaidDamagePenalties.map(i => i.copy?.book?.title).filter(Boolean))].slice(0, 2).join(", ");
+    throw new AppError(
+      `You have ${unpaidDamagePenalties.length} unpaid damage penalty fee(s) totalling ${total.toFixed(2)} ETB (${titles || "book copy"}). Please settle damage fees at the library desk before borrowing again.`,
+      403,
+    );
+  }
+
   // Users with debt must explicitly settle it through borrow checkout flow.
   const debt = await prisma.rental.aggregate({
     where: {

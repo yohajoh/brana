@@ -9,10 +9,10 @@ export function StudentAccountStandingBanner() {
 
   if (!user) return null;
 
-  const standing = (user as any).standing || "GOOD_STANDING";
-  const isBlocked = Boolean((user as any).is_blocked);
-  const trustScore = (user as any).trust_score ?? 100;
-  const standingNote = (user as any).standing_note;
+  const standing = user.standing || "GOOD_STANDING";
+  const isBlocked = Boolean(user.is_blocked);
+  const trustScore = user.trust_score ?? 100;
+  const standingNote = user.standing_note;
 
   if (standing === "GOOD_STANDING" && !isBlocked) return null;
 
@@ -22,7 +22,7 @@ export function StudentAccountStandingBanner() {
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -10 }}
-        className="w-full"aaA
+        className="w-full"
       >
         {isBlocked || standing === "SUSPENDED" ? (
           <div className="bg-rose-600 text-white px-5 py-3 flex items-start sm:items-center justify-between gap-3 shadow-md">
