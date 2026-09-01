@@ -496,6 +496,7 @@ function VerifyPickupModal({
       onClose();
     } catch (err: any) {
       toast.error(err?.message || "Invalid verification code. Please check code with student.");
+      onClose();
     }
   };
 
@@ -508,6 +509,7 @@ function VerifyPickupModal({
       onClose();
     } catch (err: any) {
       toast.error(err?.message || "Failed to cancel borrow request.");
+      onClose();
     }
   };
 
@@ -527,8 +529,8 @@ function VerifyPickupModal({
             <div className="flex items-center gap-2">
               <ShieldCheck className="w-5 h-5 text-indigo-600" />
               <div>
-                <h3 className="text-[16px] font-serif font-black text-[#0d0d0d]">Desk Handshake Authorization</h3>
-                <p className="text-[11px] text-[#0d0d0d]/50">Validate borrower verification code at desk before physical handover</p>
+                <h3 className="text-[16px] font-serif font-black text-[#0d0d0d]">Verify Code</h3>
+                <p className="text-[11px] text-[#0d0d0d]/50">Validate borrower verification code before handing over copy</p>
               </div>
             </div>
             <button onClick={onClose} className="w-8 h-8 rounded-xl bg-[#f5f4f0] flex items-center justify-center text-[#0d0d0d]/40 hover:text-[#0d0d0d]">
@@ -548,14 +550,14 @@ function VerifyPickupModal({
               onClick={() => setMode("VERIFY")}
               className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${mode === "VERIFY" ? "bg-white text-indigo-700 shadow-sm" : "text-[#0d0d0d]/60"}`}
             >
-              🔑 Verify Authorization Code
+              🔑 Verify Code
             </button>
             <button
               type="button"
               onClick={() => setMode("CANCEL")}
               className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${mode === "CANCEL" ? "bg-white text-rose-700 shadow-sm" : "text-[#0d0d0d]/60"}`}
             >
-              ⚠️ Cancel & Release Copy
+              ⚠️ Cancel Borrow
             </button>
           </div>
 
@@ -563,7 +565,7 @@ function VerifyPickupModal({
             <form onSubmit={handleVerify} className="space-y-4">
               <div className="space-y-1.5">
                 <label className="text-[11px] font-black text-[#0d0d0d]/60 uppercase tracking-wider">
-                  Enter Handshake Verification Code Provided By Student
+                  Enter Verification Code Provided By Student
                 </label>
                 <input
                   type="text"
@@ -585,7 +587,7 @@ function VerifyPickupModal({
                   disabled={verifyPickup.isPending || !pickupCode.trim()}
                   className="px-5 py-2.5 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 disabled:opacity-50 transition-colors flex items-center gap-1.5"
                 >
-                  {verifyPickup.isPending ? "Verifying..." : "Authorize Physical Pickup"}
+                  {verifyPickup.isPending ? "Verifying..." : "Verify Code"}
                 </button>
               </div>
             </form>
@@ -753,11 +755,9 @@ function BorrowingsContent() {
 
         if (statusUpper === "PENDING") {
           return (
-            <div className="space-y-1">
-              <span className="inline-flex px-2.5 py-1 rounded-lg text-[10px] uppercase border bg-amber-50 text-amber-800 border-amber-200 font-bold">
-                Pending Desk Pickup
-              </span>
-            </div>
+            <span className="inline-flex px-2.5 py-1 rounded-lg text-[10px] uppercase border bg-amber-50 text-amber-800 border-amber-200 font-bold">
+              PENDING
+            </span>
           );
         }
 
@@ -795,7 +795,7 @@ function BorrowingsContent() {
                 onClick={() => setVerifyingPickupRental(r)}
                 className="px-3 py-1.5 rounded-lg text-[11px] font-bold border border-indigo-600 bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white transition-colors flex items-center gap-1"
               >
-                🔑 Verify Pickup
+                🔑 Verify Code
               </button>
               {Number(r.fine || 0) > 0 && (
                 <button

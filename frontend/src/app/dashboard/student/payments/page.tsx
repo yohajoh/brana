@@ -61,6 +61,13 @@ function PaymentsContent() {
   const autoOpenedRef                   = useRef<boolean>(false);
 
   useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem("dismissed_pickup_codes") || "[]");
+      if (Array.isArray(stored)) setDismissedPickups(stored);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
     const p   = new URLSearchParams(window.location.search);
     const ref = p.get("tx_ref") || p.get("trx_ref") || p.get("reference") || p.get("txRef");
     setTxRef(ref);
@@ -123,19 +130,41 @@ function PaymentsContent() {
     finally { setVerifying(null); }
   }, [refetch, t, queryClient]);
 
+  useEffect(() => { if (txRef && !hasVerified.current) verify(txRef); }, [txRef, verify]);
+
+  // ONLY auto popup when redirected from Chapa payment (txRef present in URL)
   useEffect(() => {
-    if (pendingPickups.length > 0 && !autoOpenedRef.current) {
-      const latestUndismissed = pendingPickups.find((p) => !dismissedPickups.includes(p.id));
+    if (txRef && pendingPickups.length > 0 && !autoOpenedRef.current) {
+      const storedDismissed: string[] = (() => {
+        try {
+          return JSON.parse(localStorage.getItem("dismissed_pickup_codes") || "[]");
+        } catch {
+          return [];
+        }
+      })();
+
+      const latestUndismissed = pendingPickups.find(
+        (p) => !storedDismissed.includes(p.id) && !storedDismissed.includes(p.pickup_code)
+      );
+
       if (latestUndismissed) {
         setActivePickupModal(latestUndismissed);
         autoOpenedRef.current = true;
       }
     }
-  }, [pendingPickups, dismissedPickups]);
+  }, [txRef, pendingPickups]);
 
   const handleClosePickupModal = () => {
     if (activePickupModal) {
-      setDismissedPickups((prev) => [...prev, activePickupModal.id]);
+      const id = activePickupModal.id;
+      const code = activePickupModal.pickup_code;
+      setDismissedPickups((prev) => {
+        const next = [...prev, id, code];
+        try {
+          localStorage.setItem("dismissed_pickup_codes", JSON.stringify(next));
+        } catch {}
+        return next;
+      });
     }
     setActivePickupModal(null);
     setCopiedCode(false);
@@ -253,36 +282,13 @@ function PaymentsContent() {
         <PayStat label={String(t("student_payments.pending_payments") || "Pending tx")} value={String(totalPending)} accent={totalPending > 0} />
       </motion.div>
 
-      {/* Desk Pickup Verification Trigger Badge */}
-      <AnimatePresence>
-        {pendingPickups.length > 0 && (
-          <motion.div variants={fadeUp} className="flex flex-wrap gap-2">
-            {pendingPickups.map((p) => (
-              <button
-                key={p.id}
-                onClick={() => {
-                  setActivePickupModal(p);
-                  setCopiedCode(false);
-                }}
-                className="px-4 py-2.5 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-900 text-xs font-bold hover:bg-indigo-100 transition-all flex items-center gap-2 shadow-sm"
-              >
-                <KeyRound size={15} className="text-indigo-600" />
-                <span>Handshake Authorization: <strong>{p.physical_book?.title || "Book"}</strong></span>
-                <span className="font-mono bg-indigo-600 text-white px-2 py-0.5 rounded-lg text-[11px] font-black">{p.pickup_code}</span>
-              </button>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* ONE-TIME HANDSHAKE CODE POPUP MODAL WINDOW */}
+      {/* ONE-TIME VERIFICATION CODE POPUP MODAL WINDOW */}
       <AnimatePresence>
         {activePickupModal && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={handleClosePickupModal}
             className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           >
             <motion.div
@@ -307,11 +313,11 @@ function PaymentsContent() {
               </div>
 
               <h3 className="text-xl font-serif font-black text-[#0d0d0d]">
-                Handshake Verification Code
+                Verification Code
               </h3>
 
               <p className="text-xs text-[#0d0d0d]/60 mt-1 max-w-xs mx-auto">
-                Present this code to the circulation desk to collect your physical copy:
+                Present this verification code at the library desk to collect your copy:
               </p>
               <p className="text-sm font-bold text-indigo-950 mt-1.5 line-clamp-2 px-2 py-1 bg-indigo-50/50 rounded-lg">
                 "{activePickupModal.physical_book?.title || "Book"}"
@@ -346,7 +352,7 @@ function PaymentsContent() {
               </div>
 
               <p className="text-[11px] text-[#0d0d0d]/40 mb-6">
-                💡 Clicking <strong>X</strong> or anywhere outside will dismiss this popup.
+                💡 Click the <strong>X</strong> button to close. This verification code will not be displayed again.
               </p>
 
               <button

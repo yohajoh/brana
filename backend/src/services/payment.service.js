@@ -421,17 +421,16 @@ export const initiatePayment = async (rentalId, userId, { method = "CHAPA", cont
     include: PAYMENT_INCLUDE,
   });
 
-  // Notify student
-  await createNotification({
-    userId,
-    message: isBorrowPayment
-      ? `💳 Borrow checkout started for "${rental.physical_book.title}". Amount: ${payableAmount.toFixed(2)} ETB${debtAmount > 0 ? ` (includes ${debtAmount.toFixed(2)} ETB debt)` : ""}. Please complete payment.`
-      : `💳 Fine payment initiated for "${rental.physical_book.title}". Amount: ${payableAmount.toFixed(2)} ETB. Please complete payment.`,
-    type: "INFO",
-    io,
-  });
-
+  // Notify student for CASH payments (CHAPA redirects immediately, payment completion sends final success notification)
   if (paymentMethod === "CASH") {
+    await createNotification({
+      userId,
+      message: isBorrowPayment
+        ? `💳 Borrow checkout started for "${rental.physical_book.title}". Amount: ${payableAmount.toFixed(2)} ETB${debtAmount > 0 ? ` (includes ${debtAmount.toFixed(2)} ETB debt)` : ""}. Please visit the library desk to complete cash payment.`
+        : `💳 Fine payment initiated for "${rental.physical_book.title}". Amount: ${payableAmount.toFixed(2)} ETB. Please visit the library desk to pay in cash.`,
+      type: "INFO",
+      io,
+    });
     return {
       payment,
       message: isBorrowPayment
