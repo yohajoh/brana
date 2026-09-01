@@ -96,3 +96,24 @@ export const extendRental = async (req, res) => {
   });
   res.json({ status: "success", data: { rental: result } });
 };
+
+export const settleRentalFine = async (req, res) => {
+  const { method, notes } = req.body || {};
+  const result = await rentalService.settleRentalFine(
+    req.params.id,
+    { method, notes },
+    req.user.id,
+    getIo(req),
+  );
+  await logAdminActivity({
+    adminUserId: req.user.id,
+    action: "SETTLE_FINE",
+    entityType: "RENTAL",
+    entityId: req.params.id,
+    description: `Settled fine of ${Number(result.fine || 0).toFixed(2)} ETB for "${result.user?.name}" (${method || "CASH"})`,
+    metadata: { method, fine: result.fine },
+    req,
+  });
+  res.json({ status: "success", data: { rental: result } });
+};
+

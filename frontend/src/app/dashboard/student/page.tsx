@@ -130,7 +130,8 @@ export default function DashboardPage() {
       </motion.div>
 
       {/* ── Stats row ──────────────────────────────── */}
-      <motion.div variants={stagger} className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <motion.div variants={stagger} className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <StatCard label="Trust Score" value={`${user?.trust_score ?? 100}/100`} hi={user?.standing === "RED_FLAG" || user?.standing === "SUSPENDED" || Boolean(user?.is_blocked)} loading={isLoading} />
         <StatCard label={String(t("student_dashboard.snapshot.due_soon"))}     value={overview.dueSoon}             hi={overview.dueSoon > 0}             loading={isLoading} />
         <StatCard label={String(t("student_dashboard.snapshot.on_time_rate"))}  value={`${overview.onTimeRate}%`}                                           loading={isLoading} />
         <StatCard label={String(t("student_dashboard.snapshot.reservations"))}  value={overview.reservationCount}                                           loading={isLoading} />

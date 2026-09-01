@@ -152,21 +152,27 @@ export const updateDamagePenaltyStatus = async (adminUserId, incidentId, { penal
     if (penalty_status === "WAIVED") {
       // Recover portion of trust score (+15)
       await applyTrustScoreDelta(incident.user_id, 15, "Waived damage incident penalty", tx);
-
-      // If rental fine was equal to penalty, remove or adjust fine
-      if (incident.rental && Number(incident.rental.fine || 0) > 0) {
-        const newFine = Math.max(0, Number(incident.rental.fine) - Number(incident.penalty_amount));
-        await tx.rental.update({
-          where: { id: incident.rental_id },
-          data: {
-            fine: newFine > 0 ? newFine : null,
-            ...(newFine === 0 && incident.rental.status === "PENDING" ? { status: "RETURNED" } : {}),
-          },
-        });
-      }
     } else if (penalty_status === "PAID") {
       // Recover portion of trust score (+10)
       await applyTrustScoreDelta(incident.user_id, 10, "Paid damage incident penalty", tx);
+    }
+
+    // Sync parent Rental status if attached
+    if (incident.rental_id) {
+      const remainingPendingCount = await tx.damageIncident.count({
+        where: {
+          rental_id: incident.rental_id,
+          id: { not: incidentId },
+          penalty_status: "PENDING",
+        },
+      });
+
+      if (remainingPendingCount === 0 && incident.rental && incident.rental.status === "PENDING") {
+        await tx.rental.update({
+          where: { id: incident.rental_id },
+          data: { status: "COMPLETED" },
+        });
+      }
     }
 
     return updated;

@@ -158,6 +158,12 @@ export default function BookDetailPage() {
     const currentUser = user ?? (await fetchCurrentUser());
     if (!currentUser) { router.push("/auth/login"); return; }
     if (!user) setUser(currentUser);
+
+    if (currentUser.is_blocked || currentUser.standing === "SUSPENDED") {
+      toast.error("Your borrowing privileges are suspended. Contact library administration.");
+      return;
+    }
+
     const rentalId = physicalBook.userContext?.hasActiveRental && !physicalBook.userContext?.hasCompletedBorrowPayment ? ((physicalBook.userContext?.activeRental as { id?: string } | null)?.id ?? null) : null;
     try {
       setBorrowLoading(true);

@@ -2,12 +2,20 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, X, ChevronLeft, ChevronRight, MoreHorizontal, ShieldAlert, Award } from "lucide-react";
+import { Search, X, ChevronLeft, ChevronRight, MoreHorizontal, ShieldAlert, Award, RefreshCw, Users as UsersIcon, ShieldCheck, AlertTriangle, Ban, Activity } from "lucide-react";
 import { toast } from "sonner";
 import {
-  useUsers, useUserInsights, useDeleteUser, useBlockUser,
-  useUnblockUser, usePromoteStudentToAdmin, useConvertAdminToStudent,
+  useUsers,
+  useUserInsights,
+  useDeleteUser,
+  useBlockUser,
+  useUnblockUser,
+  usePromoteStudentToAdmin,
+  useConvertAdminToStudent,
   useTransferSuperAdmin,
+  useModerateUserStanding,
+  useUpdateDamagePenalty,
+  UserStanding,
 } from "@/lib/hooks/useQueries";
 import { usePersona } from "@/components/providers/PersonaProvider";
 import { useLanguage } from "@/components/providers/LanguageProvider";
@@ -41,11 +49,11 @@ type ConfirmState = { title:string; description:string; confirmLabel:string; ton
 /* ── standing helpers ────────────────────────────────────── */
 type Standing = "GOOD_STANDING" | "YELLOW_FLAG" | "RED_FLAG" | "SUSPENDED";
 
-const standingMeta: Record<Standing, { label: string; chip: string; dot: string }> = {
-  GOOD_STANDING: { label: "Good",      chip: "bg-emerald-50 text-emerald-700 border-emerald-200", dot: "bg-emerald-500" },
-  YELLOW_FLAG:   { label: "Warning",   chip: "bg-amber-50 text-amber-700 border-amber-200",       dot: "bg-amber-400"  },
-  RED_FLAG:      { label: "Red Flag",  chip: "bg-orange-50 text-orange-700 border-orange-200",    dot: "bg-orange-500" },
-  SUSPENDED:     { label: "Suspended", chip: "bg-rose-50 text-rose-700 border-rose-200",           dot: "bg-rose-600"   },
+const standingMeta: Record<Standing, { label: string; chip: string; dot: string; rule: string }> = {
+  GOOD_STANDING: { label: "Good Standing", chip: "bg-emerald-50 text-emerald-700 border-emerald-200", dot: "bg-emerald-500", rule: "Score ≥ 70, no damage debt. Full loan limit (3 books)." },
+  YELLOW_FLAG:   { label: "Warning Flag",  chip: "bg-amber-50 text-amber-700 border-amber-200",       dot: "bg-amber-400", rule: "Score 40–69 or 1 damage incident. Loan limit reduced to 1 book."  },
+  RED_FLAG:      { label: "Red Flag",      chip: "bg-orange-50 text-orange-700 border-orange-200",    dot: "bg-orange-500", rule: "Score 20–39 or 2+ damage incidents. Strict 1 book limit." },
+  SUSPENDED:     { label: "Suspended",     chip: "bg-rose-50 text-rose-700 border-rose-200",           dot: "bg-rose-600", rule: "Score < 20. Borrowing privileges completely blocked."   },
 };
 
 /* ── Flag icon with hover tooltip ──────────────────────────── */
@@ -61,14 +69,12 @@ function FlagIcon({ standing, note }: { standing?: Standing | null; note?: strin
   const reason = note?.trim() || `Account standing: ${m.label}`;
   return (
     <span className="relative group/flag shrink-0 inline-flex">
-      {/* flag icon */}
       <svg
         width="11" height="11" viewBox="0 0 24 24" fill="currentColor"
         className={`${flagColors[standing]} cursor-default`}
       >
         <path d="M4 15V3h1v12H4zm1-12h11l-2.5 4.5L16 12H5V3z"/>
       </svg>
-      {/* tooltip */}
       <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 z-50
         w-max max-w-[220px] px-2.5 py-1.5 rounded-lg text-[11px] font-semibold leading-snug
         bg-[#0d0d0d] text-white shadow-xl
@@ -78,7 +84,6 @@ function FlagIcon({ standing, note }: { standing?: Standing | null; note?: strin
           {m.label}
         </span>
         {reason}
-        {/* arrow */}
         <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#0d0d0d]" />
       </span>
     </span>
@@ -150,8 +155,6 @@ function ConfirmDialog({ state, onClose, onConfirm, loading }: { state: ConfirmS
   );
 }
 
-import { useModerateUserStanding, useUpdateDamagePenalty, UserStanding } from "@/lib/hooks/useQueries";
-
 function ConditionPill({ cond }: { cond?: string | null }) {
   if (!cond || cond === "N/A") return <span className="text-[#0d0d0d]/30 text-[10px]">—</span>;
   const map: Record<string, string> = {
@@ -168,18 +171,29 @@ function InsightsPanel({ user, insights, onClose }: { user: User; insights: any 
   const [showModerationForm, setShowModerationForm] = useState(false);
   const [selectedStanding, setSelectedStanding] = useState<UserStanding>(insights?.user?.standing || "GOOD_STANDING");
   const [standingNote, setStandingNote] = useState("");
-  const [isBlockedToggle, setIsBlockedToggle] = useState(Boolean(insights?.user?.is_blocked));
   const [loanOverride, setLoanOverride] = useState<number | undefined>(insights?.user?.max_concurrent_loans_override || undefined);
 
-  const trustScore = insights?.user?.trust_score ?? 100;
-  const currentStanding: UserStanding = insights?.user?.standing || "GOOD_STANDING";
+  useEffect(() => {
+    if (insights?.user) {
+      setSelectedStanding(insights.user.standing || "GOOD_STANDING");
+      setLoanOverride(insights.user.max_concurrent_loans_override || undefined);
+    }
+  }, [insights]);
+
+  const trustScore = insights?.user?.trust_score ?? user.trust_score ?? 100;
+  const currentStanding: UserStanding = insights?.user?.standing || user.standing || "GOOD_STANDING";
   const sm = standingMeta[currentStanding as Standing] ?? standingMeta.GOOD_STANDING;
 
   const handleStandingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!standingNote.trim()) { toast.error("Moderation note is required."); return; }
     try {
-      await moderateStanding.mutateAsync({ userId: user.id, standing: selectedStanding, standing_note: standingNote.trim(), is_blocked: isBlockedToggle, max_concurrent_loans_override: loanOverride ? Number(loanOverride) : null });
+      await moderateStanding.mutateAsync({
+        userId: user.id,
+        standing: selectedStanding,
+        standing_note: standingNote.trim(),
+        max_concurrent_loans_override: loanOverride ? Number(loanOverride) : null
+      });
       toast.success("User standing updated!");
       setShowModerationForm(false); setStandingNote("");
     } catch (err: any) { toast.error(err?.message || "Failed to update standing."); }
@@ -196,12 +210,15 @@ function InsightsPanel({ user, insights, onClose }: { user: User; insights: any 
         className="fixed inset-0 z-[2147483646] bg-black/40 backdrop-blur-sm lg:bg-transparent lg:backdrop-blur-none" onClick={onClose} />
       <motion.aside initial={{x:"100%"}} animate={{x:0}} exit={{x:"100%"}}
         transition={{type:"spring",stiffness:400,damping:38}}
-        className="fixed right-0 top-0 h-full w-full sm:w-[500px] bg-white border-l border-[#e8e4dc] z-[2147483647] flex flex-col shadow-2xl overflow-hidden"
+        className="fixed right-0 top-0 h-full w-full sm:w-[520px] bg-white border-l border-[#e8e4dc] z-[2147483647] flex flex-col shadow-2xl overflow-hidden"
         onClick={e => e.stopPropagation()}>
         <div className="flex items-start justify-between p-5 border-b border-[#e8e4dc] bg-[#faf9f6]">
           <div className="min-w-0">
-            <p className="text-[17px] font-serif font-black text-[#0d0d0d] truncate">{user.name}</p>
-            <p className="text-[12px] text-[#0d0d0d]/45 truncate">{user.email}</p>
+            <div className="flex items-center gap-2">
+              <p className="text-[17px] font-serif font-black text-[#0d0d0d] truncate">{user.name}</p>
+              <Badge user={user} />
+            </div>
+            <p className="text-[12px] text-[#0d0d0d]/45 truncate mt-0.5">{user.email} {user.student_id ? `• ID: ${user.student_id}` : ""}</p>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-xl bg-[#f5f4f0] flex items-center justify-center text-[#0d0d0d]/40 hover:text-[#0d0d0d] shrink-0 ml-3"><X size={15}/></button>
         </div>
@@ -211,75 +228,98 @@ function InsightsPanel({ user, insights, onClose }: { user: User; insights: any 
             <div className="space-y-3 animate-pulse">{[1,2,3,4].map(i=><div key={i} className="h-12 bg-[#f0eeea] rounded-xl"/>)}</div>
           ) : (
             <>
-              {/* Trust Score Card */}
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-[#142b6f] to-[#0e1f52] text-white space-y-3 shadow-lg">
+              {/* Trust Score & Automated Standing Card */}
+              <div className="p-4.5 rounded-2xl bg-gradient-to-br from-[#142b6f] to-[#0e1f52] text-white space-y-3 shadow-lg">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Award className="w-5 h-5 text-amber-400"/>
-                    <span className="text-[11px] font-black uppercase tracking-wider text-white/80">Borrower Trust Profile</span>
+                    <span className="text-[11px] font-black uppercase tracking-wider text-white/80">Account Standing & Risk Tier</span>
                   </div>
                   <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${sm.chip}`}>{sm.label}</span>
                 </div>
+
                 <div className="flex items-baseline justify-between pt-1">
-                  <div><span className="text-3xl font-serif font-black">{trustScore}</span><span className="text-sm text-white/60 font-mono"> / 100</span></div>
+                  <div>
+                    <span className="text-3xl font-serif font-black">{trustScore}</span>
+                    <span className="text-sm text-white/60 font-mono"> / 100 Trust</span>
+                  </div>
                   <button onClick={()=>{setSelectedStanding(currentStanding);setShowModerationForm(!showModerationForm);}}
-                    className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-[11px] font-bold border border-white/20 transition-all">
-                    Moderate Standing
+                    className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-[11px] font-bold border border-white/20 transition-all flex items-center gap-1.5">
+                    <ShieldAlert size={13} />
+                    Override Standing
                   </button>
                 </div>
+
                 <div className="w-full h-2 bg-white/20 rounded-full overflow-hidden">
                   <div className={`h-full transition-all duration-500 ${trustScore>=70?"bg-emerald-400":trustScore>=40?"bg-amber-400":"bg-rose-500"}`} style={{width:`${Math.max(0,Math.min(100,trustScore))}%`}}/>
                 </div>
-                {insights.user?.standing_note && <p className="text-[11px] text-white/70 italic border-t border-white/10 pt-2">"{insights.user.standing_note}"</p>}
+
+                <div className="flex items-center gap-1.5 text-[10px] text-white/70 bg-white/5 px-2.5 py-1.5 rounded-lg">
+                  <RefreshCw size={11} className="shrink-0 text-amber-400 animate-spin-slow" />
+                  <span><strong>Automatic Standing Rules:</strong> {sm.rule}</span>
+                </div>
+
+                {insights.user?.standing_note && (
+                  <p className="text-[11px] text-white/80 italic border-t border-white/10 pt-2">
+                    Admin note: "{insights.user.standing_note}"
+                  </p>
+                )}
               </div>
 
-              {/* Moderation Form */}
+              {/* Admin Manual Override Form */}
               {showModerationForm && (
-                <form onSubmit={handleStandingSubmit} className="p-4 bg-[#f8f7f4] border border-[#e8e4dc] rounded-2xl space-y-4">
-                  <div className="flex items-center gap-2 border-b border-[#e8e4dc] pb-2">
-                    <ShieldAlert className="w-4 h-4 text-[#142b6f]"/>
-                    <h4 className="text-[12px] font-black text-[#142b6f] uppercase tracking-wider">Admin Standing Override</h4>
+                <form onSubmit={handleStandingSubmit} className="p-4 bg-[#f8f7f4] border border-[#e8e4dc] rounded-2xl space-y-4 shadow-inner">
+                  <div className="flex items-center justify-between border-b border-[#e8e4dc] pb-2">
+                    <div className="flex items-center gap-2">
+                      <ShieldAlert className="w-4 h-4 text-[#142b6f]"/>
+                      <h4 className="text-[12px] font-black text-[#142b6f] uppercase tracking-wider">Manual Standing Override</h4>
+                    </div>
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800">Admin Audit</span>
                   </div>
+
+                  <p className="text-[11px] text-[#0d0d0d]/60 leading-relaxed">
+                    Manually set a temporary standing or loan limit for this user. Automated inspection returns will recalculate standing based on trust score rules unless overridden.
+                  </p>
+
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black text-[#0d0d0d]/50 uppercase tracking-wider">Risk Standing</label>
+                    <label className="text-[10px] font-black text-[#0d0d0d]/50 uppercase tracking-wider">Risk Standing Tier</label>
                     <select value={selectedStanding} onChange={e=>setSelectedStanding(e.target.value as UserStanding)} className="w-full px-3 py-2 text-xs rounded-xl border border-[#e8e4dc] bg-white font-semibold">
-                      <option value="GOOD_STANDING">GOOD_STANDING — Full Access</option>
-                      <option value="YELLOW_FLAG">YELLOW_FLAG — Warning / 1-book cap</option>
-                      <option value="RED_FLAG">RED_FLAG — Strict 1-Book Cap</option>
-                      <option value="SUSPENDED">SUSPENDED — Borrowing Blocked</option>
+                      <option value="GOOD_STANDING">GOOD_STANDING — Full Privileges (3 books)</option>
+                      <option value="YELLOW_FLAG">YELLOW_FLAG — Warning (1 book cap)</option>
+                      <option value="RED_FLAG">RED_FLAG — Red Flag (1 book cap)</option>
+                      <option value="SUSPENDED">SUSPENDED — Borrowing Disabled</option>
                     </select>
                   </div>
+
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black text-[#0d0d0d]/50 uppercase tracking-wider">Max Loans Override</label>
-                    <input type="number" min={0} max={10} value={loanOverride??""} onChange={e=>setLoanOverride(e.target.value?Number(e.target.value):undefined)} placeholder="Default" className="w-full px-3 py-2 text-xs rounded-xl border border-[#e8e4dc] bg-white"/>
+                    <label className="text-[10px] font-black text-[#0d0d0d]/50 uppercase tracking-wider">Max Concurrent Loans Override</label>
+                    <input type="number" min={0} max={10} value={loanOverride??""} onChange={e=>setLoanOverride(e.target.value?Number(e.target.value):undefined)} placeholder="System Default (3 for Good, 1 for Flagged)" className="w-full px-3 py-2 text-xs rounded-xl border border-[#e8e4dc] bg-white font-mono"/>
                   </div>
+
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black text-[#0d0d0d]/50 uppercase tracking-wider">Reason / Note <span className="text-red-500">*</span></label>
-                    <textarea rows={2} value={standingNote} onChange={e=>setStandingNote(e.target.value)} placeholder="Audit justification..." required className="w-full px-3 py-2 text-xs rounded-xl border border-[#e8e4dc] bg-white resize-none"/>
+                    <label className="text-[10px] font-black text-[#0d0d0d]/50 uppercase tracking-wider">Audit Justification / Note <span className="text-red-500">*</span></label>
+                    <textarea rows={2} value={standingNote} onChange={e=>setStandingNote(e.target.value)} placeholder="Reason for manual adjustment..." required className="w-full px-3 py-2 text-xs rounded-xl border border-[#e8e4dc] bg-white resize-none"/>
                   </div>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" checked={isBlockedToggle} onChange={e=>setIsBlockedToggle(e.target.checked)} className="w-4 h-4 accent-rose-600 rounded"/>
-                    <span className="text-[11px] font-semibold text-[#0d0d0d]/80">Block account from portal</span>
-                  </label>
+
                   <div className="flex justify-end gap-2 pt-2">
                     <button type="button" onClick={()=>setShowModerationForm(false)} className="px-3.5 py-2 rounded-xl bg-white border border-[#e8e4dc] text-[11px] font-bold text-[#0d0d0d]/70">Cancel</button>
                     <button type="submit" disabled={moderateStanding.isPending} className="px-4 py-2 rounded-xl bg-[#142b6f] text-white text-[11px] font-bold disabled:opacity-50 hover:bg-[#0e1f52]">
-                      {moderateStanding.isPending?"Saving...":"Apply Change"}
+                      {moderateStanding.isPending?"Saving...":"Apply Override"}
                     </button>
                   </div>
                 </form>
               )}
 
               {/* Stats grid */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                 {[
                   {label:String(t("admin_users.insights.total_rentals")),value:insights.stats.totalRentals},
                   {label:String(t("admin_users.insights.on_time_rate")),value:`${insights.stats.onTimeRate}%`},
                   {label:String(t("admin_users.insights.active_overdue")),value:insights.stats.activeOverdue,hi:insights.stats.activeOverdue>0},
                   {label:"Damage Incidents",value:insights.stats.incidentCount||0,hi:(insights.stats.incidentCount||0)>0},
                 ].map(s=>(
-                  <div key={s.label} className={`rounded-xl border p-3.5 ${s.hi?"bg-red-50 border-red-100":"bg-[#f5f4f0] border-[#e8e4dc]"}`}>
-                    <p className={`text-[20px] font-serif font-black leading-none ${s.hi?"text-red-700":"text-[#0d0d0d]"}`}>{s.value}</p>
+                  <div key={s.label} className={`rounded-xl border p-3 ${s.hi?"bg-red-50 border-red-100":"bg-[#f5f4f0] border-[#e8e4dc]"}`}>
+                    <p className={`text-[18px] font-serif font-black leading-none ${s.hi?"text-red-700":"text-[#0d0d0d]"}`}>{s.value}</p>
                     <p className="text-[9px] font-black text-[#0d0d0d]/35 uppercase tracking-wider mt-1.5">{s.label}</p>
                   </div>
                 ))}
@@ -288,7 +328,14 @@ function InsightsPanel({ user, insights, onClose }: { user: User; insights: any 
               {/* Damage Incidents Log */}
               {insights.damageIncidents && insights.damageIncidents.length>0 && (
                 <div className="space-y-3">
-                  <p className="text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-[0.18em]">Damage Liability Log ({insights.damageIncidents.length})</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-[0.18em]">Damage Liability Log ({insights.damageIncidents.length})</p>
+                    {insights.stats.pendingDamagePenalty ? (
+                      <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-100">
+                        {insights.stats.pendingDamagePenalty.toFixed(2)} ETB Pending
+                      </span>
+                    ) : null}
+                  </div>
                   <div className="space-y-2">
                     {insights.damageIncidents.map((inc:any)=>(
                       <div key={inc.id} className="p-3.5 bg-white border border-rose-200 rounded-xl space-y-2">
@@ -310,7 +357,7 @@ function InsightsPanel({ user, insights, onClose }: { user: User; insights: any 
                           <span>Fee: <strong className="text-rose-600">{Number(inc.penalty_amount).toFixed(2)} ETB</strong></span>
                           <span>{new Date(inc.created_at).toLocaleDateString()}</span>
                         </div>
-                        {inc.notes&&<p className="text-[10px] text-[#0d0d0d]/50 italic border-t border-gray-100 pt-1.5">{inc.notes}</p>}
+                        {inc.notes&&<p className="text-[10px] text-[#0d0d0d]/50 italic border-t border-gray-100 pt-1.5">"{inc.notes}"</p>}
                         {inc.penalty_status==="PENDING"&&(
                           <div className="flex justify-end gap-2 pt-1 border-t border-gray-100">
                             <button onClick={()=>handleResolvePenalty(inc.id,"WAIVED")} className="px-2.5 py-1 text-[10px] font-bold rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">Waive Fee</button>
@@ -333,7 +380,9 @@ function InsightsPanel({ user, insights, onClose }: { user: User; insights: any 
                     {insights.history.slice(0,10).map((h:any)=>(
                       <div key={h.id} className={`rounded-xl border px-3.5 py-3 space-y-2 ${h.hasDamageIncident?"bg-rose-50 border-rose-100":"bg-[#f5f4f0] border-[#e8e4dc]"}`}>
                         <div className="flex items-start gap-2.5">
-                          <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${h.isLate?"bg-red-500":h.status==="BORROWED"?"bg-amber-400":"bg-emerald-500"}`}/>
+                          <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase mt-0.5 shrink-0 ${h.status==="BORROWED"?"bg-blue-100 text-blue-800":h.status==="PENDING"?"bg-amber-100 text-amber-800":h.status==="RETURNED"?"bg-emerald-100 text-emerald-800":"bg-gray-200 text-gray-700"}`}>
+                            {h.status}
+                          </span>
                           <div className="min-w-0 flex-1">
                             <p className="text-[12px] font-semibold text-[#0d0d0d] truncate">{h.bookTitle}</p>
                             {h.copyCode&&h.copyCode!=="N/A"&&<p className="text-[10px] font-mono text-[#0d0d0d]/40 mt-0.5">{h.copyCode}</p>}
@@ -341,13 +390,13 @@ function InsightsPanel({ user, insights, onClose }: { user: User; insights: any 
                           {h.fine>0&&<span className="text-[11px] font-bold text-red-600 shrink-0">{h.fine.toFixed(1)} ETB</span>}
                           {h.hasDamageIncident&&<span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 border border-rose-200 shrink-0">Incident</span>}
                         </div>
-                        <div className="flex items-center gap-2 pl-4">
-                          <span className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-wider">Issued</span>
+                        <div className="flex items-center gap-2 pl-2 text-[10px] text-[#0d0d0d]/50">
+                          <span className="font-bold">Issued:</span>
                           <ConditionPill cond={h.outgoingCondition}/>
-                          <span className="text-[#0d0d0d]/25 text-[10px]">→</span>
-                          <span className="text-[9px] font-black text-[#0d0d0d]/30 uppercase tracking-wider">Returned</span>
+                          <span>→</span>
+                          <span className="font-bold">Returned:</span>
                           <ConditionPill cond={h.returnedCondition}/>
-                          {h.isLate&&<span className="ml-auto text-[9px] font-extrabold text-red-500 shrink-0">{h.daysLate}d late</span>}
+                          {h.isLate&&<span className="ml-auto font-bold text-red-500 shrink-0">{h.daysLate}d late</span>}
                         </div>
                       </div>
                     ))}
@@ -367,7 +416,7 @@ export default function AdminUsersPage() {
   const { t }        = useLanguage();
   const { user: me } = usePersona();
   const [search, setSearch]                 = useState("");
-  const [tab, setTab]                       = useState<"STUDENTS"|"ADMINS">("STUDENTS");
+  const [tab, setTab]                       = useState<"ALL"|"STUDENTS"|"ADMINS">("ALL");
   const [standingFilter, setStandingFilter] = useState<StandingFilter>("ALL");
   const [page, setPage]                     = useState(1);
   const [selected, setSelected]             = useState<User | null>(null);
@@ -377,7 +426,7 @@ export default function AdminUsersPage() {
   const [bulkSelected, setBulkSelected]     = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting]     = useState(false);
 
-  const { data: usersData, isLoading, refetch: refetchUsers } = useUsers();
+  const { data: usersData, isLoading } = useUsers();
   const { data: insightsData } = useUserInsights(selected?.id || "");
   const deleteUser    = useDeleteUser();
   const blockUser     = useBlockUser();
@@ -396,11 +445,17 @@ export default function AdminUsersPage() {
     return () => window.removeEventListener("click", close);
   }, []);
 
-  const scopeFiltered = users.filter(u =>
-    isSuperAdmin ? (tab==="ADMINS" ? u.role==="ADMIN"||u.role==="SUPER_ADMIN" : u.role==="STUDENT") : u.role==="STUDENT"
-  );
+  const scopeFiltered = users.filter(u => {
+    if (tab === "ALL") return true;
+    if (tab === "ADMINS") return u.role === "ADMIN" || u.role === "SUPER_ADMIN" || Boolean(u.is_super_admin);
+    return u.role === "STUDENT";
+  });
 
-  const standingFiltered = standingFilter==="ALL" ? scopeFiltered : scopeFiltered.filter(u=>u.standing===standingFilter);
+  const standingFiltered = standingFilter === "ALL"
+    ? scopeFiltered
+    : standingFilter === "SUSPENDED"
+    ? scopeFiltered.filter(u => u.standing === "SUSPENDED" || u.is_blocked)
+    : scopeFiltered.filter(u => u.standing === standingFilter);
 
   const filtered = standingFiltered.filter(u =>
     matchesMultiLangQuery(u.name,search) || matchesMultiLangQuery(u.email,search) ||
@@ -462,8 +517,8 @@ export default function AdminUsersPage() {
     setConfirm({ title:`Delete ${bulkSelected.size} user${bulkSelected.size>1?"s":""}?`, description:"Permanently delete selected users and all their data. Cannot be undone.", confirmLabel:`Delete ${bulkSelected.size}`, tone:"danger",
       action:async()=>{ setBulkDeleting(true); const ids=Array.from(bulkSelected); let ok=0;
         try{ for(const id of ids){await deleteUser.mutateAsync(id);ok++;}
-          toast.success(`Deleted ${ok} user${ok>1?"s":""}`); setBulkSelected(new Set()); setSelected(s=>s&&bulkSelected.has(s.id)?null:s); await refetchUsers();
-        }catch(e){ if(ok>0){toast.success(`Deleted ${ok} of ${ids.length}`);await refetchUsers();} toast.error(err(e,"Failed to delete some users")); }
+          toast.success(`Deleted ${ok} user${ok>1?"s":""}`); setBulkSelected(new Set()); setSelected(s=>s&&bulkSelected.has(s.id)?null:s);
+        }catch(e){ if(ok>0){toast.success(`Deleted ${ok} of ${ids.length}`);} toast.error(err(e,"Failed to delete some users")); }
         finally{setBulkDeleting(false);}
       },
     });
@@ -512,6 +567,17 @@ export default function AdminUsersPage() {
   const filterColors:  Record<StandingFilter,string> = { ALL:"bg-[#0d0d0d] text-white", GOOD_STANDING:"bg-emerald-600 text-white", YELLOW_FLAG:"bg-amber-500 text-white", RED_FLAG:"bg-orange-600 text-white", SUSPENDED:"bg-rose-600 text-white" };
   const filterInactive:Record<StandingFilter,string> = { ALL:"text-[#0d0d0d]/50 hover:text-[#0d0d0d]", GOOD_STANDING:"text-emerald-700 hover:bg-emerald-50", YELLOW_FLAG:"text-amber-700 hover:bg-amber-50", RED_FLAG:"text-orange-700 hover:bg-orange-50", SUSPENDED:"text-rose-700 hover:bg-rose-50" };
 
+  /* Dynamic KPI metrics computed from ALL users in the system (including admins) */
+  const totalUsersCount = users.length;
+  const totalStudentsCount = users.filter(u => u.role === "STUDENT").length;
+  const totalAdminsCount = users.filter(u => u.role === "ADMIN" || u.role === "SUPER_ADMIN" || Boolean(u.is_super_admin)).length;
+  const goodStandingCount = users.filter(u => (!u.standing || u.standing === "GOOD_STANDING") && !u.is_blocked).length;
+  const flaggedCount = users.filter(u => u.standing === "YELLOW_FLAG" || u.standing === "RED_FLAG").length;
+  const suspendedOrBlockedCount = users.filter(u => u.is_blocked || u.standing === "SUSPENDED").length;
+
+  const validScores = users.filter(u => typeof u.trust_score === "number").map(u => u.trust_score as number);
+  const avgTrustScore = validScores.length > 0 ? Math.round(validScores.reduce((a, b) => a + b, 0) / validScores.length) : 100;
+
   return (
     <>
       <style>{`.badge-chip{display:inline-flex;padding:2px 10px;border-radius:9999px;font-size:10px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase}`}</style>
@@ -531,18 +597,123 @@ export default function AdminUsersPage() {
           </div>
         </motion.div>
 
+        {/* KPI Statistics Grid (Clickable Filters) */}
+        <motion.div variants={fadeUp} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Card 1: Total Accounts */}
+          <motion.button
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => { setTab("ALL"); setStandingFilter("ALL"); setPage(1); }}
+            className={`text-left bg-white rounded-2xl border p-4 flex items-center gap-4 transition-all cursor-pointer ${
+              standingFilter === "ALL" && tab === "ALL"
+                ? "border-[#0d0d0d] ring-2 ring-[#0d0d0d]/10 shadow-md"
+                : "border-[#e8e4dc] hover:border-[#0d0d0d]/40 shadow-xs"
+            }`}
+          >
+            <div className="w-11 h-11 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-700 shrink-0">
+              <UsersIcon size={20} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-wider">Total Accounts</p>
+                {standingFilter === "ALL" && tab === "ALL" && <span className="text-[9px] font-bold bg-[#0d0d0d] text-white px-1.5 py-0.5 rounded">Active</span>}
+              </div>
+              <p className="text-xl font-serif font-black text-[#0d0d0d]">{totalUsersCount}</p>
+              <p className="text-[11px] text-[#0d0d0d]/45 truncate">{totalStudentsCount} Students • {totalAdminsCount} Admins</p>
+            </div>
+          </motion.button>
+
+          {/* Card 2: Good Standing */}
+          <motion.button
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => { setTab("ALL"); setStandingFilter("GOOD_STANDING"); setPage(1); }}
+            className={`text-left bg-white rounded-2xl border p-4 flex items-center gap-4 transition-all cursor-pointer ${
+              standingFilter === "GOOD_STANDING"
+                ? "border-emerald-600 ring-2 ring-emerald-500/20 shadow-md"
+                : "border-[#e8e4dc] hover:border-emerald-500/40 shadow-xs"
+            }`}
+          >
+            <div className="w-11 h-11 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-700 shrink-0">
+              <ShieldCheck size={20} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-wider">Good Standing</p>
+                {standingFilter === "GOOD_STANDING" && <span className="text-[9px] font-bold bg-emerald-600 text-white px-1.5 py-0.5 rounded">Active</span>}
+              </div>
+              <p className="text-xl font-serif font-black text-[#0d0d0d]">{goodStandingCount}</p>
+              <p className="text-[11px] text-emerald-700 font-semibold truncate">{totalUsersCount > 0 ? Math.round((goodStandingCount / totalUsersCount) * 100) : 100}% of accounts</p>
+            </div>
+          </motion.button>
+
+          {/* Card 3: Risk Flagged */}
+          <motion.button
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => {
+              setTab("ALL");
+              setStandingFilter(standingFilter === "YELLOW_FLAG" ? "RED_FLAG" : "YELLOW_FLAG");
+              setPage(1);
+            }}
+            className={`text-left bg-white rounded-2xl border p-4 flex items-center gap-4 transition-all cursor-pointer ${
+              standingFilter === "YELLOW_FLAG" || standingFilter === "RED_FLAG"
+                ? "border-amber-500 ring-2 ring-amber-500/20 shadow-md"
+                : "border-[#e8e4dc] hover:border-amber-500/40 shadow-xs"
+            }`}
+          >
+            <div className="w-11 h-11 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-700 shrink-0">
+              <AlertTriangle size={20} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-wider">Risk Flagged</p>
+                {(standingFilter === "YELLOW_FLAG" || standingFilter === "RED_FLAG") && (
+                  <span className="text-[9px] font-bold bg-amber-500 text-white px-1.5 py-0.5 rounded">
+                    {standingFilter === "RED_FLAG" ? "Red" : "Yellow"}
+                  </span>
+                )}
+              </div>
+              <p className="text-xl font-serif font-black text-[#0d0d0d]">{flaggedCount}</p>
+              <p className="text-[11px] text-amber-700 font-semibold truncate">Yellow & Red (Toggle)</p>
+            </div>
+          </motion.button>
+
+          {/* Card 4: Blocked / Suspended */}
+          <motion.button
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => { setTab("ALL"); setStandingFilter("SUSPENDED"); setPage(1); }}
+            className={`text-left bg-white rounded-2xl border p-4 flex items-center gap-4 transition-all cursor-pointer ${
+              standingFilter === "SUSPENDED"
+                ? "border-rose-600 ring-2 ring-rose-500/20 shadow-md"
+                : "border-[#e8e4dc] hover:border-rose-500/40 shadow-xs"
+            }`}
+          >
+            <div className="w-11 h-11 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-700 shrink-0">
+              <Ban size={20} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-black text-[#0d0d0d]/40 uppercase tracking-wider">Blocked / Suspended</p>
+                {standingFilter === "SUSPENDED" && <span className="text-[9px] font-bold bg-rose-600 text-white px-1.5 py-0.5 rounded">Active</span>}
+              </div>
+              <p className="text-xl font-serif font-black text-[#0d0d0d]">{suspendedOrBlockedCount}</p>
+              <p className="text-[11px] text-[#0d0d0d]/45 truncate">Avg Index: <strong className="text-[#0d0d0d]">{avgTrustScore}</strong> / 100</p>
+            </div>
+          </motion.button>
+        </motion.div>
+
         {/* Tab + standing filter row */}
         <motion.div variants={fadeUp} className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          {isSuperAdmin && (
-            <div className="flex gap-1 p-1 bg-white rounded-xl border border-[#e8e4dc] w-fit shrink-0">
-              {(["STUDENTS","ADMINS"] as const).map(tb=>(
-                <button key={tb} onClick={()=>{setTab(tb);setPage(1);setStandingFilter("ALL");}}
-                  className={`px-5 py-2 rounded-lg text-[12px] font-bold transition-all ${tab===tb?"bg-[#0d0d0d] text-white shadow-sm":"text-[#0d0d0d]/50 hover:text-[#0d0d0d]"}`}>
-                  {tb==="STUDENTS"?String(t("admin_users.tabs.students")):String(t("admin_users.tabs.admins"))}
-                </button>
-              ))}
-            </div>
-          )}
+          <div className="flex gap-1 p-1 bg-white rounded-xl border border-[#e8e4dc] w-fit shrink-0">
+            {(["ALL", "STUDENTS", "ADMINS"] as const).map(tb=>(
+              <button key={tb} onClick={()=>{setTab(tb);setPage(1);setStandingFilter("ALL");}}
+                className={`px-4 py-1.5 rounded-lg text-[12px] font-bold transition-all ${tab===tb?"bg-[#0d0d0d] text-white shadow-sm":"text-[#0d0d0d]/50 hover:text-[#0d0d0d]"}`}>
+                {tb==="ALL"?"All Users":tb==="STUDENTS"?String(t("admin_users.tabs.students")):String(t("admin_users.tabs.admins"))}
+              </button>
+            ))}
+          </div>
           <div className="flex flex-wrap gap-1.5">
             {(["ALL","GOOD_STANDING","YELLOW_FLAG","RED_FLAG","SUSPENDED"] as StandingFilter[]).map(sf=>(
               <button key={sf} onClick={()=>{setStandingFilter(sf);setPage(1);}}

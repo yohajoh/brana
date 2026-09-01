@@ -733,6 +733,7 @@ export function useDeleteUser() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.users });
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
     },
   });
 }
@@ -766,6 +767,7 @@ export function useBlockUser() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.users });
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
     },
   });
 }
@@ -799,6 +801,7 @@ export function useUnblockUser() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.users });
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
     },
   });
 }
@@ -809,6 +812,7 @@ export function usePromoteStudentToAdmin() {
     mutationFn: (id: string) => api.patch<{ data: unknown }>(`/auth/users/${id}/promote-admin`),
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.users });
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
     },
   });
 }
@@ -819,6 +823,7 @@ export function useConvertAdminToStudent() {
     mutationFn: (id: string) => api.patch<{ data: unknown }>(`/auth/users/${id}/convert-student`),
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.users });
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
     },
   });
 }
@@ -829,6 +834,7 @@ export function useTransferSuperAdmin() {
     mutationFn: (id: string) => api.patch<{ data: unknown }>(`/auth/users/${id}/transfer-super-admin`),
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.users });
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
       queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
     },
   });
@@ -1655,6 +1661,27 @@ export function useReturnRentalWithInspection() {
   });
 }
 
+export function useSettleRentalFine() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ rentalId, method, notes }: { rentalId: string; method: "CASH" | "WAIVE"; notes?: string }) =>
+      api.patch<{ status: string; data: unknown }>(`/rentals/${rentalId}/settle-fine`, { method, notes }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rentals"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.users });
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+    },
+  });
+}
+
+export function useSendOverdueReminders() {
+  return useMutation({
+    mutationFn: (rentalIds?: string[]) =>
+      api.post<{ status: string; data: { remindersSent: number } }>("/rentals/admin/send-reminders", { rentalIds }),
+  });
+}
+
+
 export function useModerateUserStanding() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -1703,8 +1730,8 @@ export function useUpdateDamagePenalty() {
         notes,
       }),
     onSuccess: (data, variables) => {
-      // The damage incident is linked to a specific user — we don't have the userId here
-      // so we invalidate all user insight queries broadly.
+      // Invalidate all user lists, admin user insights, and rental records
+      queryClient.invalidateQueries({ queryKey: queryKeys.users });
       queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
       queryClient.invalidateQueries({ queryKey: ["rentals"] });
     },

@@ -1176,3 +1176,75 @@ export const extendRental = async (rentalId, { extra_days }, io) => {
 
   return updated;
 };
+
+/**
+ * Admin: Settle a pending rental fine (CASH or WAIVE) directly at the library desk.
+ */
+export const settleRentalFine = async (rentalId, { method = "CASH", notes } = {}, adminUserId, io) => {
+  const rental = await prisma.rental.findUnique({
+    where: { id: rentalId },
+    include: RENTAL_INCLUDE,
+  });
+
+  if (!rental) throw new AppError("Rental not found", 404);
+  if (rental.status !== "PENDING") {
+    throw new AppError("Only rentals with PENDING status (awaiting fine payment) can be settled.", 400);
+  }
+
+  const fineAmount = Number(rental.fine || 0);
+
+  const result = await prisma.$transaction(async (tx) => {
+    // 1. Update rental status to COMPLETED
+    const updatedRental = await tx.rental.update({
+      where: { id: rentalId },
+      data: { status: "COMPLETED" },
+      include: RENTAL_INCLUDE,
+    });
+
+    // 2. Record payment (upsert to handle if a Payment record already exists for this rental_id)
+    const timestamp = Date.now();
+    const tx_ref = `BRANA-CASH-${timestamp}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+    await tx.payment.upsert({
+      where: { rental_id: rentalId },
+      update: {
+        amount: fineAmount,
+        context: "FINE",
+        method: method === "WAIVE" ? "CASH" : (method || "CASH"),
+        status: "SUCCESS",
+        paid_at: new Date(),
+      },
+      create: {
+        rental_id: rentalId,
+        tx_ref,
+        amount: fineAmount,
+        context: "FINE",
+        method: method === "WAIVE" ? "CASH" : (method || "CASH"),
+        status: "SUCCESS",
+        paid_at: new Date(),
+      },
+    });
+
+
+    // 3. Mark damage incidents as PAID or WAIVED
+    await tx.damageIncident.updateMany({
+      where: { rental_id: rentalId, penalty_status: "PENDING" },
+      data: { penalty_status: method === "WAIVE" ? "WAIVED" : "PAID" },
+    });
+
+    // 4. Recalculate user trust score & standing
+    await recalculateUserTrustScore(rental.user_id, tx);
+
+    return updatedRental;
+  });
+
+  const actionText = method === "WAIVE" ? "waived by librarian" : "settled in cash";
+  await createNotification({
+    userId: rental.user_id,
+    message: `✅ Fine of ${fineAmount.toFixed(2)} ETB for "${rental.physical_book?.title || "Book"}" has been ${actionText}. Your loan is fully closed!`,
+    type: "INFO",
+    io,
+  });
+
+  return result;
+};
+
